@@ -5,9 +5,9 @@ About 15 minutes. Keep Hostinger auto-renewal ON until the last step is checked.
 
 ## Before you start
 - This repo: https://github.com/BasheeraWaNazeera/BasheeraWaNazeera
-- Free site now: https://basheerawanazeera.github.io/BasheeraWaNazeera/ (home page and new articles
+- Free site now: https://basheerawanazeera.github.io/BasheeraWaNazeera/ (home page and new articles (in /read/)
   are open to Google, the Video Library joins when it is in the menu; the pages copied from WordPress stay hidden until move day)
-- New content kept safe by every refresh: the folders in _build/keep.txt (library, articles);
+- New content kept safe by every refresh: the folders in _build/keep.txt (library, read);
   pages opened to Google: _build/open.txt
 - It refreshes itself from WordPress every Monday (Actions tab → "Weekly refresh from WordPress").
   Check the newest run has a green tick. If not, press "Run workflow" on it once.

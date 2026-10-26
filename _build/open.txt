@@ -1,3 +1,4 @@
 # opened to search after every rebuild (see after.py); add "library" when the Video Library goes in the menu
+# new articles go in read/<slug>/ (not "articles": WordPress has its own /articles/ page)
 .
-articles
+read

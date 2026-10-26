@@ -12,5 +12,5 @@ again (remove its noindex, canonical = the address). Check with linkcheck.py and
 
 Move Day kit (26 Oct 2026): `.github/workflows/refresh.yml` rebuilds the copied part every Monday from WordPress
 (settings in `site.env`; refuses a copy with fewer than 80% of the pages). The rebuild keeps the folders in
-`keep.txt` (library, articles) and then runs `after.py`, which opens the pages in `open.txt` (home, articles)
+`keep.txt` (library, read) and then runs `after.py`, which opens the pages in `open.txt` (home, read/ = new articles)
 and adds them to sitemap.xml and the site search. `golive.yml` + MOVE-DAY.md are the move-day steps.
