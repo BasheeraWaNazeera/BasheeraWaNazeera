@@ -1,0 +1,3 @@
+# opened to search after every rebuild (see after.py); add "library" when the Video Library goes in the menu
+.
+articles

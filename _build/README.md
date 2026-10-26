@@ -9,3 +9,8 @@ stay hidden (noindex, canonical = the WordPress page) because they are duplicate
 Rebuild of the copied part: `python3 -I wpcrawl.py basheerawanazeera.com mirror 4`, then
 `HIDDEN=1 python3 -I wpstatic.py mirror OUT basheerawanazeera.com https://basheerawanazeera.github.io/BasheeraWaNazeera/ posts.json pages.json`, then open the home page
 again (remove its noindex, canonical = the address). Check with linkcheck.py and shoot.js.
+
+Move Day kit (26 Oct 2026): `.github/workflows/refresh.yml` rebuilds the copied part every Monday from WordPress
+(settings in `site.env`; refuses a copy with fewer than 80% of the pages). The rebuild keeps the folders in
+`keep.txt` (library, articles) and then runs `after.py`, which opens the pages in `open.txt` (home, articles)
+and adds them to sitemap.xml and the site search. `golive.yml` + MOVE-DAY.md are the move-day steps.
