@@ -2,3 +2,4 @@
 # new articles go in read/<slug>/ (not "articles": WordPress has its own /articles/ page)
 .
 read
+more
