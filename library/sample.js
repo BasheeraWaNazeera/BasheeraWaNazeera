@@ -1,0 +1,30 @@
+// Sample folders and posts (BWN J25 talks) used in demo mode and to seed the database.
+export const sampleFolders=[
+ {id:"s1",range:"(000)",name:"Section 01 · Quran Revival",parent:null},
+ {id:"f11",range:"(001–020)",name:"Why the Quran was left aside",parent:"s1"},
+ {id:"f12",range:"(021–040)",name:"Short clips (1 minute)",parent:"s1"},
+ {id:"s2",range:"(100)",name:"Section 02 · Seerah & Hijrah",parent:null},
+ {id:"f21",range:"(101–120)",name:"The Hijrah",parent:"s2"},
+ {id:"s3",range:"(200)",name:"Section 03 · Tawheed",parent:null},
+ {id:"s9",range:"(900)",name:"Section 09 · Channel workroom",parent:null,private:true},
+];
+export const samplePosts=[
+ {id:"p1",folder:"f11",no:"001",kind:"VIDEO",title:"Quran Revival: Introduction 2",lang:"Bangla · English captions",len:"10:45",status:"pub",date:"24 Oct 2026",
+  text:[["0:00","বিসমিল্লাহ, আলহামদুলিল্লাহ।"],["0:10","কুরআন রিভাইভাল — এটা কী? এর মানে হচ্ছে, কুরআনকে উদ্ধার করা — যে কুরআনকে আজকে মুসলিম পরিত্যাগ করেছে। তাই এর নাম কুরআন রিভাইভাল: পরিত্যক্ত কুরআনকে উদ্ধার করা।"],["0:46","তো, কীভাবে মুসলিম আজ কুরআন পরিত্যাগ করেছে? খুবই সহজ কথা: যে জিনিস যে কাজের জন্য, সেটা যদি সেই কাজে ব্যবহার না হয়, তাহলেই তো সেটা পরিত্যাগ করা হলো।"],["1:08","একটা বাড়ি যদি কেউ বানায় থাকার জন্যে, আর যদি কেউ সে বাড়িতে না থাকে, তাহলে বলা যায়, সেই বাড়িটা পরিত্যক্ত…"]],
+  raw:[["Original recording (phone, m4a)","Intro2.m4a","10.1 MB",""],["FLAC lossless","Intro2.flac","58 MB",""],["Opus 64 kbps","Intro2-64k.opus","5.0 MB","kept"],["Opus 32 kbps","Intro2-32k.opus","2.5 MB",""]],
+  versions:["Raw transcript v01.00 · 24 Oct 8:35am","Your edit v01.01 · not yet"]},
+ {id:"p2",folder:"f11",no:"002",kind:"AUDIO",title:"The Need for Quranic Revival",lang:"Bangla",len:"6:25",status:"draft",date:"25 Oct 2026",
+  text:[["0:00","বিসমিল্লাহ, আলহামদুলিল্লাহ, ওয়াস-সালাতু ওয়াস-সালামু আলা রাসূলিল্লাহ। কুরআন রিভাইভাল।"],["0:20","আমরা বলছিলাম, কীভাবে কুরআনকে পরিত্যাগ করা হয়েছে। এটা আজকের বিষয় না, আজকের ঘটনা না — এটা অনেক পুরনো। এমনকি হতে পারে এটা হাজার বছরের পুরনো।"],["0:45","এর অনেকগুলো কারণের মধ্যে আরেকটা কারণ হচ্ছে, কুরআনের বিষয়ে এই ধারণা…"]],
+  raw:[["Original recording (mp3)","The Need for Quranic Revival.mp3","6.2 MB",""],["FLAC lossless","need-revival.flac","34 MB",""],["Opus 64 kbps","need-revival-64k.opus","3.0 MB",""],["Opus 32 kbps","need-revival-32k.opus","1.5 MB",""]],
+  versions:["Raw transcript v01.00 · 25 Oct 10:05am","Your edit · not yet"]},
+ {id:"p3",folder:"f12",no:"021",kind:"VIDEO",title:"What is Quran Revival? (1 minute)",lang:"Bangla · BN + EN captions",len:"1:04",status:"pub",date:"23 Oct 2026",
+  text:[["0:00","কুরআন রিভাইভাল — পরিত্যক্ত কুরআনকে উদ্ধার করা। যে জিনিস যে কাজের জন্য, সেটা সেই কাজে ব্যবহার না হলে, সেটাই পরিত্যাগ।"]],
+  raw:[["Cut from Intro2 (77.9–100.6 s + 106.4–145.5 s)","see post 001","—",""],["Final video 1080p","BWN - T3 v01.00 - 2026-10-23.mp4","62 MB","kept"],["Short 9:16","BWN - SHORT v01.00 - 2026-10-23.mp4","38 MB","kept"]],
+  versions:["v01.00 · 23 Oct 6:38pm","Your picks (cut, thumbnail, title) · waiting"]},
+ {id:"p4",folder:"f21",no:"101",kind:"VIDEO",title:"Hijrah: the turning point",lang:"English",len:"—",status:"draft",date:"coming",
+  text:[["—","Waiting for your new recording (BWN J04 v02). The text will appear here once it is transcribed."]],
+  raw:[["New recording","not received yet","—",""]],versions:["v01 · first cut","v02 · waiting for your recording"]},
+ {id:"p5",folder:"s9",no:"901",kind:"AUDIO",title:"Voice sample for HeyGen",lang:"Bangla",len:"2:41",status:"priv",date:"25 Oct 2026",
+  text:[["3:45","Taken from “The Need for Quranic Revival” from 3:45 to the end. Low hum cut, levelled to −16 LUFS (BWN J07)."]],
+  raw:[["Voice sample","BWN - VOICE SAMPLE v01.01 - 2026-10-25.wav","27 MB","kept"]],versions:["v01.00 · light clean","v01.01 · 25 Oct 10:05am"]},
+];
