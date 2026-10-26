@@ -1,0 +1,78 @@
+ 
+
+    h1,
+    h2,
+    h3 {
+        color: #fff;
+    }
+    h1 {
+        /*border-bottom: 1px solid #ececec;*/
+        font-weight: 300;
+        margin-bottom: 2em;
+        padding-bottom: 1em;
+        text-align: center;
+    }
+    h1 span {
+        display: block;
+        font-size: .5em;
+    }
+
+    a:hover,
+    a:focus {
+        color: #ec407a;
+        border-bottom: none;
+    }
+    h3 {
+        font-weight: 500;
+    }
+    .intro {
+        font-size: 1.25em;
+    }
+    .js .panel-title {
+        margin: 0;
+    }
+    .panel-title a {
+        border-bottom: none;
+        color: #292929;
+        display: block;
+        padding: .5em 0;
+        position: relative;
+        text-decoration: none;
+        -webkit-transition: color 200ms ease 0s;
+        -moz-transition: color 200ms ease 0s;
+        transition: color 200ms ease 0s;
+        width: 100%;
+    }
+    .panel-title a .icon {
+        color: #9e9e9e;
+        position: absolute;
+        right: 0;
+        -webkit-transition: all 200ms ease 0s;
+        -moz-transition: all 200ms ease 0s;
+        transition: all 200ms ease 0s;
+    }
+    .panel-title a:hover,
+    .panel-title a:focus {
+        color: #37474f;
+    }
+    .panel-title a:hover .icon,
+    .panel-title a:focus .icon {
+        color: #ec407a;
+    }
+    .panel-title a.active {
+        color: #37474f;
+    }
+    .panel-title a.active .icon {
+        color: #ec407a;
+        -webkit-transform: rotate(45deg);
+        -moz-transform: rotate(45deg);
+        transform: rotate(45deg);
+    }
+    .js .accordion {
+        border-bottom: 1px solid #ececec;
+        
+    }
+   
+  /*  [id^="panel-"] {
+        padding-bottom: 2em;
+    }*/

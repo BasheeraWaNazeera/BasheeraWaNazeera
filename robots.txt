@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://basheerawanazeera.github.io/BasheeraWaNazeera/sitemap.xml
