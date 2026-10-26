@@ -45,7 +45,7 @@ async function firestoreStore() {
     import(FB + "firebase-app.js"), import(FB + "firebase-firestore.js"), import(FB + "firebase-auth.js")]);
   const app = initializeApp(firebaseConfig);
   const db = fs.getFirestore(app), auth = au.getAuth(app);
-  const { collection, query, where, getDocs, getDoc, doc, setDoc, updateDoc, serverTimestamp } = fs;
+  const { collection, query, where, getDocs, getDoc, doc, setDoc, updateDoc, writeBatch, serverTimestamp } = fs;
   $("signin").onclick = () => au.signInWithPopup(auth, new au.GoogleAuthProvider()).catch(e => toast(e.message));
   $("signout").onclick = () => au.signOut(auth);
   // Who is the owner is decided by the database rules alone (no addresses in the site files):
@@ -72,6 +72,16 @@ async function firestoreStore() {
     async savePost(id, fields) { await updateDoc(doc(db, "posts", id), { ...fields, updated: serverTimestamp() }); },
     async savePriv(id, priv) { await setDoc(doc(db, "postPrivate", id), priv); },
     async addFolder(f) { const { id, ...rest } = f; await setDoc(doc(db, "folders", id), rest); },
+    // first run: load the starter folders and talks, all as drafts (owner publishes each one)
+    async seed() {
+      const b = writeBatch(db);
+      seed.folders.forEach(({ id, ...f }) => b.set(doc(db, "folders", id), f));
+      seed.posts.forEach(({ pub: { id, ...p }, priv }) => {
+        b.set(doc(db, "posts", id), { ...p, status: p.status === "priv" ? "priv" : "draft", updated: serverTimestamp() });
+        b.set(doc(db, "postPrivate", id), priv);
+      });
+      await b.commit();
+    },
     async addPost(p) {
       const { id, ...rest } = p;
       await setDoc(doc(db, "posts", id), { ...rest, updated: serverTimestamp() });
@@ -250,6 +260,13 @@ async function setView(o) {
   try { ({ folders, posts } = await store.load(owner)); }
   catch (e) { $("post").innerHTML = `<p class="empty">Could not load the library: ${esc(e.message)}. Refresh to try again.</p>`; return; }
   renderTree(); renderPost();
+  if (owner && !folders.length && store.seed) {
+    $("post").innerHTML = `<h2>Your library is empty</h2><p class="empty">Load the starter folders and your talks (Intro 2, The Need for Quranic Revival, the 1-minute clip, Hijrah, the voice sample). They come in as drafts; publish each one when its YouTube link is in.</p><div class="tools"><button class="btn solid" id="seedbtn">Load starter videos</button><span class="toast" id="toast"></span></div>`;
+    $("seedbtn").onclick = async () => {
+      $("seedbtn").disabled = true;
+      try { await store.seed(); await setView(true); } catch (e) { toast("Not loaded: " + e.message); $("seedbtn").disabled = false; }
+    };
+  }
 }
 $("v-pub").onclick = () => setView(false);
 $("v-own").onclick = () => setView(true);
