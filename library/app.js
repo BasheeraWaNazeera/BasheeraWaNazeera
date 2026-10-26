@@ -3,6 +3,7 @@
 // Visitors read published posts; the owner signs in with Google for My view.
 import { firebaseConfig } from "./config.js";
 import { sampleFolders, samplePosts } from "./sample.js";
+import { makePopup, setPopups, resetPopups, editorHTML, wireEditor, flushAll } from "./notepane.js";
 
 const FB = "https://www.gstatic.com/firebasejs/10.12.2/";
 const DEMO = !firebaseConfig.apiKey;
@@ -104,6 +105,9 @@ const kids = id => folders.filter(f => (f.parent ?? null) === id && (owner || !f
 const postsIn = id => posts.filter(p => p.folder === id && visible(p)).sort((a, b) => String(a.no).localeCompare(String(b.no)));
 const count = id => postsIn(id).length + kids(id).reduce((n, f) => n + count(f.id), 0);
 
+// the note is stored as HTML; older posts kept the talk as timed lines, shown the same way
+const noteHTML = p => p.html ?? (p.text || []).map(({ t, s }) => `<p>${t ? `<span class="ts">${esc(t)}</span>` : ""}${esc(s)}</p>`).join("");
+
 function toast(msg) { const t = $("toast"); if (t) t.textContent = msg; }
 
 // ---- render ----------------------------------------------------------------
@@ -139,11 +143,13 @@ function renderPost() {
     <div class="meta">${chip}<span class="chip">${p.kind === "VIDEO" ? "Video" : p.kind === "AUDIO" ? "Audio" : "Text"} · ${esc(p.len)}</span><span class="chip">${esc(p.lang)}</span><span class="chip">${esc(p.date)}</span></div>
     ${media}
     ${owner ? `<div class="bis" lang="ar">بِسْمِ ٱللَّٰهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ</div>
-    <p class="note">Text of the talk (private draft). It is published as an Article on the main site, not here.</p>
-    <div class="text" id="text" lang="bn">${(p.text || []).map(({ t, s }) => `<p><span class="ts" contenteditable="false">${esc(t)}</span>${esc(s)}</p>`).join("")}</div>` : ""}
+    <p class="note">Note pane (private). Type straight in; it saves by itself. The talk’s text is published as an Article on the main site, not here.</p>
+    <section class="np" aria-label="Note">
+      <input class="np-ti" id="np-ti" value="${esc(p.title)}" aria-label="Title">
+      ${editorHTML("note", noteHTML(p))}
+    </section>` : ""}
     ${owner ? `
     <div class="tools">
-      <button class="btn" id="edit">Edit text</button>
       <label for="mv">Move to</label><select id="mv">${options}</select>
       <button class="btn" id="pubtoggle">${p.status === "pub" ? "Unpublish" : "Publish"}</button>
       <span class="toast" id="toast"></span>
@@ -170,16 +176,14 @@ function renderPost() {
 }
 
 function wireOwnerTools(p) {
-  $("edit").onclick = async e => {
-    const x = $("text"), on = x.contentEditable !== "true";
-    x.contentEditable = on; e.target.textContent = on ? "Save text" : "Edit text";
-    if (on) { toast("Type straight into the text, then Save text."); x.focus(); return; }
-    const text = [...x.querySelectorAll("p")].map(par => {
-      const ts = par.querySelector(".ts");
-      return { t: ts ? ts.textContent : "", s: [...par.childNodes].filter(n => n !== ts).map(n => n.textContent).join("").trim() };
-    }).filter(r => r.s || r.t);
-    await act(() => store.savePost(p.id, { text }), () => { p.text = text; }, "Text saved.");
-  };
+  // note pane: autosaves through Siyagah's bounded debounce; no re-render, so the caret stays put
+  wireEditor($("post"), "note", async html => { await store.savePost(p.id, { html }); p.html = html; });
+  const ti = $("np-ti");
+  ti.addEventListener("change", async () => {
+    const title = ti.value.trim(); if (!title || title === p.title) return;
+    try { await store.savePost(p.id, { title }); p.title = title; renderTree(); $("post").querySelector("h2").textContent = title; }
+    catch (e) { toast("Title not saved: " + e.message); }
+  });
   $("mv").onchange = async e => {
     const folder = e.target.value;
     await act(() => store.savePost(p.id, { folder }), () => {
@@ -204,6 +208,7 @@ function wireOwnerTools(p) {
 }
 
 async function act(write, apply, done) {
+  await flushAll();
   try { await write(); apply(); renderTree(); renderPost(); toast(done); }
   catch (e) { toast("Not saved: " + (e.message || e) + ". Check you are signed in, then try again."); }
 }
@@ -212,7 +217,7 @@ async function act(write, apply, done) {
 $("tree").addEventListener("click", e => {
   const r = e.target.closest(".row"); if (!r) return;
   if (r.dataset.folder) { const id = r.dataset.folder; open.has(id) ? open.delete(id) : open.add(id); safeSet("bwnlib.open", JSON.stringify([...open])); renderTree(); }
-  else { sel = r.dataset.post; renderTree(); renderPost(); if (innerWidth < 860) $("post").scrollIntoView({ behavior: "smooth" }); }
+  else { flushAll(); sel = r.dataset.post; renderTree(); renderPost(); if (innerWidth < 860) $("post").scrollIntoView({ behavior: "smooth" }); }
 });
 $("tree").addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); e.target.click(); } });
 $("openall").onclick = () => { folders.forEach(f => open.add(f.id)); renderTree(); };
@@ -254,6 +259,7 @@ function showAuth() {
 }
 
 async function setView(o) {
+  await flushAll();
   owner = o && isOwner();
   $("v-pub").setAttribute("aria-pressed", !owner); $("v-own").setAttribute("aria-pressed", owner);
   $("newfolder").hidden = $("newpost").hidden = !owner;
@@ -272,6 +278,30 @@ $("v-pub").onclick = () => setView(false);
 $("v-own").onclick = () => setView(true);
 
 // ---- start -------------------------------------------------------------------
+// ---- pop-up windows ----------------------------------------------------------
+// windows start just under the page header (and the demo banner when it shows)
+const TOP = () => {
+  const above = [$("banner"), document.querySelector("header")].find(e => e && !e.hidden);
+  return Math.min(Math.round(above.getBoundingClientRect().bottom + 16), innerHeight - 260);
+};
+makePopup($("mapwin"), "map", "The Map", () => {
+  const y = Math.max(8, TOP()), w = Math.max(320, Math.min(400, Math.round(innerWidth * .3)));
+  return { x: 16, y, w, h: Math.max(240, innerHeight - y - 16) };
+});
+makePopup($("postwin"), "note", "Video · note pane", () => {
+  const y = Math.max(8, TOP()), x = Math.max(16, Math.min(400, Math.round(innerWidth * .3))) + 32;
+  return { x, y, w: Math.max(320, innerWidth - x - 16), h: Math.max(240, innerHeight - y - 16) };
+});
+let popOn = safeGet("bwnlib.pop") !== "0";
+function applyPop() {
+  setPopups(popOn);
+  $("poptoggle").setAttribute("aria-pressed", popOn);
+  $("popreset").hidden = !popOn;
+}
+$("poptoggle").onclick = () => { popOn = !popOn; safeSet("bwnlib.pop", popOn ? "1" : "0"); applyPop(); };
+$("popreset").onclick = () => resetPopups();
+applyPop();
+
 (async () => {
   if (DEMO) {
     store = demoStore();
