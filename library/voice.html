@@ -1,0 +1,417 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>BwN Voice Inbox</title>
+<meta name="robots" content="noindex">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Marcellus&family=Hind+Siliguri:wght@400;500;600&display=swap">
+<style>
+/* Layout: one calm column. Sign-in bar, two "ways in" cards side by side on wide screens, then the inbox grouped by MMJ folder. */
+html{color-scheme:light}
+*{box-sizing:border-box}
+body{margin:0}
+:root{
+  --bg:#f3f5f3; --panel:#ffffff; --ink:#1d2a27; --muted:#5d6b67; --line:#d9e0dc;
+  --accent:#1f5c4d; --accent-soft:#e2eeea; --gold:#8a6a1f; --warn:#7a3b2e; --warn-soft:#f6e9e5; --rec:#b3261e;
+  --f-display:"Marcellus", Georgia, serif;
+  --f-body:"Hind Siliguri", "Noto Sans Bengali", system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#121816; --panel:#1a2220; --ink:#e3ebe8; --muted:#9aa9a4; --line:#2c3835;
+  --accent:#7fc4b0; --accent-soft:#1f3530; --gold:#d6b46a; --warn:#e59a88; --warn-soft:#3a2420; --rec:#ff8a80; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#121816; --panel:#1a2220; --ink:#e3ebe8; --muted:#9aa9a4; --line:#2c3835;
+  --accent:#7fc4b0; --accent-soft:#1f3530; --gold:#d6b46a; --warn:#e59a88; --warn-soft:#3a2420; --rec:#ff8a80; color-scheme:dark}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.55}
+.wrap{max-width:960px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 48px;display:grid;gap:18px}
+header{display:grid;gap:2px}
+h1{font-family:var(--f-display);font-weight:400;font-size:1.9rem;margin:0}
+.sub{margin:0;color:var(--muted);font-size:.92rem}
+.own{color:var(--accent);font-size:.88rem;text-decoration:none;justify-self:start}
+.own:hover{text-decoration:underline}
+.bar{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px 14px}
+.bar .who{flex:1;min-width:180px;font-size:.9rem;color:var(--muted)}
+button,.btn{font:inherit;font-size:.92rem;border:1px solid var(--accent);background:var(--accent);color:var(--panel);padding:7px 14px;border-radius:999px;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:6px}
+button.ghost,.btn.ghost{background:transparent;color:var(--accent)}
+button.link{border:0;background:none;color:var(--accent);padding:0;text-decoration:underline;font-size:.86rem}
+button:disabled{opacity:.45;cursor:default}
+button:focus-visible,select:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+.note{border:1px solid var(--line);border-radius:12px;padding:12px 14px;background:var(--panel);font-size:.9rem}
+.note.warn{background:var(--warn-soft);border-color:transparent;color:var(--warn)}
+.note ol{margin:6px 0 0;padding-left:20px}
+.ways{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,400px),1fr));gap:14px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px;display:grid;gap:12px;align-content:start;min-width:0}
+.card h2{font-family:var(--f-display);font-weight:400;font-size:1.25rem;margin:0}
+.card .k{font-size:.75rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+label.f{display:grid;gap:4px;font-size:.78rem;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);min-width:0}
+input[type=text],input[type=search],select,textarea{font:inherit;font-size:.95rem;text-transform:none;letter-spacing:0;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:8px 10px;width:100%;min-width:0}
+textarea{min-height:90px;resize:vertical}
+.timer{font-variant-numeric:tabular-nums;font-size:1.1rem;min-width:4.5em}
+.dot{width:10px;height:10px;border-radius:50%;background:var(--rec);display:inline-block;animation:p 1s infinite}
+@keyframes p{50%{opacity:.2}}
+@media (prefers-reduced-motion:reduce){.dot{animation:none}}
+#rec.on{background:var(--rec);border-color:var(--rec)}
+.picker{position:relative;display:grid;gap:6px}
+.opts{border:1px solid var(--line);border-radius:8px;max-height:220px;overflow:auto;background:var(--panel)}
+.opts button{display:block;width:100%;text-align:left;border:0;border-bottom:1px solid var(--line);border-radius:0;background:none;color:var(--ink);padding:7px 10px;font-size:.88rem}
+.opts button:last-child{border-bottom:0}
+.opts button:hover,.opts button:focus-visible{background:var(--accent-soft)}
+.opts small{display:block;color:var(--muted);font-size:.76rem}
+.chosen{font-size:.88rem;background:var(--accent-soft);color:var(--accent);border-radius:8px;padding:6px 10px}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chips button{background:var(--accent-soft);color:var(--accent);border-color:transparent;font-size:.8rem;padding:3px 10px}
+.files{font-size:.86rem;color:var(--muted);margin:0;padding-left:18px}
+.prog{font-size:.86rem;color:var(--muted)}
+.inbox{display:grid;gap:18px}
+.group{display:grid;gap:8px}
+.path{font-size:.78rem;color:var(--muted);margin:0}
+.path b{display:block;color:var(--ink);font-size:.98rem;font-weight:600}
+.item{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 14px;display:grid;gap:6px;min-width:0}
+.item h3{margin:0;font-size:1.02rem;font-weight:600;overflow-wrap:anywhere}
+.meta{font-size:.82rem;color:var(--muted)}
+.item .row{gap:12px}
+.item a{color:var(--accent);font-size:.86rem}
+audio{width:100%;height:40px}
+details summary{cursor:pointer;color:var(--accent);font-size:.86rem}
+details p{white-space:pre-wrap;font-size:.9rem;margin:6px 0 0}
+.empty{color:var(--muted);font-size:.92rem}
+.toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:var(--ink);color:var(--panel);padding:8px 16px;border-radius:999px;font-size:.88rem;max-width:calc(100vw - 32px);z-index:9}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <h1>BwN Voice Inbox</h1>
+  <p class="sub">Trial (BWN J27). Two ways in: an Otter file, or a recording made here. Each one is saved in your own Google Drive folder “To BwN” and filed under its Mapping My Journey folder. Only your Google account can see it.</p>
+  <a class="own" id="own" href="./voice.html" target="_blank" rel="noopener">↗ Open in its own window</a>
+</header>
+
+<div class="bar">
+  <span class="who" id="who">Not signed in.</span>
+  <button id="signin">Sign in with Google</button>
+  <button id="reconnect" class="ghost" hidden>Reconnect Drive</button>
+  <button id="signout" class="ghost" hidden>Sign out</button>
+</div>
+<div id="setup" class="note warn" hidden></div>
+<div id="demo" class="note" hidden><b>Demo mode:</b> nothing leaves this browser (no Google sign-in, no Drive).</div>
+
+<div id="main" hidden style="display:grid;gap:22px">
+<div class="ways">
+  <section class="card" aria-labelledby="w1">
+    <span class="k">Way 1 · keep Otter</span>
+    <h2 id="w1">Take in an Otter file</h2>
+    <p class="sub">In Otter: ⋯ → Export → Audio (and Text if you want Otter’s transcript). Then pick the file(s) here. Pick both at once and they stay together.</p>
+    <div class="row">
+      <label class="btn" for="ofile">Choose Otter file(s)</label>
+      <input id="ofile" type="file" multiple accept="audio/*,video/*,.m4a,.mp3,.wav,.txt,.docx,.srt,.pdf" hidden>
+      <button id="pick" class="ghost" title="Files you saved straight into the To BwN folder in Drive">Take in from Drive “To BwN”</button>
+    </div>
+    <ul class="files" id="olist"></ul>
+    <label class="f">Title <input type="text" id="otitle" placeholder="Name of the talk"></label>
+    <label class="f">Language <select id="olang"><option>English</option><option>Bangla</option><option>Arabic</option><option>Mixed</option></select></label>
+    <div class="picker" data-for="o"></div>
+    <div class="row"><button id="osave" disabled>Save to Drive and file it</button><span class="prog" id="oprog"></span></div>
+  </section>
+
+  <section class="card" aria-labelledby="w2">
+    <span class="k">Way 2 · record here (MyVoice)</span>
+    <h2 id="w2">Record a voice note</h2>
+    <label class="f">Language <select id="rlang"><option value="en-AU">English</option><option value="bn-BD">Bangla</option></select></label>
+    <div class="row">
+      <button id="rec">● Record</button>
+      <span class="timer" id="timer">0:00</span>
+      <span id="live" class="meta" hidden><span class="dot"></span> recording</span>
+    </div>
+    <audio id="rplay" controls hidden></audio>
+    <label class="f">Transcript (free, typed live by the browser; you can correct it)
+      <textarea id="rtext" placeholder="Words appear here while you speak (Chrome). Bangla: please try and tell us how it does."></textarea></label>
+    <p class="meta" id="sttnote"></p>
+    <label class="f">Title <input type="text" id="rtitle" placeholder="Name of the note"></label>
+    <div class="picker" data-for="r"></div>
+    <div class="row"><button id="rsave" disabled>Save to Drive and file it</button><span class="prog" id="rprog"></span></div>
+  </section>
+</div>
+
+<section class="inbox" aria-labelledby="ib">
+  <div class="row" style="justify-content:space-between">
+    <h2 id="ib" style="font-family:var(--f-display);font-weight:400;margin:0">Inbox</h2>
+    <span class="meta" id="count"></span>
+  </div>
+  <div id="list"></div>
+</section>
+</div>
+</div>
+<div class="toast" id="toast" hidden></div>
+
+<script type="module">
+import { firebaseConfig } from "./config.js";
+const FB = "https://www.gstatic.com/firebasejs/10.12.2/";
+const DEMO = new URLSearchParams(location.search).has("demo") || !firebaseConfig.apiKey;
+const DRIVE = "https://www.googleapis.com/drive/v3", UP = "https://www.googleapis.com/upload/drive/v3";
+const SCOPE = "https://www.googleapis.com/auth/drive.file";
+const FOLDER = "To BwN";
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const toast = (m, ms = 3500) => { const t = $("toast"); t.textContent = m; t.hidden = false; clearTimeout(toast.h); toast.h = setTimeout(() => t.hidden = true, ms); };
+const fmt = s => { s = Math.round(s || 0); return Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0"); };
+const stamp = () => { const d = new Date(), p = n => String(n).padStart(2, "0"); return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}.${p(d.getMinutes())}`; };
+
+// ---------- MMJ folder tree (Mapping My Journey categories; id = MMJ folder number) ----------
+let TREE = [];
+async function loadTree() {
+  try { const c = JSON.parse(localStorage.getItem("mmjTree") || "null"); if (c && Date.now() - c.at < 7 * 864e5) { TREE = c.t; return; } } catch { }
+  const url = p => `https://mappingmyjourney.com/wp-json/wp/v2/categories?per_page=100&page=${p}&_fields=id,name,parent`;
+  try {
+    const r1 = await fetch(url(1)); const pages = +r1.headers.get("X-WP-TotalPages") || 1;
+    const rest = await Promise.all(Array.from({ length: pages - 1 }, (_, i) => fetch(url(i + 2)).then(r => r.json())));
+    const all = [await r1.json(), ...rest].flat();
+    const tx = document.createElement("textarea");
+    const byId = new Map(all.map(c => { tx.innerHTML = c.name; return [c.id, { id: c.id, name: tx.value, parent: c.parent }]; }));
+    TREE = [...byId.values()].map(c => { const p = []; let x = c, n = 0; while (x && n++ < 8) { p.unshift(x.name); x = byId.get(x.parent); } return { id: c.id, name: c.name, path: p.join(" › ") }; });
+    try { localStorage.setItem("mmjTree", JSON.stringify({ at: Date.now(), t: TREE })); } catch { }
+  } catch (e) {
+    try { const c = JSON.parse(localStorage.getItem("mmjTree") || "null"); if (c) TREE = c.t; } catch { }
+    if (!TREE.length) toast("Mapping My Journey folders could not load (offline?). You can still save; choose the folder later.");
+  }
+}
+const STOP = new Set("the and for with from that this into what your their about have will there which when where them they been were also only then than such some more most very just like over under upon unto".split(" "));
+const words = s => (s || "").toLowerCase().normalize("NFKD").replace(/[^\p{L}\p{N} ]+/gu, " ").split(/\s+/).filter(w => w.length > 3 && !STOP.has(w));
+function propose(text) {
+  const w = new Set(words(text)); if (!w.size || !TREE.length) return [];
+  return TREE.map(f => { const fw = words(f.name); let s = 0; fw.forEach(x => { if (w.has(x)) s += 1; }); return { f, s: fw.length ? s / Math.sqrt(fw.length) : 0 }; })
+    .filter(x => x.s > 0).sort((a, b) => b.s - a.s).slice(0, 3).map(x => x.f);
+}
+const pick = {}; // chosen folder per form: {o: {id,name,path}, r: …}
+function folderPicker(el, key, textFn) {
+  el.innerHTML = `<label class="f">Mapping My Journey folder <input type="search" placeholder="Type to find a folder (e.g. Hijrah, Quran)"></label>
+    <div class="chips"></div><div class="opts" hidden></div><div class="chosen" hidden></div>`;
+  const [inp] = el.getElementsByTagName("input"), chips = el.querySelector(".chips"), opts = el.querySelector(".opts"), chosen = el.querySelector(".chosen");
+  const set = f => { pick[key] = f; chosen.hidden = !f; chosen.innerHTML = f ? `Filed in: <b>${esc(f.name)}</b><br><small>${esc(f.path)} · MMJ ${f.id}</small> <button class="link" type="button">change</button>` : ""; opts.hidden = true; if (f) inp.value = "";
+    const b = chosen.querySelector("button"); if (b) b.onclick = () => { set(null); inp.focus(); }; };
+  inp.oninput = () => { const q = inp.value.trim().toLowerCase(); if (q.length < 2) { opts.hidden = true; return; }
+    const hit = TREE.filter(f => f.path.toLowerCase().includes(q)).slice(0, 40);
+    opts.innerHTML = hit.length ? hit.map(f => `<button type="button" data-id="${f.id}">${esc(f.name)}<small>${esc(f.path)}</small></button>`).join("") : `<p class="empty" style="padding:8px 10px;margin:0">No folder matches.</p>`;
+    opts.hidden = false; opts.querySelectorAll("button").forEach(b => b.onclick = () => set(TREE.find(f => f.id == b.dataset.id))); };
+  el.refresh = () => { const p = propose(textFn()); chips.innerHTML = p.length ? `<span class="meta">Proposed:</span>` + p.map(f => `<button type="button" data-id="${f.id}" title="${esc(f.path)}">${esc(f.name)}</button>`).join("") : "";
+    chips.querySelectorAll("button").forEach(b => b.onclick = () => set(TREE.find(f => f.id == b.dataset.id))); };
+  el.set = set;
+}
+
+// ---------- store + Drive (real) or in-memory (demo) ----------
+let token = null, tokenAt = 0, ownerOk = false, api;
+async function realApi() {
+  const [{ initializeApp }, fs, au] = await Promise.all([import(FB + "firebase-app.js"), import(FB + "firebase-firestore.js"), import(FB + "firebase-auth.js")]);
+  const app = initializeApp(firebaseConfig), db = fs.getFirestore(app), auth = au.getAuth(app);
+  const provider = new au.GoogleAuthProvider(); provider.addScope(SCOPE);
+  try { const t = JSON.parse(sessionStorage.getItem("bwnDrive") || "null"); if (t && Date.now() - t.at < 50 * 6e4) { token = t.v; tokenAt = t.at; } } catch { }
+  const connect = async () => { const r = await au.signInWithPopup(auth, provider); const c = au.GoogleAuthProvider.credentialFromResult(r);
+    token = c?.accessToken || null; tokenAt = Date.now(); try { sessionStorage.setItem("bwnDrive", JSON.stringify({ v: token, at: tokenAt })); } catch { } };
+  $("signin").onclick = $("reconnect").onclick = () => connect().catch(e => toast(e.message));
+  $("signout").onclick = () => { sessionStorage.removeItem("bwnDrive"); token = null; au.signOut(auth); };
+  au.onAuthStateChanged(auth, async u => { ownerOk = false;
+    if (u) { try { await fs.getDoc(fs.doc(db, "owner", "check")); ownerOk = true; } catch { } }
+    showAuth(u); });
+  const gfetch = async (url, opt = {}) => {
+    if (!token || Date.now() - tokenAt > 55 * 6e4) throw Object.assign(new Error("Drive needs a fresh sign-in: press Reconnect Drive."), { code: "token" });
+    const r = await fetch(url, { ...opt, headers: { Authorization: "Bearer " + token, ...(opt.headers || {}) } });
+    if (r.status === 401) { token = null; throw Object.assign(new Error("Drive sign-in ran out: press Reconnect Drive."), { code: "token" }); }
+    if (!r.ok) { const j = await r.json().catch(() => ({})); const m = j.error?.message || r.statusText;
+      if (/has not been used|is disabled|SERVICE_DISABLED|accessNotConfigured/i.test(JSON.stringify(j))) throw Object.assign(new Error(m), { code: "disabled" });
+      throw new Error(m); }
+    return r; };
+  let folderId = null;
+  const folder = async () => { if (folderId) return folderId;
+    const q = encodeURIComponent(`name='${FOLDER}' and mimeType='application/vnd.google-apps.folder' and trashed=false`);
+    const j = await (await gfetch(`${DRIVE}/files?q=${q}&fields=files(id)&spaces=drive`)).json();
+    if (j.files?.length) return folderId = j.files[0].id;
+    const c = await (await gfetch(`${DRIVE}/files?fields=id`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: FOLDER, mimeType: "application/vnd.google-apps.folder", description: "Basheera Wa Nazeera: recordings for BwN (Voice Inbox, BWN J27)" }) })).json();
+    return folderId = c.id; };
+  const F = "id,name,mimeType,size,webViewLink,appProperties";
+  return {
+    async list() { const s = await fs.getDocs(fs.query(fs.collection(db, "postPrivate"), fs.where("kind", "==", "voice"))); return s.docs.map(d => ({ id: d.id, ...d.data() })); },
+    async saveRec(id, rec) { await fs.setDoc(fs.doc(db, "postPrivate", id), { kind: "voice", ...rec }, { merge: true }); },
+    async upload(blob, name, props) {
+      const meta = { name, parents: [await folder()], appProperties: props, mimeType: blob.type || undefined };
+      const r = await gfetch(`${UP}/files?uploadType=resumable&fields=${F}`, { method: "POST", headers: { "Content-Type": "application/json; charset=UTF-8", "X-Upload-Content-Type": blob.type || "application/octet-stream" }, body: JSON.stringify(meta) });
+      const loc = r.headers.get("Location");
+      const u = await fetch(loc, { method: "PUT", headers: { "Content-Type": blob.type || "application/octet-stream" }, body: blob });
+      if (!u.ok) throw new Error("Upload to Drive failed (" + u.status + ")"); return u.json(); },
+    async adopt(fileId, props) { // a file picked in Drive: move into To BwN and tag it (nothing deleted)
+      const f = await (await gfetch(`${DRIVE}/files/${fileId}?fields=parents,${F}`)).json(); const to = await folder();
+      const add = (f.parents || []).includes(to) ? "" : `&addParents=${to}`;
+      return (await gfetch(`${DRIVE}/files/${fileId}?fields=${F}${add}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ appProperties: props }) })).json(); },
+    async tag(fileId, props) { await gfetch(`${DRIVE}/files/${fileId}?fields=id`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ appProperties: props }) }); },
+    async blob(fileId) { return (await gfetch(`${DRIVE}/files/${fileId}?alt=media`)).blob(); },
+    async text(fileId) { return (await gfetch(`${DRIVE}/files/${fileId}?alt=media`)).text(); },
+    async share(fileId, on) { if (on) await gfetch(`${DRIVE}/files/${fileId}/permissions?fields=id`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ role: "reader", type: "anyone" }) });
+      else await gfetch(`${DRIVE}/files/${fileId}/permissions/anyoneWithLink`, { method: "DELETE" }).catch(() => { }); },
+    async picker() { return drivePicker(token, await folder()); },
+  };
+}
+function demoApi() {
+  const recs = [], blobs = new Map(); let n = 0;
+  $("demo").hidden = false; $("signin").hidden = true; ownerOk = true; token = "demo"; setTimeout(() => showAuth({ email: "demo" }));
+  return {
+    async list() { return structuredClone(recs); },
+    async saveRec(id, rec) { const i = recs.findIndex(r => r.id === id); const v = { id, kind: "voice", ...(i >= 0 ? recs[i] : {}), ...rec }; i >= 0 ? recs[i] = v : recs.push(v); },
+    async upload(blob, name, props) { const id = "demo" + (++n); blobs.set(id, blob); return { id, name, mimeType: blob.type, size: blob.size, webViewLink: "#" }; },
+    async adopt() { throw new Error("Not in demo mode."); }, async tag() { },
+    async blob(id) { return blobs.get(id); }, async text(id) { return blobs.get(id).text(); },
+    async share() { }, async picker() { throw new Error("Drive picker is not in demo mode."); },
+  };
+}
+// Google Picker: lets the owner tick files already in Drive; only ticked files become visible to this page (drive.file).
+async function drivePicker(tok, parent) {
+  if (!window.gapi) await new Promise((ok, no) => { const s = document.createElement("script"); s.src = "https://apis.google.com/js/api.js"; s.onload = ok; s.onerror = no; document.head.append(s); });
+  await new Promise(ok => gapi.load("picker", ok));
+  return new Promise((ok, no) => {
+    const view = new google.picker.DocsView(google.picker.ViewId.DOCS).setIncludeFolders(true).setMimeTypes("audio/mpeg,audio/mp4,audio/x-m4a,audio/m4a,audio/wav,audio/x-wav,audio/webm,audio/ogg,video/mp4,text/plain,application/vnd.openxmlformats-officedocument.wordprocessingml.document");
+    if (parent) view.setParent(parent);
+    new google.picker.PickerBuilder().addView(view).enableFeature(google.picker.Feature.MULTISELECT_ENABLED)
+      .setOAuthToken(tok).setDeveloperKey(firebaseConfig.apiKey).setAppId(firebaseConfig.messagingSenderId)
+      .setTitle("Tick the recordings to take in").setCallback(d => { if (d.action === "picked") ok(d.docs); else if (d.action === "cancel") ok([]); })
+      .build().setVisible(true);
+  });
+}
+
+// ---------- UI state ----------
+function showAuth(u) {
+  const live = !!u && (ownerOk || DEMO);
+  $("who").textContent = !u ? "Not signed in. Sign in with your Google account (BasheeraWaNazeera@gmail.com)." : !ownerOk ? `Signed in as ${u.email}, which is not the owner account.` : DEMO ? "Demo" : `Signed in: ${u.email}` + (token ? " · Drive connected" : " · Drive not connected");
+  $("signin").hidden = !!u || DEMO; $("signout").hidden = !u || DEMO; $("reconnect").hidden = !u || !ownerOk || !!token || DEMO;
+  $("main").hidden = !live; if (live) refresh();
+}
+function setupNote(e) {
+  if (e.code === "token") { $("reconnect").hidden = false; toast(e.message, 6000); return; }
+  if (e.code === "disabled") { $("setup").hidden = false; $("setup").innerHTML = `<b>One-time step:</b> Google Drive is not switched on for the BWN Firebase project yet.<ol>
+    <li>Open <a href="https://console.cloud.google.com/apis/library/drive.googleapis.com?project=basheera-wa-nazeera" target="_blank" rel="noopener">Google Drive API for project basheera-wa-nazeera</a> (signed in as BasheeraWaNazeera@gmail.com).</li>
+    <li>Press <b>Enable</b>. Wait one minute, then come back and press Save again.</li></ol>`; return; }
+  if (/developer key|API key|picker/i.test(e.message)) { $("setup").hidden = false; $("setup").innerHTML = `<b>Optional step for “Take in from Drive”:</b> the Drive picker is not switched on.<ol>
+    <li>Open <a href="https://console.cloud.google.com/apis/library/picker.googleapis.com?project=basheera-wa-nazeera" target="_blank" rel="noopener">Google Picker API</a> → <b>Enable</b>.</li>
+    <li>Open <a href="https://console.cloud.google.com/apis/credentials?project=basheera-wa-nazeera" target="_blank" rel="noopener">Credentials</a> → <b>Browser key (auto created by Firebase)</b> → API restrictions → tick <b>Google Picker API</b> → Save.</li></ol>
+    Until then, “Choose Otter file(s)” does the same job.`; return; }
+  toast(e.message, 6000);
+}
+
+// Way 1: Otter files
+let ofiles = [];
+const isAudio = f => /^(audio|video)\//.test(f.type) || /\.(m4a|mp3|wav|aac|ogg|webm|mp4)$/i.test(f.name);
+$("ofile").onchange = async () => { ofiles = [...$("ofile").files]; $("ofile").value = "";
+  $("olist").innerHTML = ofiles.map(f => `<li>${esc(f.name)} · ${(f.size / 1048576).toFixed(1)} MB${isAudio(f) ? "" : " (transcript)"}</li>`).join("");
+  const a = ofiles.find(isAudio) || ofiles[0]; if (a && !$("otitle").value) $("otitle").value = a.name.replace(/\.[^.]+$/, "").replace(/[_-]+/g, " ").trim();
+  const t = ofiles.find(f => /\.(txt|srt)$/i.test(f.name)); otext = t ? (await t.text()).slice(0, 20000) : "";
+  pk.o.refresh(); $("osave").disabled = !ofiles.length; };
+let otext = "";
+$("otitle").oninput = () => pk.o.refresh();
+$("osave").onclick = () => run("o", async say => {
+  const title = $("otitle").value.trim() || "Otter recording", f = pick.o, lang = $("olang").value;
+  const props = { bwn: "voice", src: "otter", title: title.slice(0, 100), lang, mmj: f ? String(f.id) : "" };
+  const files = [];
+  for (const [i, x] of ofiles.entries()) { say(`Uploading ${i + 1} of ${ofiles.length}…`); files.push({ ...(await api.upload(x, x.name, props)), audio: isAudio(x) }); }
+  await saveItem({ src: "Otter", title, lang, files, text: otext, textFrom: otext ? "Otter" : "" });
+  ofiles = []; otext = ""; $("olist").innerHTML = ""; $("otitle").value = ""; pk.o.set(null); pk.o.refresh();
+});
+$("pick").onclick = async () => { try {
+  const docs = await api.picker(); if (!docs.length) return;
+  const title = $("otitle").value.trim() || docs[0].name.replace(/\.[^.]+$/, ""), f = pick.o, lang = $("olang").value;
+  const props = { bwn: "voice", src: "otter-drive", title: title.slice(0, 100), lang, mmj: f ? String(f.id) : "" };
+  const files = []; for (const d of docs) files.push({ ...(await api.adopt(d.id, props)), audio: /^(audio|video)\//.test(d.mimeType) });
+  let text = ""; const t = files.find(x => x.mimeType === "text/plain"); if (t) text = (await api.text(t.id)).slice(0, 20000);
+  await saveItem({ src: "Otter (from Drive)", title, lang, files, text, textFrom: text ? "Otter" : "" }); toast("Taken in from Drive.");
+} catch (e) { setupNote(e); } };
+
+// Way 2: record here
+let mr, chunks = [], recBlob = null, t0 = 0, recDur = 0, tick, sr, srOn = false, finalText = "";
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+$("sttnote").textContent = SR ? "Live transcript: free, done by this browser (Chrome sends the sound to Google’s speech service; nothing is kept there for BwN)." : "This browser has no free live transcript. Use Chrome (phone or computer) for words; the recording still saves.";
+$("rec").onclick = async () => {
+  if (mr && mr.state === "recording") { mr.stop(); return; }
+  let stream; try { stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } }); }
+  catch { toast("Microphone not allowed. Allow it in the browser’s site settings and try again.", 6000); return; }
+  const type = ["audio/webm;codecs=opus", "audio/mp4", "audio/webm", "audio/ogg"].find(t => window.MediaRecorder?.isTypeSupported?.(t)) || "";
+  mr = new MediaRecorder(stream, type ? { mimeType: type, audioBitsPerSecond: 64000 } : undefined); chunks = []; recBlob = null; finalText = $("rtext").value ? $("rtext").value.trimEnd() + "\n" : "";
+  mr.ondataavailable = e => e.data.size && chunks.push(e.data);
+  mr.onstop = () => { recDur = (Date.now() - t0) / 1000; stream.getTracks().forEach(t => t.stop()); clearInterval(tick); srOn = false; try { sr?.stop(); } catch { }
+    recBlob = new Blob(chunks, { type: mr.mimeType || "audio/webm" }); $("rplay").src = URL.createObjectURL(recBlob); $("rplay").hidden = false;
+    $("rec").textContent = "● Record again"; $("rec").classList.remove("on"); $("live").hidden = true; $("rsave").disabled = false;
+    if (!$("rtitle").value) $("rtitle").value = "Voice note " + stamp(); pk.r.refresh(); };
+  mr.start(1000); t0 = Date.now(); tick = setInterval(() => $("timer").textContent = fmt((Date.now() - t0) / 1000), 500);
+  $("rec").textContent = "■ Stop"; $("rec").classList.add("on"); $("live").hidden = false; $("rsave").disabled = true; $("rplay").hidden = true;
+  if (SR) { sr = new SR(); sr.lang = $("rlang").value; sr.continuous = true; sr.interimResults = true; srOn = true;
+    sr.onresult = e => { let interim = ""; for (let i = e.resultIndex; i < e.results.length; i++) { const r = e.results[i]; if (r.isFinal) finalText += r[0].transcript.trim() + " "; else interim += r[0].transcript; } $("rtext").value = finalText + interim; };
+    sr.onerror = e => { if (e.error === "language-not-supported") { srOn = false; $("sttnote").textContent = "This browser cannot type " + $("rlang").selectedOptions[0].text + " live. The recording still saves."; } };
+    sr.onend = () => { if (srOn && mr.state === "recording") try { sr.start(); } catch { } };
+    try { sr.start(); } catch { } }
+};
+$("rtitle").oninput = $("rtext").oninput = () => pk.r.refresh();
+$("rsave").onclick = () => run("r", async say => {
+  if (!recBlob) return; const title = $("rtitle").value.trim() || "Voice note " + stamp(), f = pick.r, lang = $("rlang").selectedOptions[0].text, text = $("rtext").value.trim();
+  const ext = /mp4/.test(recBlob.type) ? "m4a" : /ogg/.test(recBlob.type) ? "ogg" : "webm";
+  const props = { bwn: "voice", src: "myvoice", title: title.slice(0, 100), lang, mmj: f ? String(f.id) : "" };
+  const safe = title.replace(/[\\/:*?"<>|]+/g, " ").slice(0, 80);
+  say("Uploading the recording…"); const files = [{ ...(await api.upload(recBlob, `MyVoice ${stamp()} ${safe}.${ext}`, props)), audio: true }];
+  if (text) { say("Saving the transcript…"); files.push({ ...(await api.upload(new Blob([text], { type: "text/plain" }), `MyVoice ${stamp()} ${safe} (transcript).txt`, props)), audio: false }); }
+  await saveItem({ src: "MyVoice", title, lang, files, text, textFrom: text ? "browser speech-to-text" : "", dur: fmt(recDur) });
+  recBlob = null; $("rplay").hidden = true; $("rtext").value = ""; $("rtitle").value = ""; $("timer").textContent = "0:00"; $("rec").textContent = "● Record"; $("rsave").disabled = true; pk.r.set(null); pk.r.refresh();
+});
+
+async function run(k, fn) { const btn = $(k + "save"), pr = $(k + "prog"); btn.disabled = true;
+  try { await fn(m => pr.textContent = m); pr.textContent = ""; toast("Saved in Drive “To BwN” and filed."); await refresh(); }
+  catch (e) { pr.textContent = ""; btn.disabled = false; setupNote(e); } }
+async function saveItem(x) {
+  const f = (x.src === "MyVoice" ? pick.r : pick.o);
+  const rec = { title: x.title, src: x.src, lang: x.lang, at: new Date().toISOString(), dur: x.dur || "", text: x.text || "", textFrom: x.textFrom || "",
+    mmj: f ? f.id : null, mmjName: f ? f.name : "", mmjPath: f ? f.path : "", status: "new", shared: false,
+    files: x.files.map(d => ({ id: d.id, name: d.name, mime: d.mimeType || "", size: +d.size || 0, link: d.webViewLink || "", audio: !!d.audio })) };
+  await api.saveRec("voice-" + Date.now().toString(36), rec);
+}
+
+// ---------- Inbox ----------
+async function refresh() {
+  if (!api) return setTimeout(refresh, 100);
+  let items = []; try { items = await api.list(); } catch (e) { $("list").innerHTML = `<p class="empty">Inbox could not load: ${esc(e.message)}</p>`; return; }
+  items.sort((a, b) => (b.at || "").localeCompare(a.at || ""));
+  $("count").textContent = items.length + (items.length === 1 ? " recording" : " recordings");
+  if (!items.length) { $("list").innerHTML = `<p class="empty">Nothing yet. Take in an Otter file or record a note above.</p>`; return; }
+  const g = new Map(); items.forEach(r => { const k = r.mmj ? r.mmjPath : "Not yet filed"; (g.get(k) || g.set(k, []).get(k)).push(r); });
+  $("list").innerHTML = [...g].map(([k, rs]) => { const parts = k.split(" › "), last = parts.pop();
+    return `<section class="group"><p class="path">${esc(parts.join(" › "))}<b>${esc(last)}</b></p>` + rs.map(r => {
+      const au = r.files?.find(f => f.audio), when = new Date(r.at).toLocaleString("en-AU", { timeZone: "Australia/Sydney", day: "numeric", month: "short", hour: "numeric", minute: "2-digit" });
+      return `<article class="item" data-id="${r.id}"><h3>${esc(r.title)}</h3>
+      <span class="meta">${esc(r.src)} · ${esc(r.lang)}${r.dur ? " · " + esc(r.dur) : ""} · ${esc(when)}${r.mmj ? " · MMJ " + r.mmj : ""}${r.shared ? " · link shared" : ""}</span>
+      <div class="row">${au ? `<button class="ghost" data-act="play">▶ Play</button>` : ""}
+        ${(r.files || []).map(f => f.link ? `<a href="${esc(f.link)}" target="_blank" rel="noopener">${f.audio ? "Audio in Drive" : "Transcript in Drive"}</a>` : "").join("")}
+        <button class="link" data-act="refile">${r.mmj ? "Change folder" : "Choose folder"}</button>
+        <button class="link" data-act="share">${r.shared ? "Stop link sharing" : "Share link with the BwN Architect"}</button></div>
+      <div class="refile" hidden></div>
+      ${r.text ? `<details><summary>Transcript (${esc(r.textFrom)})</summary><p>${esc(r.text)}</p></details>` : ""}</article>`; }).join("") + `</section>`; }).join("");
+  $("list").querySelectorAll(".item").forEach(el => { const r = items.find(x => x.id === el.dataset.id);
+    el.querySelectorAll("[data-act]").forEach(b => b.onclick = () => act(b.dataset.act, r, el, b).catch(setupNote)); });
+}
+async function act(a, r, el, b) {
+  if (a === "play") { b.disabled = true; b.textContent = "Loading…"; const blob = await api.blob(r.files.find(f => f.audio).id);
+    const au = document.createElement("audio"); au.controls = true; au.src = URL.createObjectURL(blob); b.replaceWith(au); au.play().catch(() => { }); return; }
+  if (a === "refile") { const box = el.querySelector(".refile"); box.hidden = false; box.classList.add("picker");
+    folderPicker(box, "x" + r.id, () => r.title + " " + r.text); box.refresh();
+    const save = document.createElement("button"); save.textContent = "Save folder"; box.append(save);
+    save.onclick = async () => { const f = pick["x" + r.id]; if (!f) return toast("Choose a folder first.");
+      await api.saveRec(r.id, { mmj: f.id, mmjName: f.name, mmjPath: f.path });
+      for (const x of r.files || []) await api.tag(x.id, { mmj: String(f.id) }).catch(() => { });
+      toast("Filed."); refresh(); }; return; }
+  if (a === "share") { const on = !r.shared; for (const x of r.files || []) await api.share(x.id, on);
+    await api.saveRec(r.id, { shared: on });
+    if (on) { const l = r.files.find(f => f.audio)?.link || r.files[0]?.link; try { await navigator.clipboard.writeText(l); toast("Link copied: paste it in the BwN session."); } catch { toast("Link: " + l, 9000); } }
+    refresh(); }
+}
+
+const pk = {};
+document.querySelectorAll(".picker[data-for]").forEach(el => { const k = el.dataset.for; folderPicker(el, k, k === "o" ? () => $("otitle").value + " " + otext : () => $("rtitle").value + " " + $("rtext").value); pk[k] = el; });
+loadTree().then(() => { pk.o.refresh(); pk.r.refresh(); });
+api = DEMO ? demoApi() : await realApi();
+</script>
+</body>
+</html>
