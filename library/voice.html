@@ -234,6 +234,9 @@ async function realApi() {
   return {
     async list() { const s = await fs.getDocs(fs.query(fs.collection(db, "postPrivate"), fs.where("kind", "==", "voice"))); return s.docs.map(d => ({ id: d.id, ...d.data() })); },
     async saveRec(id, rec) { await fs.setDoc(fs.doc(db, "postPrivate", id), { kind: "voice", ...rec }, { merge: true }); },
+    async remove(id, files) { // Drive files go to the Bin (restorable for 30 days), then the record is removed
+      for (const f of files || []) await gfetch(`${DRIVE}/files/${f.id}?fields=id`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ trashed: true }) }).catch(e => { if (!/not found/i.test(e.message)) throw e; });
+      await fs.deleteDoc(fs.doc(db, "postPrivate", id)); },
     async upload(blob, name, props) {
       const meta = { name, parents: [await folder()], appProperties: props, mimeType: blob.type || undefined };
       const r = await gfetch(`${UP}/files?uploadType=resumable&fields=${F}`, { method: "POST", headers: { "Content-Type": "application/json; charset=UTF-8", "X-Upload-Content-Type": blob.type || "application/octet-stream" }, body: JSON.stringify(meta) });
@@ -261,7 +264,7 @@ function demoApi() {
     async upload(blob, name, props) { const id = "demo" + (++n); blobs.set(id, blob); return { id, name, mimeType: blob.type, size: blob.size, webViewLink: "#" }; },
     async adopt() { throw new Error("Not in demo mode."); }, async tag() { },
     async blob(id) { return blobs.get(id); }, async text(id) { return blobs.get(id).text(); },
-    async share() { }, async picker() { throw new Error("Drive picker is not in demo mode."); },
+    async share() { }, async remove(id) { const i = recs.findIndex(r => r.id === id); if (i >= 0) recs.splice(i, 1); }, async picker() { throw new Error("Drive picker is not in demo mode."); },
   };
 }
 // Google Picker: lets the owner tick files already in Drive; only ticked files become visible to this page (drive.file).
@@ -353,7 +356,11 @@ $("rec").onclick = async () => {
   $("rec").textContent = "■ Stop"; $("rec").classList.add("on"); $("live").hidden = false; $("rsave").disabled = true; $("rplay").hidden = true;
   if (SR) { sr = new SR(); sr.lang = $("rlang").value; sr.continuous = true; sr.interimResults = true; srOn = true;
     sr.onresult = e => { let interim = ""; for (let i = e.resultIndex; i < e.results.length; i++) { const r = e.results[i]; if (r.isFinal) finalText += r[0].transcript.trim() + " "; else interim += r[0].transcript; } $("rtext").value = finalText + interim; };
-    sr.onerror = e => { if (e.error === "language-not-supported") { srOn = false; $("sttnote").textContent = "This browser cannot type " + $("rlang").selectedOptions[0].text + " live. The recording still saves."; } };
+    sr.onerror = e => { const L = $("rlang").selectedOptions[0].text;
+      if (e.error === "language-not-supported") { srOn = false; $("sttnote").textContent = "This browser cannot type " + L + " live. The recording still saves."; }
+      else if (e.error === "not-allowed" || e.error === "service-not-allowed") { srOn = false; $("sttnote").textContent = "Live typing was not allowed by this browser (use Chrome, and allow the microphone). The recording still saves."; }
+      else if (e.error === "network") { $("sttnote").textContent = "Live typing needs the internet (Chrome uses Google's free speech service). The recording still saves."; }
+      else if (e.error !== "no-speech" && e.error !== "aborted") $("sttnote").textContent = "Live typing stopped (" + e.error + "). The recording still saves."; };
     sr.onend = () => { if (srOn && mr.state === "recording") try { sr.start(); } catch { } };
     try { sr.start(); } catch { } }
 };
@@ -396,7 +403,8 @@ async function refresh() {
       <div class="row">${au ? `<button class="ghost" data-act="play">▶ Play</button>` : ""}
         ${(r.files || []).map(f => f.link ? `<a href="${esc(f.link)}" target="_blank" rel="noopener">${f.audio ? "Audio in Drive" : "Transcript in Drive"}</a>` : "").join("")}
         <button class="link" data-act="refile">${r.mmj ? "Change folder" : "Choose folder"}</button>
-        <button class="link" data-act="share">${r.shared ? "Stop link sharing" : "Share link with the BwN Architect"}</button></div>
+        <button class="link" data-act="share">${r.shared ? "Stop link sharing" : "Share link with the BwN Architect"}</button>
+        <button class="link" data-act="del" style="color:var(--warn)">Delete</button></div>
       <div class="refile" hidden></div>
       ${r.text ? `<details><summary>Transcript (${esc(r.textFrom)})</summary><p>${esc(r.text)}</p></details>` : ""}</article>`; }).join("") + `</section>`; }).join("");
   $("list").querySelectorAll(".item").forEach(el => { const r = items.find(x => x.id === el.dataset.id);
@@ -412,6 +420,8 @@ async function act(a, r, el, b) {
       await api.saveRec(r.id, { mmj: f.id, mmjName: f.name, mmjPath: f.path });
       for (const x of r.files || []) await api.tag(x.id, { mmj: String(f.id) }).catch(() => { });
       toast("Filed."); refresh(); }; return; }
+  if (a === "del") { if (!confirm(`Delete “${r.title}”?\n\nIts file(s) go to your Google Drive Bin (you can restore them there for 30 days) and it leaves this Inbox.`)) return;
+    b.disabled = true; b.textContent = "Deleting…"; await api.remove(r.id, r.files); toast("Deleted. In Drive’s Bin for 30 days."); refresh(); return; }
   if (a === "share") { const on = !r.shared; for (const x of r.files || []) await api.share(x.id, on);
     await api.saveRec(r.id, { shared: on });
     if (on) { const l = r.files.find(f => f.audio)?.link || r.files[0]?.link; try { await navigator.clipboard.writeText(l); toast("Link copied: paste it in the BwN session."); } catch { toast("Link: " + l, 9000); } }
