@@ -271,10 +271,20 @@ async function drivePicker(tok, parent) {
   return new Promise((ok, no) => {
     const view = new google.picker.DocsView(google.picker.ViewId.DOCS).setIncludeFolders(true).setMimeTypes("audio/mpeg,audio/mp4,audio/x-m4a,audio/m4a,audio/wav,audio/x-wav,audio/webm,audio/ogg,video/mp4,text/plain,application/vnd.openxmlformats-officedocument.wordprocessingml.document");
     if (parent) view.setParent(parent);
-    new google.picker.PickerBuilder().addView(view).enableFeature(google.picker.Feature.MULTISELECT_ENABLED)
+    // A close button above Google's window, so a Google error can never freeze the page.
+    const x = document.createElement("button"); x.textContent = "✕ Close"; x.setAttribute("aria-label", "Close the Drive picker");
+    x.style.cssText = "position:fixed;top:12px;right:12px;z-index:2147483647";
+    let picker, loaded = false, t;
+    const done = (v, err) => { clearTimeout(t); x.remove(); document.removeEventListener("keydown", esc); try { picker.setVisible(false); picker.dispose(); } catch { } err ? no(err) : ok(v); };
+    const fail = () => done(null, new Error("picker: the Drive picker did not open (API key)"));
+    const esc = e => { if (e.key === "Escape") loaded ? done([]) : fail(); };
+    x.onclick = () => loaded ? done([]) : fail();
+    picker = new google.picker.PickerBuilder().addView(view).enableFeature(google.picker.Feature.MULTISELECT_ENABLED)
       .setOAuthToken(tok).setDeveloperKey(firebaseConfig.apiKey).setAppId(firebaseConfig.messagingSenderId)
-      .setTitle("Tick the recordings to take in").setCallback(d => { if (d.action === "picked") ok(d.docs); else if (d.action === "cancel") ok([]); })
-      .build().setVisible(true);
+      .setTitle("Tick the recordings to take in").setCallback(d => { if (d.action === "loaded") loaded = true; else if (d.action === "picked") done(d.docs); else if (d.action === "cancel") done([]); })
+      .build();
+    picker.setVisible(true); document.body.append(x); document.addEventListener("keydown", esc);
+    t = setTimeout(() => { if (!loaded) fail(); }, 10000); // Google's "developer key is invalid" page never says "loaded"
   });
 }
 
