@@ -33,7 +33,7 @@ button:focus-visible,select:focus-visible,input:focus-visible,textarea:focus-vis
 .app{height:100dvh;display:grid;grid-template-rows:auto auto auto 1fr;min-height:0}
 
 /* menu bar */
-.menubar{display:flex;align-items:center;gap:2px;padding:4px max(10px,env(safe-area-inset-left,0px));background:var(--panel);border-bottom:1px solid var(--line);flex-wrap:wrap;position:relative;z-index:40}
+.menubar{display:flex;align-items:center;gap:2px;padding:4px max(10px,env(safe-area-inset-left,0px));background:var(--panel);border-bottom:1px solid var(--line);flex-wrap:wrap;position:relative;z-index:1000}
 .brand{font-family:var(--f-display);font-size:1.15rem;margin-right:10px;white-space:nowrap}
 .menu{position:relative}
 .menu>button{border:0;background:none;color:var(--ink);padding:5px 10px;border-radius:6px;font-size:.92rem}
@@ -72,9 +72,26 @@ button:focus-visible,select:focus-visible,input:focus-visible,textarea:focus-vis
 .tabs button[aria-selected="true"]{color:var(--accent);border-bottom-color:var(--accent);font-weight:600}
 
 /* panes */
-.panes{display:grid;grid-template-columns:minmax(240px,22%) minmax(300px,1fr) minmax(340px,1.25fr);min-height:0}
-.pane{min-height:0;overflow:auto;border-right:1px solid var(--line);display:flex;flex-direction:column}
-.pane:last-child{border-right:0}
+.panes{display:grid;grid-template-columns:1fr 1.6fr 2fr;min-height:0;position:relative}
+.pane{min-height:0;min-width:0;overflow:auto;display:flex;flex-direction:column;background:var(--bg)}
+.split{cursor:col-resize;touch-action:none;position:relative;background:transparent}
+.split::before{content:"";position:absolute;top:0;bottom:0;left:50%;width:1px;background:var(--line)}
+.split:hover::before,.split.drag::before{width:3px;margin-left:-1px;background:var(--accent)}
+.alloff{grid-column:1/-1;align-self:center;justify-self:center;color:var(--muted);font-size:.92rem;text-align:center;padding:20px}
+.ph h2 .pop{border:1px solid var(--line);background:var(--panel);color:var(--accent);border-radius:6px;font-size:.8rem;padding:1px 7px;margin-left:6px;font-family:var(--f-body)}
+.ph h2 .pop:hover{background:var(--accent-soft)}
+.ph h2 .r{display:flex;align-items:center;gap:6px;flex-shrink:0}
+.pane.float-win{z-index:70;background:var(--bg);overflow:auto;display:flex}
+.pane.float-win>.ph{cursor:move;background:var(--accent-soft);touch-action:none;user-select:none}
+.pane.float-win>.ph input,.pane.float-win>.ph label{cursor:auto;user-select:auto}
+.nbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;background:var(--accent-soft);border-radius:10px;padding:6px 8px}
+.nbar .fname{flex:1;min-width:140px;font-size:.88rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.nbar .btn{padding:5px 11px}
+.ib{border:1px solid var(--line);background:var(--panel);color:var(--warn);border-radius:999px;width:34px;height:32px;padding:0}
+.lmenu{position:relative}
+.lmenu .drop{left:auto;right:0}
+.drop a{display:block;color:var(--ink);text-decoration:none;padding:7px 10px;border-radius:6px;font-size:.9rem}
+.drop a:hover{background:var(--accent-soft)}
 .ph{position:sticky;top:0;z-index:5;background:var(--bg);border-bottom:1px solid var(--line);padding:8px 12px;display:grid;gap:6px}
 .ph h2{font-family:var(--f-display);font-weight:400;font-size:1.1rem;margin:0;display:flex;justify-content:space-between;gap:8px;align-items:baseline}
 .ph h2 small{font-family:var(--f-body);font-size:.78rem;color:var(--muted)}
@@ -176,12 +193,14 @@ textarea{min-height:120px;resize:vertical}
 
 @media (max-width:999.98px){
   .tabs{display:flex}
+  .split,.ph h2 .pop,.alloff{display:none!important}
+  .panes{grid-template-columns:1fr!important}
   .panes{grid-template-columns:1fr}
   .pane{border-right:0}
   .panes:not([data-tab="folders"]) #pFolders,.panes:not([data-tab="files"]) #pFiles,.panes:not([data-tab="note"]) #pNote{display:none}
   .ops .grp{border-right:0;padding-right:0}
 }
-.toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:var(--ink);color:var(--panel);padding:8px 16px;border-radius:999px;font-size:.88rem;max-width:calc(100vw - 32px);z-index:200}
+.toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:var(--ink);color:var(--panel);padding:8px 16px;border-radius:999px;font-size:.88rem;max-width:calc(100vw - 32px);z-index:3000}
 </style>
 </head>
 <body>
@@ -220,7 +239,7 @@ textarea{min-height:120px;resize:vertical}
   <main class="panes" id="panes" data-tab="files">
     <aside class="pane" id="pFolders" aria-label="The Map: Mapping My Journey folders">
       <div class="ph">
-        <h2>The Map <button class="link" id="openMap" type="button">⤢ Full window</button></h2>
+        <h2>The Map <span class="r"><button class="link" id="openMap" type="button">⤢ Full window</button><button class="pop" data-pop="folders" type="button" title="Pop out as a window">⧉</button></span></h2>
         <input type="search" id="fq" placeholder="Find a folder…" aria-label="Find a folder">
         <label class="chk"><input type="checkbox" id="onlyWith"> Only folders with recordings</label>
       </div>
@@ -230,7 +249,7 @@ textarea{min-height:120px;resize:vertical}
 
     <section class="pane" id="pFiles" aria-label="Files">
       <div class="ph">
-        <h2><span id="fTitle">All recordings</span> <small id="fCount"></small></h2>
+        <h2><span id="fTitle">All recordings</span> <span class="r"><small id="fCount"></small><button class="pop" data-pop="files" type="button" title="Pop out as a window">⧉</button></span></h2>
         <div class="bulk">
           <label class="chk"><input type="checkbox" id="selAll"> Select all</label>
           <span class="meta" id="selN"></span>
@@ -243,6 +262,7 @@ textarea{min-height:120px;resize:vertical}
     </section>
 
     <section class="pane" id="pNote" aria-label="Note">
+      <div class="ph"><h2><span>Note</span><span class="r"><button class="pop" data-pop="note" type="button" title="Pop out as a window">⧉</button></span></h2></div>
       <div class="note" id="note"></div>
     </section>
   </main>
@@ -553,18 +573,29 @@ function showNote() {
   const noteHtml = r.note || (r.text ? `<p>${esc(r.text).replace(/\n+/g, "</p><p>")}</p>` : "<p></p>");
   N.innerHTML = `<input class="np-ti" id="nTitle" value="${esc(r.title)}" aria-label="Title">
     <span class="meta">${esc(r.src)} · ${esc(r.lang)}${r.dur ? " · " + esc(r.dur) : ""} · ${esc(when(r.at))}${r.textFrom ? " · transcript: " + esc(r.textFrom) : ""}</span>
-    <div class="folder"><span>📁 ${f ? `<b>${esc(f.name)}</b><small>${esc(f.path)} · MMJ ${f.id}</small>` : "Not yet filed"}</span><button class="btn ghost" id="nFolder" type="button">${f ? "Change folder" : "Choose folder"}</button></div>
-    ${au ? `<button class="btn ghost" id="nPlay" type="button" style="justify-self:start">▶ Play</button>` : ""}
-    <div class="acts">${(r.files || []).map(x => x.link ? `<a href="${esc(x.link)}" target="_blank" rel="noopener">${x.audio ? "Audio in Drive" : "File in Drive"}</a>` : "").join("")}
-      <button class="link" id="nShare" type="button">${r.shared ? "Stop link sharing" : "Share link with the BwN Architect"}</button>
-      <button class="link" id="nDel" type="button" style="color:var(--warn)">Delete</button></div>
+    <div class="nbar">${au ? `<button class="btn" id="nPlay" type="button">▶ Play</button>` : ""}
+      <span class="fname" title="${f ? esc(f.path) + " · MMJ " + f.id : ""}">📁 ${f ? `<b>${esc(f.name)}</b>` : "Not yet filed"}</span>
+      <button class="btn ghost" id="nFolder" type="button">${f ? "Change folder" : "Choose folder"}</button>
+      <div class="lmenu"><button class="btn ghost" id="nLinks" type="button" aria-haspopup="true" aria-expanded="false">🔗 Links ▾</button>
+        <div class="drop" id="nLinksDrop" hidden role="menu">${(r.files || []).map(x => x.link ? `<a role="menuitem" href="${esc(x.link)}" target="_blank" rel="noopener">${x.audio ? "Audio in Drive" : "File in Drive"} ↗</a>` : "").join("")}
+          <button type="button" role="menuitem" id="nShare">${r.shared ? "Stop link sharing" : "Share link with the BwN Architect"}</button></div></div>
+      <button class="ib" id="nDel" type="button" title="Delete (to Drive Bin)" aria-label="Delete">🗑</button></div>
+    <div id="nAudio" hidden></div>
     <div class="fld">Notes and transcript (saves by itself)<div class="np" id="nEd">${editorHTML("v" + r.id, noteHtml)}</div></div>`;
   if (r.lang === "Arabic") { const ed = N.querySelector(".fw-ed"); ed.lang = "ar"; ed.dir = "rtl"; }
   wireEditor($("nEd"), "v" + r.id, async html => { await api.saveRec(r.id, { note: html }); r.note = html; });
   $("nTitle").onchange = async () => { const t = $("nTitle").value.trim(); if (!t) return; try { await api.saveRec(r.id, { title: t }); r.title = t; draw(); toast("Title saved."); } catch (e) { setupNote(e); } };
   $("nFolder").onclick = () => openMap("Choose the folder for “" + r.title + "”", r.title + " " + (r.text || ""), r.mmj, async f => { try { await moveTo([r], f); toast("Filed in " + f.name + "."); } catch (e) { setupNote(e); } refresh(); });
-  if (au) $("nPlay").onclick = async () => { const b = $("nPlay"); b.disabled = true; b.textContent = "Loading…";
-    try { const blob = await api.blob(au.id); const a = document.createElement("audio"); a.controls = true; a.src = URL.createObjectURL(blob); b.replaceWith(a); a.play().catch(() => { }); } catch (e) { b.disabled = false; b.textContent = "▶ Play"; setupNote(e); } };
+  if (au) { let a = null; const b = $("nPlay");
+    b.onclick = async () => {
+      if (a) { a.paused ? a.play() : a.pause(); return; }
+      b.disabled = true; b.textContent = "Loading…";
+      try { const blob = await api.blob(au.id); a = document.createElement("audio"); a.controls = true; a.src = URL.createObjectURL(blob);
+        a.onplay = () => b.textContent = "⏸ Pause"; a.onpause = a.onended = () => b.textContent = "▶ Play";
+        $("nAudio").append(a); $("nAudio").hidden = false; b.disabled = false; a.play().catch(() => { b.textContent = "▶ Play"; }); }
+      catch (e) { b.disabled = false; b.textContent = "▶ Play"; setupNote(e); } }; }
+  $("nLinks").onclick = e => { e.stopPropagation(); const d = $("nLinksDrop"); d.hidden = !d.hidden; $("nLinks").setAttribute("aria-expanded", !d.hidden); };
+  $("nLinksDrop").onclick = () => { $("nLinksDrop").hidden = true; };
   $("nShare").onclick = async () => { const on = !r.shared;
     try { for (const x of r.files || []) await api.share(x.id, on); await api.saveRec(r.id, { shared: on });
       if (on) { const l = au?.link || r.files?.[0]?.link; try { await navigator.clipboard.writeText(l); toast("Link copied: paste it in the BwN session."); } catch { toast("Link: " + l, 9000); } }
@@ -579,7 +610,8 @@ function helpHTML() {
     <li><b>☁ Take in from Drive</b>: tick files you saved straight into Drive.</li>
     <li><b>The Map</b> (left): your Mapping My Journey folders; numbers show how many recordings each holds. <b>⤢ Full window</b> opens it large; drag its title bar, resize from any side or corner.</li>
     <li><b>Files</b> (middle): tick several, then Move to folder, Share link or Delete in one go.</li>
-    <li><b>Note</b> (right): play, change the folder, edit the notes and transcript; it saves by itself.</li></ul>
+    <li><b>Note</b> (right): ▶ Play, the folder and Choose folder, 🔗 Links (Drive files, share link) and 🗑 on one bar; below it the notes and transcript, which save by itself.</li>
+    <li><b>Sizes:</b> drag the thin bars between the sections to make one wider. <b>⧉</b> on a section’s header pops it out as its own window: drag it by its header, resize it from any side or corner; <b>⇲</b> docks it back (View → Dock all sections). Sizes are remembered on this device.</li></ul>
     <h3>Where your files are kept</h3><ul>
     <li><b>Recordings and Otter files:</b> in your own Google Drive (BasheeraWaNazeera@gmail.com) → My Drive → folder <b>“To BwN”</b>. Nobody else can open them unless you press “Share link”.</li>
     <li><b>Title, folder, transcript and notes:</b> in the BWN Firebase database (project basheera-wa-nazeera), readable only by your Google account.</li>
@@ -702,7 +734,7 @@ const MENUS = () => [
     ["Move ticked to folder…", bulkMove, "M", !sel.size], ["Delete ticked…", bulkDel, "Del", !sel.size]]],
   ["View", [["⤢ The Map in a full window", () => $("openMap").click(), "F"], [(onlyWith ? "✓ " : "") + "Only folders with recordings", () => { $("onlyWith").checked = !onlyWith; $("onlyWith").onchange(); }],
     ["All recordings", () => { view = "all"; draw(); tab("files"); }], ["Not yet filed", () => { view = "unfiled"; draw(); tab("files"); }], "-",
-    ["Refresh the Map from Mapping My Journey", async () => { await loadTree(true); draw(); toast("The Map is up to date."); }], ["Reset window sizes", () => { try { localStorage.removeItem("bwnlib.geo"); } catch { } toast("Window sizes reset."); }]]],
+    ["Refresh the Map from Mapping My Journey", async () => { await loadTree(true); draw(); toast("The Map is up to date."); }], ["Dock all sections", () => { Object.keys(PANES).forEach(k => floatPane(k, false)); }], ["Reset section and window sizes", () => { try { ["bwnlib.geo", "viCols", "viGeo"].forEach(k => localStorage.removeItem(k)); } catch { } COLS = { ...COLS0 }; GEO = {}; Object.keys(PANES).forEach(k => floatPane(k, false)); layout(); toast("Sizes reset."); }]]],
   ["Share", [["Share links of ticked files", () => bulkShare(true), "", !sel.size], ["Stop sharing ticked files", () => bulkShare(false), "", !sel.size]]],
   ["Help", [["How it works · where files are kept", () => { draft = null; cur = null; draw(); showNote(); tab("note"); }, "?"]]],
 ];
@@ -724,6 +756,7 @@ function buildMenus() {
   });
 }
 document.addEventListener("click", e => { if (openMenu && !e.target.closest(".menu")) { openMenu = null; buildMenus(); } });
+document.addEventListener("click", e => { const d = $("nLinksDrop"); if (d && !d.hidden && !e.target.closest(".lmenu")) d.hidden = true; });
 document.addEventListener("keydown", e => {
   if (e.key === "Escape" && openMenu) { openMenu = null; buildMenus(); return; }
   if (e.target.closest("input,textarea,select,[contenteditable]") || e.ctrlKey || e.metaKey || e.altKey || !ownerOk || !mapwin.hidden) return;
@@ -732,10 +765,76 @@ document.addEventListener("keydown", e => {
   else if (k === "a") { e.preventDefault(); $("selAll").checked = true; $("selAll").onchange(); } else if (k === "m" && sel.size) bulkMove(); else if (e.key === "Delete" && sel.size) bulkDel(); else if (k === "?") { draft = null; cur = null; draw(); showNote(); }
 });
 
+
+// ---------- sections: resize on the desk (drag bars), or pop out as windows (drag, resize from every side and corner) ----------
+const PANES = { folders: "pFolders", files: "pFiles", note: "pNote" };
+const COLS0 = { folders: 1, files: 1.6, note: 2 }, MINW = 220;
+let COLS = { ...COLS0 }, GEO = {}, FLOAT = {}, zTopP = 70;
+try { COLS = { ...COLS0, ...JSON.parse(localStorage.getItem("viCols") || "{}") }; GEO = JSON.parse(localStorage.getItem("viGeo") || "{}"); FLOAT = JSON.parse(localStorage.getItem("viFloat") || "{}"); } catch { }
+const desk = () => innerWidth >= 1000;
+function layout() {
+  const P = $("panes"); P.querySelectorAll(".split,.alloff").forEach(x => x.remove());
+  if (!desk()) { P.style.gridTemplateColumns = ""; return; }
+  const docked = Object.keys(PANES).filter(k => !FLOAT[k]); const cols = [];
+  docked.forEach((k, i) => { const el = $(PANES[k]); el.style.order = i * 2; cols.push(`minmax(${MINW}px,${COLS[k]}fr)`);
+    if (i < docked.length - 1) { const sp = document.createElement("div"); sp.className = "split"; sp.style.order = i * 2 + 1; sp.setAttribute("role", "separator"); sp.setAttribute("aria-label", "Drag to resize");
+      cols.push("8px"); wireSplit(sp, k, docked[i + 1]); P.append(sp); } });
+  if (!docked.length) { const n = document.createElement("p"); n.className = "alloff"; n.textContent = "All sections are popped out. View → Dock all sections brings them back."; P.append(n); cols.push("1fr"); }
+  P.style.gridTemplateColumns = cols.join(" ");
+}
+function wireSplit(sp, a, b) {
+  sp.addEventListener("pointerdown", e => { if (e.button !== 0) return; e.preventDefault(); sp.classList.add("drag");
+    const A = $(PANES[a]), B = $(PANES[b]), wa = A.getBoundingClientRect().width, wb = B.getBoundingClientRect().width, sum = COLS[a] + COLS[b], x0 = e.clientX;
+    const move = ev => { const dx = ev.clientX - x0, na = Math.max(MINW, Math.min(wa + wb - MINW, wa + dx)); COLS[a] = sum * na / (wa + wb); COLS[b] = sum - COLS[a]; layout(); };
+    const up = () => { sp.classList.remove("drag"); removeEventListener("pointermove", move); removeEventListener("pointerup", up); document.body.style.userSelect = ""; try { localStorage.setItem("viCols", JSON.stringify(COLS)); } catch { } };
+    document.body.style.userSelect = "none"; addEventListener("pointermove", move); addEventListener("pointerup", up); });
+}
+function saveGeo(k) { const r = $(PANES[k]).getBoundingClientRect(); GEO[k] = { x: Math.round(r.left), y: Math.round(r.top), w: Math.round(r.width), h: Math.round(r.height) }; try { localStorage.setItem("viGeo", JSON.stringify(GEO)); } catch { } }
+function placePane(k) {
+  const el = $(PANES[k]), vw = innerWidth, vh = innerHeight, i = Object.keys(PANES).indexOf(k);
+  let g = GEO[k] || { w: Math.min(k === "folders" ? 460 : 640, vw - 40), h: Math.min(760, vh - 80), x: 40 + i * 60, y: 60 + i * 40 };
+  const w = Math.min(Math.max(g.w, 320), vw - 8), h = Math.min(Math.max(g.h, 240), vh - 8);
+  Object.assign(el.style, { width: w + "px", height: h + "px", left: Math.max(0, Math.min(g.x, vw - w)) + "px", top: Math.max(0, Math.min(g.y, vh - h)) + "px", zIndex: ++zTopP });
+}
+function floatPane(k, on) {
+  const el = $(PANES[k]); on = !!on && desk(); FLOAT[k] = on; try { localStorage.setItem("viFloat", JSON.stringify(FLOAT)); } catch { }
+  el.classList.toggle("float-win", on); el.querySelectorAll(":scope>.fw-grip").forEach(g => g.remove());
+  const btn = el.querySelector(".pop"); if (btn) { btn.textContent = on ? "⇲" : "⧉"; btn.title = on ? "Dock back into the desk" : "Pop out as a window"; }
+  if (on) { placePane(k); grips(el, k); } else ["width", "height", "left", "top", "zIndex"].forEach(p => el.style[p] = "");
+  layout();
+}
+function grips(el, k) {
+  [["t", "modal-resize-t"], ["r", "modal-resize-r"], ["b", "modal-resize-b"], ["l", "modal-resize-l"], ["tr", "modal-corner modal-corner-tr"], ["tl", "modal-corner modal-corner-tl"], ["bl", "modal-corner modal-corner-bl"], ["br", "modal-corner modal-corner-br"]].forEach(([dir, cls]) => {
+    const g = document.createElement("div"); g.className = cls + " fw-grip";
+    g.addEventListener("pointerdown", e => { if (e.button !== 0) return; e.preventDefault(); e.stopPropagation(); const r = el.getBoundingClientRect(), s = { x: e.clientX, y: e.clientY, l: r.left, t: r.top, w: r.width, h: r.height };
+      const move = ev => { let { l, t, w, h } = s; const dx = ev.clientX - s.x, dy = ev.clientY - s.y;
+        if (dir.includes("r")) w = Math.max(320, s.w + dx); if (dir.includes("l")) { w = Math.max(320, s.w - dx); l = s.l + (s.w - w); }
+        if (dir.includes("b")) h = Math.max(240, s.h + dy); if (dir.includes("t")) { h = Math.max(240, s.h - dy); t = Math.max(0, s.t + (s.h - h)); }
+        Object.assign(el.style, { width: w + "px", height: h + "px", left: l + "px", top: t + "px" }); };
+      const up = () => { removeEventListener("pointermove", move); removeEventListener("pointerup", up); document.body.style.userSelect = ""; saveGeo(k); };
+      document.body.style.userSelect = "none"; addEventListener("pointermove", move); addEventListener("pointerup", up); });
+    el.append(g); });
+}
+function initPanes() {
+  Object.entries(PANES).forEach(([k, id]) => { const el = $(id), hd = el.querySelector(".ph");
+    el.querySelector(".pop").onclick = e => { e.stopPropagation(); floatPane(k, !FLOAT[k]); };
+    el.addEventListener("pointerdown", () => { if (FLOAT[k]) el.style.zIndex = ++zTopP; }, { capture: true });
+    hd.addEventListener("pointerdown", e => { if (!FLOAT[k] || e.button !== 0 || e.target.closest("button,input,select,a,label,textarea")) return;
+      const r = el.getBoundingClientRect(), sx = e.clientX, sy = e.clientY; e.preventDefault();
+      const move = ev => { el.style.left = Math.max(0, Math.min(r.left + ev.clientX - sx, innerWidth - 80)) + "px"; el.style.top = Math.max(0, Math.min(r.top + ev.clientY - sy, innerHeight - 40)) + "px"; };
+      const up = () => { removeEventListener("pointermove", move); removeEventListener("pointerup", up); saveGeo(k); };
+      addEventListener("pointermove", move); addEventListener("pointerup", up); });
+    if (FLOAT[k]) floatPane(k, true); });
+  layout();
+  let rt; addEventListener("resize", () => { clearTimeout(rt); rt = setTimeout(() => { Object.keys(PANES).forEach(k => {
+    const el = $(PANES[k]), isF = el.classList.contains("float-win");
+    if (!desk()) { if (isF) floatPaneOff(k); } else if (FLOAT[k]) { if (!isF) floatPane(k, true); else placePane(k); } }); layout(); }, 150); });
+}
+function floatPaneOff(k) { const el = $(PANES[k]); el.classList.remove("float-win"); el.querySelectorAll(":scope>.fw-grip").forEach(g => g.remove()); ["width", "height", "left", "top", "zIndex"].forEach(p => el.style[p] = ""); }
 // ---------- start ----------
 $("signin").onclick = () => api?.connect().catch(e => toast(e.message));
 $("reconnect").onclick = () => api?.connect().catch(e => toast(e.message));
-buildMenus(); showNote(); draw();
+buildMenus(); showNote(); draw(); initPanes();
 loadTree().then(() => { draw(); if (!mapwin.hidden) drawMap(); });
 api = DEMO ? demoApi() : await realApi();
 </script>
