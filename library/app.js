@@ -145,7 +145,7 @@ function renderTree() {
       ? `<ul ${isOpen ? "" : "hidden"}>${build(f.id)}${postsIn(f.id).map(p => `<li><div class="row ${p.id === sel ? "sel" : ""}" data-post="${esc(p.id)}" tabindex="0"><span class="tw"></span><span class="rng">${esc(p.no)}</span><span class="nm">${esc(p.title)}</span><span class="kind">${esc(p.kind)}</span>${p.status !== "pub" ? `<span class="lock">${p.status === "draft" ? "draft" : "private"}</span>` : ""}</div></li>`).join("")}</ul>` : "";
     return `<li class="${pid === null ? "sec" : ""}"><div class="row" data-folder="${esc(f.id)}" tabindex="0" aria-expanded="${isOpen}"><span class="tw">${isOpen ? "−" : "+"}</span><span class="rng">${esc(f.range)}</span><span class="nm">${esc(f.name)}</span><span class="cnt">(${count(f.id)})</span>${f.private ? '<span class="lock">private</span>' : ""}</div>${inner}</li>`;
   }).join("");
-  $("tree").innerHTML = build(null) || '<li class="empty">No folders yet.</li>';
+  $("tree").innerHTML = build(null) || `<li class="empty">${owner ? "No folders yet." : "No videos published yet. Please check back soon."}</li>`;
 }
 
 function renderPost() {
