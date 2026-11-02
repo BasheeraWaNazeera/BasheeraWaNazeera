@@ -287,7 +287,7 @@ textarea{min-height:120px;resize:vertical}
       <div class="ph">
         <h2>The Map <span class="r"><button class="link" id="openMap" type="button">⤢ Full window</button><button class="pop" data-pop="folders" type="button" title="Pop out as a window">⧉</button></span></h2>
         <input type="search" id="fq" placeholder="Find a folder…" aria-label="Find a folder">
-        <div class="oc"><label class="chk"><input type="checkbox" id="onlyWith"> Only folders with files</label><span style="flex:1"></span><button id="openall" type="button">open all</button>|<button id="closeall" type="button">close all</button></div>
+        <div class="oc"><label class="chk"><input type="checkbox" id="onlyWith"> Only folders with files</label><span style="flex:1"></span><button id="openall" type="button">open all</button>|<button id="closeall" type="button">close all</button><button id="newpost" type="button">+ new post</button></div>
       </div>
       <div class="special" id="special"></div>
       <div class="tree" id="ltree"></div>
@@ -617,7 +617,7 @@ function drawLTree() {
   if (cur !== drawLTree.last) { drawLTree.last = cur; const c = cur && ITEMS.find(x => x.id === cur); if (c?.mmj && BY.has(c.mmj)) ancestors(c.mmj).forEach(a => OPEN.add(a)); } // show where a newly opened file sits
   if (q.length >= 2) return drawTree(host, { counts: COUNTS, only: onlyWith, sel: typeof view === "number" ? view : null, q, onPick: f => { view = f.id; ancestors(f.id).forEach(a => OPEN.add(a)); saveOpen(); $("fq").value = ""; sel.clear(); draw(); tab("files"); } });
   const items = id => ITEMS.filter(r => r.mmj === id);
-  const itemRow = r => `<li><div class="lr${cur === r.id ? " sel" : ""}" data-i="${esc(r.id)}" tabindex="0"><span class="ltw"></span><span class="nm">${r.type === "post" ? "🎬" : "🎙"} ${esc(r.title)}</span><span class="kind">${r.type === "post" ? (r.kind === "AUDIO" ? "AUDIO" : "VIDEO") : "REC"}</span>${r.type === "post" && r.status !== "pub" ? `<span class="lock">${r.status === "draft" ? "draft" : "private"}</span>` : ""}</div></li>`;
+  const itemRow = r => `<li><div class="lr${cur === r.id ? " sel" : ""}" data-i="${esc(r.id)}" tabindex="0"><span class="ltw"></span>${r.type === "post" && r.no ? `<span class="rng">${esc(r.no)}</span>` : ""}<span class="nm">${r.type === "post" ? "🎬" : "🎙"} ${esc(r.title)}</span><span class="kind">${r.type === "post" ? (r.kind === "AUDIO" ? "AUDIO" : "VIDEO") : "REC"}</span>${r.type === "post" && r.status !== "pub" ? `<span class="lock">${r.status === "draft" ? "draft" : "private"}</span>` : ""}</div></li>`;
   const build = pid => (KIDS.get(pid) || []).filter(f => !onlyWith || COUNTS.get(f.id)).map(f => {
     const kids = (KIDS.get(f.id) || []).filter(k => !onlyWith || COUNTS.get(k.id)), its = items(f.id), has = kids.length || its.length, open = has && OPEN.has(f.id), [rng, nm] = splitName(f.name), n = COUNTS.get(f.id);
     return `<li><div class="lr${view === f.id ? " sel" : ""}" data-f="${f.id}" tabindex="0"${has ? ` aria-expanded="${open}"` : ""}><span class="ltw">${has ? (open ? "−" : "+") : ""}</span>${rng ? `<span class="rng">${esc(rng)}</span>` : ""}<span class="nm">${esc(nm)}</span>${n ? `<span class="cnt">(${n})</span>` : ""}</div>${open ? `<ul>${build(f.id)}${its.map(itemRow).join("")}</ul>` : ""}</li>`;
@@ -631,6 +631,13 @@ $("ltree").addEventListener("click", e => { const r = e.target.closest(".lr"); i
 $("ltree").addEventListener("keydown", e => { if ((e.key === "Enter" || e.key === " ") && e.target.closest(".lr")) { e.preventDefault(); e.target.click(); } });
 $("openall").onclick = () => { COUNTS.forEach((n, id) => OPEN.add(id)); saveOpen(); draw(); };
 $("closeall").onclick = () => { OPEN.clear(); saveOpen(); draw(); };
+// + new post: a blank video post (Draft) in the folder you are looking at
+$("newpost").onclick = async () => { if (!ownerOk) return;
+  const f = typeof view === "number" ? BY.get(view) : null, id = "p" + Date.now().toString(36);
+  const nos = ITEMS.filter(x => x.type === "post" && /^\d+$/.test(x.no || "")).map(x => +x.no), no = String((nos.length ? Math.max(...nos) : 0) + 1).padStart(3, "0");
+  const post = { title: "New video post", no, folder: "", mmj: f ? f.id : null, mmjName: f ? f.name : "", mmjPath: f ? f.path : "", kind: "VIDEO", lang: "English", len: "—", status: "draft",
+    date: new Date().toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric", timeZone: "Australia/Sydney" }), ytUrl: "", audioUrl: "", articleUrl: "", html: "<p></p>", at: new Date().toISOString() };
+  try { await api.addPost(id, post, { raw: [], versions: [] }); draft = null; cur = id; toast("New video post (Draft). Type its title in the note pane."); await refresh(); tab("note"); } catch (e) { setupNote(e); } };
 // ---------- bulk actions ----------
 const picked = () => ITEMS.filter(r => sel.has(r.id));
 async function bulk(label, fn) { const rs = picked(); if (!rs.length) return; let i = 0;
