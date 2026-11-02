@@ -36,28 +36,31 @@ const say = (h, p, btn) => { msg.hidden = false; msg.innerHTML = `<h1>${esc(h)}<
 // db: reads the copy of the page's data saved with it (changes last until the page is closed);
 // downloads: saves files to this device; artifact: saving the page itself stays in Claude.
 const SHIM = `(function(){
-  var L={}, SEED=function(){return window.__BWN_SEED||{}}, RO=false;
+  var L={}, BASE=null, SAVE=!!window.__BWN_SAVE;
+  function SEED(){if(!BASE){BASE=JSON.parse(JSON.stringify(window.__BWN_SEED||{}));var o=window.__BWN_DB||{};Object.keys(o).forEach(function(c){BASE[c]=Object.assign(BASE[c]||{},o[c]);});}return BASE;}
+  function send(c,id){if(!SAVE)return;var v=store(c)[id];try{parent.postMessage({bwn:"db",col:c,id:id,data:v===undefined?null:v},"*");}catch(e){}}
+  window.addEventListener("message",function(e){if(e.source===parent&&e.data&&e.data.bwn==="dberr"){SAVE=false;noted=false;note("Not saved: "+(e.data.msg||"sign in as the owner")+".");}});
   function clone(x){return x===undefined?undefined:JSON.parse(JSON.stringify(x));}
   function store(c){var S=SEED();return S[c]||(S[c]={});}
   function snapDoc(c,id){var d=store(c)[id];return {id:id,exists:d!==undefined,data:function(){return clone(d);},get:function(k){return d?clone(d[k]):undefined;},ref:{id:id}};}
   function colSnap(c,ch){var docs=Object.keys(store(c)).map(function(id){return snapDoc(c,id);});
     return {docs:docs,size:docs.length,empty:!docs.length,forEach:function(f){docs.forEach(f);},docChanges:function(){return ch||docs.map(function(d){return {type:"added",doc:d};});}};}
-  function fire(c,id,type){note();(L[c]||[]).forEach(function(f){f(colSnap(c,[{type:type,doc:snapDoc(c,id)}]));});(L[c+"/"+id]||[]).forEach(function(f){f(snapDoc(c,id));});}
+  function fire(c,id,type){send(c,id);note();(L[c]||[]).forEach(function(f){f(colSnap(c,[{type:type,doc:snapDoc(c,id)}]));});(L[c+"/"+id]||[]).forEach(function(f){f(snapDoc(c,id));});}
   function on(k,f){(L[k]=L[k]||[]).push(f);return function(){L[k]=(L[k]||[]).filter(function(g){return g!==f;});};}
   function docRef(path){var p=String(path).split("/"),id=p.pop(),c=p.join("/");
     return {id:id,path:path,get:function(){return Promise.resolve(snapDoc(c,id));},
       onSnapshot:function(f){setTimeout(function(){f(snapDoc(c,id));});return on(c+"/"+id,f);},
       set:function(d,o){var t=store(c),had=t[id]!==undefined;t[id]=o&&o.merge?Object.assign({},t[id]||{},clone(d)):clone(d);fire(c,id,had?"modified":"added");return Promise.resolve();},
       update:function(d){var t=store(c);t[id]=Object.assign({},t[id]||{},clone(d));fire(c,id,"modified");return Promise.resolve();},
-      delete:function(){var t=store(c);if(t[id]===undefined)return Promise.resolve();var old=snapDoc(c,id);delete t[id];note();(L[c]||[]).forEach(function(f){f(colSnap(c,[{type:"removed",doc:old}]));});(L[c+"/"+id]||[]).forEach(function(f){f(snapDoc(c,id));});return Promise.resolve();},
+      delete:function(){var t=store(c);if(t[id]===undefined)return Promise.resolve();var old=snapDoc(c,id);delete t[id];send(c,id);note();(L[c]||[]).forEach(function(f){f(colSnap(c,[{type:"removed",doc:old}]));});(L[c+"/"+id]||[]).forEach(function(f){f(snapDoc(c,id));});return Promise.resolve();},
       collection:function(n){return col(path+"/"+n);}};}
   function col(c){return {id:c,doc:function(id){return docRef(c+"/"+(id||Math.random().toString(36).slice(2)));},
     add:function(d){var r=docRef(c+"/"+Math.random().toString(36).slice(2));return r.set(d).then(function(){return r;});},
     get:function(){return Promise.resolve(colSnap(c));},
     onSnapshot:function(f){setTimeout(function(){f(colSnap(c));});return on(c,f);}};}
-  var noted=false;function note(){if(noted)return;noted=true;var b=document.createElement("div");
-    b.textContent="Copy outside Claude: changes made here are not kept after you close the page.";
-    b.style.cssText="position:fixed;left:50%;bottom:12px;transform:translateX(-50%);z-index:2147483647;background:#1d2420;color:#fff;font:13px system-ui,sans-serif;padding:7px 14px;border-radius:999px;max-width:calc(100vw - 24px);box-shadow:0 4px 14px rgba(0,0,0,.25)";
+  var noted=false;function note(m){if(noted||(SAVE&&!m))return;noted=true;var b=document.createElement("div");
+    b.textContent=m||"Copy outside Claude: changes made here are not kept after you close the page.";
+    b.style.cssText="pointer-events:none;position:fixed;left:50%;top:12px;transform:translateX(-50%);z-index:2147483647;background:#1d2420;color:#fff;font:13px system-ui,sans-serif;padding:7px 14px;border-radius:999px;max-width:calc(100vw - 24px);box-shadow:0 4px 14px rgba(0,0,0,.25)";
     document.body.appendChild(b);setTimeout(function(){b.remove();},8000);}
   var db={collection:col,doc:docRef};
   var dl={save:function(o){o=o||{};var data=o.data,blob=data instanceof Blob?data:new Blob([typeof data==="string"?data:data instanceof ArrayBuffer||ArrayBuffer.isView(data)?data:JSON.stringify(data)],{type:o.type||o.mimeType||"application/octet-stream"});
@@ -65,6 +68,7 @@ const SHIM = `(function(){
   var art={publish:function(){return Promise.reject({code:"unavailable",message:"Saving a new version of this page is done in its Claude copy."});}};
   window.claude={use:function(n){return n==="db"?Promise.resolve(db):n==="downloads"?Promise.resolve(dl):n==="artifact"?Promise.resolve(art):Promise.reject({code:"unavailable",message:n+" is only in the Claude copy."});}};
 })();`;
+let canSave = false, onDb = null;
 function show(d) {
   document.title = d.name || "BwN Library page";
   const jump = anchor ? `<script>try{const e=document.getElementById(${JSON.stringify(anchor)});if(e)e.scrollIntoView();}catch(e){}<\/script>` : "";
@@ -73,10 +77,12 @@ function show(d) {
   f.setAttribute("sandbox", "allow-scripts allow-popups allow-popups-to-escape-sandbox allow-forms allow-modals allow-downloads allow-top-navigation-by-user-activation");
   f.setAttribute("allow", "clipboard-write; fullscreen");
   let html = String(d.html || "");
-  const tag = "<script>" + (anchor ? "try{history.replaceState(null,'','#'+" + JSON.stringify(anchor) + ");}catch(e){}" : "") + SHIM + "<\/script>";
+  const pre = "window.__BWN_DB=" + JSON.stringify(d.db || {}).replace(/</g, "\\u003c") + ";window.__BWN_SAVE=" + (canSave ? "true" : "false") + ";";
+  const tag = "<script>" + pre + (anchor ? "try{history.replaceState(null,'','#'+" + JSON.stringify(anchor) + ");}catch(e){}" : "") + SHIM + "<\/script>";
   html = /<head[^>]*>/i.test(html) ? html.replace(/<head[^>]*>/i, m => m + tag) : tag + html;
   f.srcdoc = html.replace(/<\/body>(?![\s\S]*<\/body>)/i, jump + "</body>") + (/<\/body>/i.test(html) ? "" : jump);
   msg.hidden = true; document.body.append(f);
+  addEventListener("message", e => { if (e.source === f.contentWindow && e.data && e.data.bwn === "db" && onDb) onDb(e.data, err => f.contentWindow.postMessage({ bwn: "dberr", msg: err }, "*")); });
 }
 
 if (!key) say("No page chosen", "Open a page from its card in the Video Library.");
@@ -87,7 +93,11 @@ else {
   const load = async () => {
     try { const s = await fs.getDoc(fs.doc(db, "pages", key));
       if (!s.exists()) return say("Page not found", "This page is not in the Library (it may have been removed)."), true;
-      shown = true; show(s.data()); return true;
+      const d = s.data(), OWN = ["basheerawanazeera@gmail.com", "smahk9@gmail.com"];
+      canSave = !!((d.live || /window\.__BWN_LIVE\s*=\s*true/.test(d.html || "")) && auth.currentUser && OWN.includes((auth.currentUser.email || "").toLowerCase()));
+      onDb = ({ col, id, data }, fail) => { if (!canSave || !/^[A-Za-z0-9_-]{1,120}$/.test(col + id)) return fail("this copy cannot save");
+        fs.updateDoc(fs.doc(db, "pages", key), new fs.FieldPath("db", col, id), data === null ? fs.deleteField() : data).catch(e => fail(e.message)); };
+      shown = true; show(d); return true;
     } catch (e) { return false; }
   };
   au.onAuthStateChanged(auth, async u => {
