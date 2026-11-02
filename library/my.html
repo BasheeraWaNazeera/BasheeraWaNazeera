@@ -301,11 +301,21 @@ textarea{min-height:120px;resize:vertical}
 .tbtn{border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:8px;padding:3px 9px;font-size:.82rem;white-space:nowrap}
 .tbtn.act{border-color:var(--accent);color:var(--accent);font-weight:600}
 .fpw,.acw{position:relative}
-.fpop{position:absolute;top:calc(100% + 6px);left:0;z-index:1100;display:grid;gap:8px;min-width:240px;padding:10px;background:var(--panel);border:1px solid var(--line);border-radius:10px;box-shadow:0 10px 30px rgba(0,0,0,.16)}
+.fpop{position:fixed;z-index:1100;max-height:80vh;overflow:auto;display:grid;gap:8px;min-width:240px;padding:10px;background:var(--panel);border:1px solid var(--line);border-radius:10px;box-shadow:0 10px 30px rgba(0,0,0,.16)}
 .fpop select{max-width:none!important;width:100%}
 .fpop label{display:grid!important;gap:3px}
 .sortl{white-space:nowrap}
-.sortl select{max-width:150px!important}
+.sortl select{max-width:150px!important;font:inherit;font-size:.8rem;border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:8px;padding:3px 6px}
+.sortl{font-size:.75rem;color:var(--muted);display:inline-flex;align-items:center;gap:4px}
+.lbar{display:inline-flex;align-items:center;gap:6px;margin-left:auto}
+.fpop select{font:inherit;font-size:.8rem;border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:8px;padding:4px 6px}
+.fpop label,.fpop .pv{font-size:.75rem;color:var(--muted)}
+.fpop .pv{display:flex;align-items:center;gap:6px}
+.cvtop{display:flex;justify-content:flex-end;padding:0 0 8px}
+.rowpath.tree .pt{display:block}
+.rowpath.tree .pt::before{content:"└ ";opacity:.6}
+.rowpath.tree .pt:first-child::before{content:"📁 ";opacity:1}
+.crumb .rowpath{font-size:inherit}
 .who{margin-left:0;flex-wrap:nowrap;gap:6px}
 .acct{width:30px;height:30px;border-radius:50%;border:1px solid var(--line);background:var(--accent);color:var(--panel);font-weight:600;font-size:.85rem;position:relative}
 .acct.warn::after{content:"";position:absolute;right:-1px;top:-1px;width:9px;height:9px;border-radius:50%;background:var(--warn);border:2px solid var(--panel)}
@@ -314,7 +324,7 @@ textarea{min-height:120px;resize:vertical}
 .owl{font-size:.8rem;color:var(--accent);white-space:nowrap}
 .opsmsg:empty{display:none}
 .opsmsg{flex-basis:100%;font-size:.8rem}
-.rowpath{display:block;font-size:.76rem;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rowpath{display:block;font-size:.76rem;color:var(--muted);white-space:normal;overflow-wrap:anywhere;min-width:0}
 .lr .fpop1{margin-left:auto;border:0;background:none;color:var(--accent);font-size:.78rem;padding:0 4px;border-radius:5px;opacity:0;flex-shrink:0}
 .lr:hover .fpop1,.lr:focus-within .fpop1,.lr.sel .fpop1{opacity:.9}
 .lr .fpop1:hover{background:var(--panel)}
@@ -331,14 +341,14 @@ textarea{min-height:120px;resize:vertical}
 .menubar .seg{margin-right:0}
 #lyNote,#lyCards{font-size:1rem;line-height:1.2;padding:2px 9px}
 @media (max-width:1499.98px){.sortl .sl{display:none}}
+.nbar .fname{white-space:normal!important;overflow-wrap:anywhere}
 @media (max-width:999.98px){
   .mdiv{display:none}
   .menubar .wfbar{flex-basis:100%;order:5;flex-wrap:wrap}
-  .menubar .wfbar input[type=search]{flex-basis:100%}
+  .menubar .wfbar input[type=search]{flex:1 1 150px}
   .menubar .ops{order:4}
   .who{margin-left:auto;order:3}
   .sortl select{max-width:120px!important}
-  .fpop{left:auto;right:0}
 }
 .toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:var(--ink);color:var(--panel);padding:8px 16px;border-radius:999px;font-size:.88rem;max-width:calc(100vw - 32px);z-index:3000}
 </style>
@@ -360,16 +370,6 @@ textarea{min-height:120px;resize:vertical}
     </section>
     <section class="wfbar" aria-label="Find, filter and sort" id="wfbar">
       <input type="search" id="wq" placeholder="Search cards, recordings, posts…" aria-label="Search">
-      <span class="fpw"><button class="tbtn" id="wTog" type="button" aria-expanded="false" aria-controls="fpop">Filters ▾</button>
-        <span class="fpop" id="fpop" hidden>
-          <select id="wTopic" aria-label="Topic"></select>
-          <select id="wSubject" aria-label="Subject"></select>
-          <select id="wProject" aria-label="Project"></select>
-          <select id="wType" aria-label="Type"></select>
-          <label>Group <select id="wGrp"><option value="none">None</option><option value="folder">Folder</option><option value="stage">Stage</option><option value="topic">Topic</option><option value="project">Project</option><option value="type">Type</option></select></label>
-          <button class="link" id="wAll" type="button">Show all</button>
-        </span></span>
-      <label class="sortl" title="Sort the list"><span class="sl">Sort</span> <select id="wSort"><option value="new">Date · newest</option><option value="old">Date · oldest</option><option value="type">Type</option><option value="project">Project</option><option value="size">Size · largest</option><option value="draft">Draft first</option><option value="working">Under process first</option><option value="finished">Finished first</option><option value="published">Published first</option><option value="name">Name A–Z</option></select></label>
       <span class="seg" role="group" aria-label="Layout"><button class="segb on" id="lyNote" type="button" title="Notebook: folders, list and note side by side" aria-label="Notebook layout">▥</button><button class="segb" id="lyCards" type="button" title="Cards: everything as cards" aria-label="Cards layout">▦</button></span>
       <button class="btn sm" id="wAdd" type="button">+ Add</button>
     </section>
@@ -409,6 +409,19 @@ textarea{min-height:120px;resize:vertical}
           <button class="btn ghost" id="bMove" disabled>Move to folder</button>
           <button class="btn ghost" id="bShare" disabled>Share link</button>
           <button class="btn warn" id="bDel" disabled>Delete</button>
+          <span class="lbar" id="lbar">
+      <span class="fpw"><button class="tbtn" id="wTog" type="button" aria-expanded="false" aria-controls="fpop">Filters ▾</button>
+        <span class="fpop" id="fpop" hidden>
+          <select id="wTopic" aria-label="Topic"></select>
+          <select id="wSubject" aria-label="Subject"></select>
+          <select id="wProject" aria-label="Project"></select>
+          <select id="wType" aria-label="Type"></select>
+          <label>Group <select id="wGrp"><option value="none">None</option><option value="folder">Folder</option><option value="stage">Stage</option><option value="topic">Topic</option><option value="project">Project</option><option value="type">Type</option></select></label>
+          <span class="pv">Folder paths <span class="seg" role="group" aria-label="Folder paths"><button class="segb" type="button" id="pvLine" title="Folder path in one line, wrapped">Line</button><button class="segb" type="button" id="pvTree" title="Folder path as a tree">Tree</button></span></span>
+          <button class="link" id="wAll" type="button">Show all</button>
+        </span></span>
+      <label class="sortl" title="Sort the list"><span class="sl">Sort</span> <select id="wSort"><option value="new">Date · newest</option><option value="old">Date · oldest</option><option value="type">Type</option><option value="project">Project</option><option value="size">Size · largest</option><option value="draft">Draft first</option><option value="working">Under process first</option><option value="finished">Finished first</option><option value="published">Published first</option><option value="name">Name A–Z</option></select></label>
+          </span>
         </div>
       </div>
       <div class="rows" id="rows"><p class="empty">Sign in to see your recordings.</p></div>
@@ -419,7 +432,7 @@ textarea{min-height:120px;resize:vertical}
       <div class="note" id="note"></div>
     </section>
   </main>
-  <section class="cardsview" id="cardsview" hidden aria-label="Cards"></section>
+  <section class="cardsview" id="cardsview" hidden aria-label="Cards"><div class="cvtop" id="cvtop"></div><div id="cvbody"></div></section>
 </div>
 <dialog class="wfdlg" id="wfdlg" aria-labelledby="wfdlgT"><header><span id="wfdlgT"></span><button type="button" id="wfdlgX" aria-label="Close">✕</button></header><div class="body" id="wfdlgB"></div><footer id="wfdlgF"></footer></dialog>
 
@@ -865,7 +878,7 @@ async function drawPost(p) {
   const N = $("note"), f = p.mmj && BY.get(p.mmj);
   const noteHtml = (p.html ?? (p.text || []).map(({ t, s }) => `<p>${t ? `<span class="ts">${esc(t)}</span> ` : ""}${esc(s)}</p>`).join("")) || "<p></p>";
   const src = p.from && ITEMS.find(x => x.id === p.from);
-  N.innerHTML = `<div class="crumb">${f ? esc(f.path) : "Not yet filed on the Map"}</div>
+  N.innerHTML = `<div class="crumb">${pathHTML(placeOf(p))}</div>
     <h2 class="ptitle">${esc(p.title)}</h2>
     <div class="chips2"><span class="chip ${esc(p.status)}">${p.status === "pub" ? "Published" : p.status === "draft" ? "Draft · only you see it" : "Private"}</span><span class="chip">${p.kind === "AUDIO" ? "Audio" : "Video"}${p.len && p.len !== "—" ? " · " + esc(p.len) : ""}</span><span class="chip">${esc(p.lang)}</span>${p.date ? `<span class="chip">${esc(p.date)}</span>` : ""}</div>
     ${p.ytUrl || p.audioUrl || p.articleUrl ? `<div class="media">${p.ytUrl ? `<a class="btn" href="${esc(p.ytUrl)}" target="_blank" rel="noopener">▶ Watch on YouTube</a>` : ""}${p.audioUrl ? `<a class="btn ghost" href="${esc(p.audioUrl)}" target="_blank" rel="noopener">Listen (audio only)</a>` : ""}${p.articleUrl ? `<a class="btn ghost" href="${esc(p.articleUrl)}" target="_blank" rel="noopener">Read the article</a>` : ""}</div>` : `<p class="empty" style="padding:0">Not on YouTube yet. When you publish it, the YouTube link appears here for visitors.</p>`}
@@ -912,7 +925,11 @@ const topOf = r => Array.isArray(r.topics) ? r.topics : [];
 const subjOf = r => r.wf ? "WorkFlow" : r.mmj && BY.has(r.mmj) ? BY.get(ancestors(r.mmj).at(-1)).name : "Not yet filed";
 const mmjPath = id => ancestors(id).reverse().map(x => BY.get(x)?.name || "").join(" › ");
 const placeOf = r => r.wf ? wfPath(r.wf) : r.mmj && BY.has(r.mmj) ? "The Map › " + mmjPath(r.mmj) : r.type === "post" && r.folder && LF.some(f => f.id === r.folder) ? "First Library folders › " + LF.find(f => f.id === r.folder).name : r.mmjPath || "Not yet filed";
-const pathLine = r => { const p = placeOf(r), q = p.split(" › "), short = q.length > 3 ? [q[0], "…", q.at(-1)].join(" › ") : p; return `<span class="rowpath" title="${esc(p)}">📁 ${esc(short)}</span>`; };
+let PATHV = "line"; try { PATHV = localStorage.getItem("viPath") || "line"; } catch { }
+const pathHTML = p => { const q = p.split(" › ");
+  return PATHV === "tree" ? `<span class="rowpath tree">${q.map((x, i) => `<span class="pt" style="padding-left:${i ? (i - 1) * 1 + .2 : 0}em">${esc(x)}</span>`).join("")}</span>` : `<span class="rowpath">📁 ${esc(p)}</span>`; };
+const pathLine = r => pathHTML(placeOf(r));
+function setPathV(v) { PATHV = v; try { localStorage.setItem("viPath", v); } catch { } $("pvLine").classList.toggle("on", v !== "tree"); $("pvTree").classList.toggle("on", v === "tree"); draw(); if (!draft) showNote(); }
 const folderOf = r => r.wf ? wfName(r.wf) : r.mmj && BY.has(r.mmj) ? BY.get(r.mmj).name : "Not yet filed";
 function setWF(own) { WFOWN = own || []; WF = WF0.map(f => ({ ...f, ...(WFOWN.find(o => o.id === f.id) || {}) })).concat(WFOWN.filter(o => !WF0.some(f => f.id === o.id))); }
 const wfKids = pid => WF.filter(f => (f.parent ?? null) === pid).sort((a, b) => (a.order ?? 50) - (b.order ?? 50) || a.name.localeCompare(b.name, "en", { numeric: true }));
@@ -1019,12 +1036,14 @@ $("wProject").onchange = e => fset("project", e.target.value); $("wType").onchan
 $("wGrp").onchange = e => fset("grp", e.target.value); $("wSort").onchange = e => fset("sort", e.target.value);
 $("wq").oninput = e => { FL.q = e.target.value; saveFL(); clearTimeout(fset.t); fset.t = setTimeout(draw, 150); };
 $("wAll").onclick = () => { Object.assign(FL, { q: "", topic: "", subject: "", project: "", type: "", grp: "none" }); view = "all"; saveFL(); draw(); toast("Showing everything."); };
-function fpopShow(o) { $("fpop").hidden = !o; $("wTog").setAttribute("aria-expanded", o); fbadge(); }
+function fpopShow(o) { $("fpop").hidden = !o;
+  if (o) { const r = $("wTog").getBoundingClientRect(), P = $("fpop"), w = Math.max(250, P.offsetWidth); P.style.top = (r.bottom + 6) + "px"; P.style.left = Math.max(8, Math.min(r.left, innerWidth - w - 8)) + "px"; const w2 = P.getBoundingClientRect().width; P.style.left = Math.max(8, Math.min(r.left, document.documentElement.clientWidth - w2 - 8)) + "px"; } $("wTog").setAttribute("aria-expanded", o); fbadge(); }
 function fbadge() { const n = ["topic", "subject", "project", "type"].filter(k => FL[k]).length + (FL.grp !== "none" ? 1 : 0);
   $("wTog").textContent = "Filters" + (n ? " · " + n : "") + ($("fpop").hidden ? " ▾" : " ▴"); $("wTog").classList.toggle("act", !!n); }
+$("pvLine").onclick = () => setPathV("line"); $("pvTree").onclick = () => setPathV("tree");
 $("wTog").onclick = e => { e.stopPropagation(); fpopShow($("fpop").hidden); };
 function setLay(l) { FL.lay = l; saveFL(); const c = l === "cards"; $("lyNote").classList.toggle("on", !c); $("lyCards").classList.toggle("on", c);
-  $("panes").hidden = c; $("tabs").style.display = c ? "none" : ""; $("cardsview").hidden = !c; draw(); }
+  $("panes").hidden = c; $("tabs").style.display = c ? "none" : ""; $("cardsview").hidden = !c; (c ? $("cvtop") : $("pFiles").querySelector(".bulk")).append($("lbar")); draw(); }
 $("lyNote").onclick = () => setLay("note"); $("lyCards").onclick = () => setLay("cards");
 
 // rows and cards
@@ -1034,7 +1053,7 @@ function cardRow(r) {
     ${pathLine(r)}</span></div>`;
 }
 function drawCards(list) {
-  const host = $("cardsview"); if (host.hidden) return;
+  if ($("cardsview").hidden) return; const host = $("cvbody");
   host.innerHTML = list.length ? groupsOf(list).map(([g, arr]) => `${g === null ? "" : `<h3>${esc(g)} <span class="meta">${arr.length}</span></h3>`}<div class="cgrid">${arr.map(r => `
     <article class="wcard" data-id="${esc(r.id)}"><div class="t">${r.type === "card" ? cdot(r) : ""}${ICONOF(r)} ${esc(r.title)}${r.new ? '<span class="newb">New</span>' : ""}</div>
       <div class="meta">${esc(typeOf(r))} · ${esc(projOf(r).join(", "))}${r.ver ? " · " + esc(r.ver) : ""} · ${esc(stageOf(r))}</div>${pathLine(r)}
@@ -1056,7 +1075,7 @@ function viewerHTML(u) {
 function drawCard(c) {
   const N = $("note"), f = c.mmj && BY.get(c.mmj), where = f ? f.path : c.wf ? wfPath(c.wf) : "Not yet filed";
   const kinds = ["Demo", "List", "Report", "Database", "Other"];
-  N.innerHTML = `<div class="crumb">${esc(where)}</div>
+  N.innerHTML = `<div class="crumb">${pathHTML(placeOf(c))}</div>
     <h2 class="ptitle">${esc(c.title)}</h2>
     <div class="chips2">${cdot(c)}<span class="chip">${esc(c.status || "todo")}</span><span class="chip">${esc(typeOf(c))}</span><span class="chip">${esc(c.by || "")}${c.at ? " · " + esc(when(c.at)) : ""}</span>${c.show ? '<span class="chip pub">Visitors see its link</span>' : '<span class="chip draft">Only you see it</span>'}</div>
     <div class="nbar"><span class="fname">📁 <b>${esc(folderOf(c))}</b></span>
@@ -1136,7 +1155,7 @@ function showNote() {
   if (r.type === "card") return drawCard(r);
   const au = r.files?.find(f => f.audio), f = r.mmj && BY.get(r.mmj);
   const noteHtml = r.note || (r.text ? `<p>${esc(r.text).replace(/\n+/g, "</p><p>")}</p>` : "<p></p>");
-  N.innerHTML = `<div class="crumb">${f ? esc(f.path) : "Not yet filed on the Map"}</div>
+  N.innerHTML = `<div class="crumb">${pathHTML(placeOf(r))}</div>
     <h2 class="ptitle">${esc(r.title)}</h2>
     <div class="chips2"><span class="chip draft">Recording · only you see it</span><span class="chip">${esc(r.src)}${r.dur ? " · " + esc(r.dur) : ""}</span><span class="chip">${esc(r.lang)}</span><span class="chip">${esc(when(r.at))}</span>${r.textFrom ? `<span class="chip">transcript: ${esc(r.textFrom)}</span>` : ""}${r.shared ? `<span class="chip priv">link shared</span>` : ""}</div>
     <div class="nbar">${au ? `<button class="btn" id="nPlay" type="button">▶ Play</button>` : ""}
@@ -1186,7 +1205,7 @@ function helpHTML() {
     <li><b>🗂 WorkFlow · private</b> (top of the Map): your work cards (lists, demos, reports, databases) from MyDatabase, one folder per project. New cards from the Architects arrive in <b>🆕 Inbox</b> with a New mark. Drag a card onto any folder to file it; + Folder, Rename and Move are under “All files” when a WorkFlow folder is open. Tap a card’s dot to go todo → working → done.</li>
     <li><b>Find bar</b> (in the top bar): search, filters by Topic · Subject · Project · Type with counts, Show all, Group and Sort; this device remembers them. <b>▦ Cards</b> shows everything as cards; <b>▥ Notebook</b> brings back the three sections. <b>+ Add item</b> adds a card (a file goes to your Drive folder “To BwN”).</li>
     <li><b>Note</b> (right): ▶ Play, the folder and Choose folder, 🔗 Links (Drive files, share link) and 🗑 on one bar; below it the notes and transcript, which save by itself.</li>
-    <li><b>Sizes:</b> drag the thin bars between the sections to make one wider. <b>⧉</b> on a section’s header pops it out as its own window: drag it by its header, resize it from any side or corner; <b>⇲</b> docks it back (View → Dock all sections). <b>⧉</b> beside any folder opens that folder as its own window; open as many as you like, drag each by its title, resize it from any side or corner, and drop a file or card on it to file it there (View → Close all folder windows). Sizes are remembered on this device.</li><li><b>Find and sort</b> (top bar): search, <b>Filters</b> (Topic, Subject, Project, Type, Group) and <b>Sort</b> by date, type, project, size or stage (Draft · Under process · Finished · Published). Every row shows 📁 where it belongs.</li></ul>
+    <li><b>Sizes:</b> drag the thin bars between the sections to make one wider. <b>⧉</b> on a section’s header pops it out as its own window: drag it by its header, resize it from any side or corner; <b>⇲</b> docks it back (View → Dock all sections). <b>⧉</b> beside any folder opens that folder as its own window; open as many as you like, drag each by its title, resize it from any side or corner, and drop a file or card on it to file it there (View → Close all folder windows). Sizes are remembered on this device.</li><li><b>Find and sort</b>: search in the top bar; <b>Filters</b> and <b>Sort</b> sit on the Files bar: search, <b>Filters</b> (Topic, Subject, Project, Type, Group) and <b>Sort</b> by date, type, project, size or stage (Draft · Under process · Finished · Published). Every row and note shows 📁 where it belongs; Filters → Folder paths (or View) shows it in one line or as a tree.</li></ul>
     <h3>Where your files are kept</h3><ul>
     <li><b>Recordings and Otter files:</b> in your own Google Drive (BasheeraWaNazeera@gmail.com) → My Drive → folder <b>“To BwN”</b>. Nobody else can open them unless you press “Share link”.</li>
     <li><b>Title, folder, transcript and notes:</b> in the BWN Firebase database (project basheera-wa-nazeera), readable only by your Google account.</li>
@@ -1309,7 +1328,7 @@ const MENUS = () => [
     ["Move ticked to folder…", bulkMove, "M", !sel.size], ["Delete ticked…", bulkDel, "Del", !sel.size]]],
   ["View", [["⤢ The Map in a full window", () => $("openMap").click(), "F"], [(onlyWith ? "✓ " : "") + "Only folders with recordings", () => { $("onlyWith").checked = !onlyWith; $("onlyWith").onchange(); }],
     ["All files", () => { view = "all"; draw(); tab("files"); }], ["Not yet filed", () => { view = "unfiled"; draw(); tab("files"); }], "-",
-    ["Refresh the Map from Mapping My Journey", async () => { await loadTree(true); draw(); toast("The Map is up to date."); }], ["Dock all sections", () => { Object.keys(PANES).forEach(k => floatPane(k, false)); }], ["Close all folder windows", () => { FWINS = []; saveFw(); drawFwins(); }, "", !FWINS.length], ["Reset section and window sizes", () => { try { ["bwnlib.geo", "viCols", "viGeo"].forEach(k => localStorage.removeItem(k)); } catch { } COLS = { ...COLS0 }; GEO = {}; Object.keys(PANES).forEach(k => floatPane(k, false)); layout(); toast("Sizes reset."); }]]],
+    ["Refresh the Map from Mapping My Journey", async () => { await loadTree(true); draw(); toast("The Map is up to date."); }], ["Dock all sections", () => { Object.keys(PANES).forEach(k => floatPane(k, false)); }], [(PATHV !== "tree" ? "✓ " : "") + "Folder paths in one line", () => setPathV("line")], [(PATHV === "tree" ? "✓ " : "") + "Folder paths as a tree", () => setPathV("tree")], ["Close all folder windows", () => { FWINS = []; saveFw(); drawFwins(); }, "", !FWINS.length], ["Reset section and window sizes", () => { try { ["bwnlib.geo", "viCols", "viGeo"].forEach(k => localStorage.removeItem(k)); } catch { } COLS = { ...COLS0 }; GEO = {}; Object.keys(PANES).forEach(k => floatPane(k, false)); layout(); toast("Sizes reset."); }]]],
   ["Share", [["Share links of ticked files", () => bulkShare(true), "", !sel.size], ["Stop sharing ticked files", () => bulkShare(false), "", !sel.size]]],
   ["Help", [["How it works · where files are kept", () => { draft = null; cur = null; draw(); showNote(); tab("note"); }, "?"]]],
 ];
@@ -1463,6 +1482,7 @@ function drawFwins() {
 // ---------- start ----------
 $("signin").onclick = () => api?.connect().catch(e => toast(e.message));
 $("reconnect").onclick = () => api?.connect().catch(e => toast(e.message));
+$("pvLine").classList.toggle("on", PATHV !== "tree"); $("pvTree").classList.toggle("on", PATHV === "tree");
 buildMenus(); showNote(); draw(); initPanes(); if (FL.lay === "cards") setLay("cards");
 loadTree().then(() => { draw(); if (!mapwin.hidden) drawMap(); });
 api = DEMO ? demoApi() : await realApi();
