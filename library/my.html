@@ -624,6 +624,8 @@ async function realApi() {
     async inbox() { const s = await fs.getDocs(fs.collection(db, "inbox")); return s.docs.map(d => ({ id: d.id, ...d.data() })); },
     async inboxDone(id) { await fs.deleteDoc(fs.doc(db, "inbox", id)); },
     async showPublic(id, doc) { if (doc) await fs.setDoc(fs.doc(db, "posts", id), { ...doc, updated: fs.serverTimestamp() }); else await fs.deleteDoc(fs.doc(db, "posts", id)); },
+    async savePage(id, f) { await fs.setDoc(fs.doc(db, "pages", id), f, { merge: true }); },
+    async pagePub(id, pub) { await fs.updateDoc(fs.doc(db, "pages", id), { pub: !!pub }); },
   };
 }
 function demoApi() {
@@ -650,6 +652,7 @@ function demoApi() {
     async wfFolders() { return structuredClone(wf); }, async saveWf(list) { wf = structuredClone(list); },
     async inbox() { return structuredClone(box); }, async inboxDone(id) { box = box.filter(x => x.id !== id); },
     async showPublic(id, doc) { const i = posts.findIndex(p => p.id === id); if (i >= 0) posts.splice(i, 1); if (doc) posts.push({ id, ...doc }); },
+    async savePage() { }, async pagePub() { },
   };
 }
 // Google Picker: ticked files become visible to this page (drive.file). A close button guards against Google error pages.
@@ -951,10 +954,12 @@ async function takeInbox() {
       const c = { name: String(x.name || "Untitled").slice(0, 300), what: String(x.what || ""), url: String(x.url || ""), ckind: ICONS[x.kind] ? x.kind : "Other", ver: String(x.ver || ""), by: String(x.by || ""),
         at: String(x.at || new Date().toISOString()), pid: cleanId(x.pid), projects: Array.isArray(x.projects) && x.projects.length ? x.projects.map(String) : [PNAME[x.pid] || x.pid || "BwN"], topics: Array.isArray(x.topics) ? x.topics.map(String) : [] };
       if (Array.isArray(x.items)) c.items = x.items.slice(0, 200);
+      if (x.pkey) { c.pkey = cleanId(x.pkey); c.orig = String(x.orig || ""); }
+      if (x.pkey && typeof x.page === "string" && x.page) await api.savePage(cleanId(x.pkey), { name: c.name, html: x.page, at: c.at, by: c.by });
       if (!old) { Object.assign(c, { status: CSTAT.includes(x.status) ? x.status : "todo", new: x.new !== false });
         if (Number.isInteger(x.mmj)) Object.assign(c, { mmj: x.mmj, mmjName: BY.get(x.mmj)?.name || "", mmjPath: BY.get(x.mmj)?.path || "" });
         else c.wf = WF0.some(f => f.id === x.wf) ? x.wf : "inbox"; }
-      else c.new = true;
+      else c.new = x.new !== false;
       await api.saveCard(id, c); await api.inboxDone(x.id);
     }
     toast(`${box.length} card${box.length > 1 ? "s" : ""} came in from the Architects (WorkFlow › Inbox).`, 5000); return box.length;
@@ -964,6 +969,7 @@ async function cardSave(c, patch, msg) {
   await api.saveCard(c.id, patch); Object.assign(c, patch);
   if ("name" in patch) c.title = patch.name;
   if (c.show || patch.show === false) await api.showPublic(c.id, c.show && c.mmj ? publicDoc(c) : null).catch(e => toast("Visitor link not updated: " + e.message, 6000));
+  if (c.pkey && "show" in patch) await api.pagePub(c.pkey, ITEMS.some(x => x.type === "card" && x.pkey === c.pkey && (x.id === c.id ? c.show : x.show))).catch(e => toast("Page not updated: " + e.message, 6000));
   if (msg) toast(msg);
 }
 const publicDoc = c => ({ title: c.title, no: "", folder: "", mmj: c.mmj, mmjName: c.mmjName || BY.get(c.mmj)?.name || "", mmjPath: c.mmjPath || BY.get(c.mmj)?.path || "", kind: "LINK", url: c.url || "", lang: c.ckind || "Link", len: "—", status: "pub",
@@ -1093,7 +1099,8 @@ function drawCard(c) {
     </div>
     <section class="np" id="nEd"><input class="np-ti" id="nTitle" value="${esc(c.title)}" aria-label="Title">${editorHTML("c" + c.id, c.html || html2(c.what))}</section>
     ${c.items?.length ? `<div class="citems"><h3 class="pnote">Items (${c.items.length})</h3>${c.items.map(x => `<div><b>${esc(x.n ?? "")}${x.topic ? " · " + esc(x.topic) : ""}</b><br>${esc(x.q || "")}${x.a ? `<br><span class="pnote">${esc(x.a)}</span>` : ""}${x.note ? `<br><i class="pnote">${esc(x.note)}</i>` : ""}</div>`).join("")}</div>` : ""}
-    <label class="chk"><input type="checkbox" id="cShow"${c.show ? " checked" : ""}${c.mmj ? "" : " disabled"}> Show to visitors: its link under its Mapping My Journey folder${c.mmj ? "" : " (choose a Map folder first)"}.</label>`;
+    <label class="chk"><input type="checkbox" id="cShow"${c.show ? " checked" : ""}${c.mmj || c.pkey ? "" : " disabled"}> Show to visitors: ${c.pkey ? "anyone with its page link can open it" + (c.mmj ? ", and its link shows under its Mapping My Journey folder" : "") : "its link under its Mapping My Journey folder" + (c.mmj ? "" : " (choose a Map folder first)")}.</label>
+    ${c.pkey ? `<p class="pnote">📄 This page is kept in your Library, outside Claude${c.show ? " (public)" : " (private: only you, signed in)"}.${c.orig ? ` Old Claude copy: <a href="${esc(c.orig)}" target="_blank" rel="noopener">↗ open</a>.` : ""}</p>` : ""}`;
   const save = (p, m, redraw) => cardSave(c, p, m).then(() => { if (redraw) { draw(); showNote(); } }).catch(setupNote);
   wireEditor($("nEd"), "c" + c.id, async html => { await cardSave(c, { html }); });
   $("nTitle").onchange = () => { const t = $("nTitle").value.trim(); if (t) save({ name: t }, "Title saved.", true); };
@@ -1103,7 +1110,7 @@ function drawCard(c) {
   $("cVer").onchange = e => save({ ver: e.target.value.trim() }, "Version saved.");
   $("cProj").onchange = e => save({ projects: e.target.value.split(",").map(x => x.trim()).filter(Boolean) }, "Projects saved.", true);
   $("cTop").onchange = e => save({ topics: e.target.value.split(",").map(x => x.trim()).filter(Boolean) }, "Topics saved.", true);
-  $("cShow").onchange = e => save({ show: e.target.checked }, e.target.checked ? "Visitors now see this link under its folder." : "Hidden from visitors.", true);
+  $("cShow").onchange = e => save({ show: e.target.checked }, e.target.checked ? (c.pkey ? "Public: anyone with the page link can open it." : "Visitors now see this link under its folder.") : "Hidden from visitors.", true);
   N.querySelector(".chips2 [data-dot]").onclick = () => cycleCard(c.id);
   $("nFolder").onclick = () => openMap("Choose the Map folder for “" + c.title + "”", c.title + " " + (c.what || ""), c.mmj, async f => { try { await moveTo([c], f); toast("Filed in " + f.name + "."); } catch (e) { setupNote(e); } refresh(); });
   $("nWf").onclick = () => { const opts = WF.map(f => ({ id: f.id, name: wfPath(f.id).replace(/^WorkFlow › /, "") }));
@@ -1205,7 +1212,7 @@ function helpHTML() {
     <li><b>🗂 WorkFlow · private</b> (top of the Map): your work cards (lists, demos, reports, databases) from MyDatabase, one folder per project. New cards from the Architects arrive in <b>🆕 Inbox</b> with a New mark. Drag a card onto any folder to file it; + Folder, Rename and Move are under “All files” when a WorkFlow folder is open. Tap a card’s dot to go todo → working → done.</li>
     <li><b>Find bar</b> (in the top bar): search, filters by Topic · Subject · Project · Type with counts, Show all, Group and Sort; this device remembers them. <b>▦ Cards</b> shows everything as cards; <b>▥ Notebook</b> brings back the three sections. <b>+ Add item</b> adds a card (a file goes to your Drive folder “To BwN”).</li>
     <li><b>Note</b> (right): ▶ Play, the folder and Choose folder, 🔗 Links (Drive files, share link) and 🗑 on one bar; below it the notes and transcript, which save by itself.</li>
-    <li><b>Sizes:</b> drag the thin bars between the sections to make one wider. <b>⧉</b> on a section’s header pops it out as its own window: drag it by its header, resize it from any side or corner; <b>⇲</b> docks it back (View → Dock all sections). <b>⧉</b> beside any folder opens that folder as its own window; open as many as you like, drag each by its title, resize it from any side or corner, and drop a file or card on it to file it there (View → Close all folder windows). Sizes are remembered on this device.</li><li><b>Find and sort</b>: search in the top bar; <b>Filters</b> and <b>Sort</b> sit on the Files bar: search, <b>Filters</b> (Topic, Subject, Project, Type, Group) and <b>Sort</b> by date, type, project, size or stage (Draft · Under process · Finished · Published). Every row and note shows 📁 where it belongs; Filters → Folder paths (or View) shows it in one line or as a tree.</li></ul>
+    <li><b>Sizes:</b> drag the thin bars between the sections to make one wider. <b>⧉</b> on a section’s header pops it out as its own window: drag it by its header, resize it from any side or corner; <b>⇲</b> docks it back (View → Dock all sections). <b>⧉</b> beside any folder opens that folder as its own window; open as many as you like, drag each by its title, resize it from any side or corner, and drop a file or card on it to file it there (View → Close all folder windows). Sizes are remembered on this device.</li><li><b>📄 Pages outside Claude:</b> a card’s page (demo, list, report) is kept in your Library and opens on its own at <code>…/library/page.html</code>, private to you; tick <b>Show to visitors</b> on the card to make that page public (anyone with the link).</li><li><b>Find and sort</b>: search in the top bar; <b>Filters</b> and <b>Sort</b> sit on the Files bar: search, <b>Filters</b> (Topic, Subject, Project, Type, Group) and <b>Sort</b> by date, type, project, size or stage (Draft · Under process · Finished · Published). Every row and note shows 📁 where it belongs; Filters → Folder paths (or View) shows it in one line or as a tree.</li></ul>
     <h3>Where your files are kept</h3><ul>
     <li><b>Recordings and Otter files:</b> in your own Google Drive (BasheeraWaNazeera@gmail.com) → My Drive → folder <b>“To BwN”</b>. Nobody else can open them unless you press “Share link”.</li>
     <li><b>Title, folder, transcript and notes:</b> in the BWN Firebase database (project basheera-wa-nazeera), readable only by your Google account.</li>

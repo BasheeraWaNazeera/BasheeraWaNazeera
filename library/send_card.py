@@ -12,12 +12,16 @@ Card fields: pid (bwn|mmsa|siy|web|khutbah|pl|qr), cid (your card id), name (req
 what, url, kind (Demo|List|Report|Database|Other), status (todo|working|done), ver, by,
 at (UTC ISO), projects [..], topics [..]; optional mmj (Mapping My Journey folder number)
 or wf (bwn|mmsa|siy|web|khutbah|pl) to file it straight away, items [{n,topic,q,a,note}].
+Page outside Claude (owner's C): page (the full HTML, up to 900 KB), pkey (page id, e.g. the artifact id),
+orig (the old claude.ai link). Set url to
+https://basheerawanazeera.github.io/BasheeraWaNazeera/library/page.html?p=<pkey>  (add #anchor if needed).
+Send the page once per pkey; other cards may share it with pkey alone.
 """
 import json, re, sys, urllib.request, urllib.error
 
 PROJECT = "basheera-wa-nazeera"
 KEY = "AIzaSyAGj5Vf3dyxRcBeAVEt8q54zLcSdePoB0E"  # public web identifier from library/config.js, not a secret
-FIELDS = {"pid", "cid", "name", "what", "url", "kind", "status", "ver", "by", "at", "projects", "topics", "items", "mmj", "wf", "new"}
+FIELDS = {"pid", "cid", "name", "what", "url", "kind", "status", "ver", "by", "at", "projects", "topics", "items", "mmj", "wf", "new", "page", "pkey", "orig"}
 
 
 def val(v):

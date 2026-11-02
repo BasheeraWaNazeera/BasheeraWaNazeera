@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<title>BwN Library page</title>
+<!-- BwN Library page viewer (BWN J27, owner's C, 2 Nov 2026): opens one page kept in the Library,
+     outside Claude. Private pages need the owner's sign-in; pages shown to visitors open for anyone. -->
+<style>
+:root{--bg:#f4f5f1;--panel:#fff;--ink:#1d2420;--muted:#5d6a63;--line:#d9ded8;--accent:#1f5c47}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#141816;--panel:#1b201d;--ink:#e6ebe7;--muted:#9aa79f;--line:#2e3631;--accent:#7cc4a0}}
+:root[data-theme="dark"]{--bg:#141816;--panel:#1b201d;--ink:#e6ebe7;--muted:#9aa79f;--line:#2e3631;--accent:#7cc4a0}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font:15px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif}
+iframe{position:fixed;inset:0;width:100%;height:100%;border:0;background:#fff}
+.msg{max-width:440px;margin:18vh auto 0;padding:24px 20px;margin-left:max(16px,calc(50% - 220px));margin-right:max(16px,calc(50% - 220px));background:var(--panel);border:1px solid var(--line);border-radius:12px;text-align:center}
+.msg h1{font-size:1.15rem;margin:0 0 8px}
+.msg p{color:var(--muted);margin:0 0 16px}
+.msg button,.msg a.b{font:inherit;border:1px solid var(--accent);background:var(--accent);color:var(--panel);border-radius:999px;padding:8px 18px;cursor:pointer;text-decoration:none;display:inline-block}
+.msg a{color:var(--accent)}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<div class="msg" id="msg"><p>Opening…</p></div>
+<script type="module">
+import { firebaseConfig } from "./config.js";
+const FB = "https://www.gstatic.com/firebasejs/10.12.2/";
+const key = (new URLSearchParams(location.search).get("p") || "").replace(/[^A-Za-z0-9_-]/g, "").slice(0, 120);
+const anchor = decodeURIComponent(location.hash.slice(1));
+const msg = document.getElementById("msg");
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const say = (h, p, btn) => { msg.hidden = false; msg.innerHTML = `<h1>${esc(h)}</h1><p>${p}</p>${btn || ""}<p style="margin:16px 0 0;font-size:.85rem"><a href="./">BwN Video Library</a></p>`; };
+
+function show(d) {
+  document.title = d.name || "BwN Library page";
+  const jump = anchor ? `<script>try{const e=document.getElementById(${JSON.stringify(anchor)});if(e)e.scrollIntoView();}catch(e){}<\/script>` : "";
+  const f = document.createElement("iframe");
+  f.title = d.name || "Page";
+  f.setAttribute("sandbox", "allow-scripts allow-popups allow-popups-to-escape-sandbox allow-forms allow-modals allow-downloads allow-top-navigation-by-user-activation");
+  f.setAttribute("allow", "clipboard-write; fullscreen");
+  f.srcdoc = String(d.html || "").replace(/<\/body>(?![\s\S]*<\/body>)/i, jump + "</body>") + (/<\/body>/i.test(d.html || "") ? "" : jump);
+  msg.hidden = true; document.body.append(f);
+}
+
+if (!key) say("No page chosen", "Open a page from its card in the Video Library.");
+else {
+  const [{ initializeApp }, fs, au] = await Promise.all([import(FB + "firebase-app.js"), import(FB + "firebase-firestore.js"), import(FB + "firebase-auth.js")]);
+  const app = initializeApp(firebaseConfig), db = fs.getFirestore(app), auth = au.getAuth(app);
+  let shown = false, tried = false;
+  const load = async () => {
+    try { const s = await fs.getDoc(fs.doc(db, "pages", key));
+      if (!s.exists()) return say("Page not found", "This page is not in the Library (it may have been removed)."), true;
+      shown = true; show(s.data()); return true;
+    } catch (e) { return false; }
+  };
+  au.onAuthStateChanged(auth, async u => {
+    if (shown) return;
+    if (await load()) return;
+    if (!u) say("This page is private", "Only the owner can open it. Sign in with the owner's Google account.", `<button id="si" type="button">Sign in with Google</button>`);
+    else say("This page is private", `${esc(u.email)} cannot open it. Sign in with the owner's account.`, `<button id="si" type="button">Use another account</button>`);
+    const b = document.getElementById("si");
+    if (b) b.onclick = async () => { try { await au.signInWithPopup(auth, new au.GoogleAuthProvider()); } catch (e) { say("Sign-in did not finish", esc(e.message)); } };
+    tried = true;
+  });
+}
+</script>
+</body>
+</html>
