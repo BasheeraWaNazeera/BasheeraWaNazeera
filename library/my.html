@@ -473,6 +473,7 @@ async function realApi() {
     async list() { const s = await fs.getDocs(fs.query(fs.collection(db, "postPrivate"), fs.where("kind", "==", "voice"))); return s.docs.map(d => ({ id: d.id, ...d.data() })); },
     async saveRec(id, rec) { await fs.setDoc(fs.doc(db, "postPrivate", id), { kind: "voice", ...rec }, { merge: true }); },
     async posts() { const s = await fs.getDocs(fs.collection(db, "posts")); return s.docs.map(d => ({ id: d.id, ...d.data() })); },
+    async folders() { const s = await fs.getDocs(fs.collection(db, "folders")); return s.docs.map(d => ({ id: d.id, ...d.data() })); },
     async privOf(id) { const d = await fs.getDoc(fs.doc(db, "postPrivate", id)); return d.exists() ? d.data() : { raw: [], versions: [] }; },
     async savePost(id, f) { await fs.setDoc(fs.doc(db, "posts", id), { ...f, updated: fs.serverTimestamp() }, { merge: true }); },
     async addPost(id, post, priv) { await fs.setDoc(fs.doc(db, "posts", id), { ...post, updated: fs.serverTimestamp() }); await fs.setDoc(fs.doc(db, "postPrivate", id), priv); },
@@ -504,7 +505,7 @@ function demoApi() {
     async list() { return structuredClone(recs); },
     async saveRec(id, rec) { const i = recs.findIndex(r => r.id === id); const v = { id, kind: "voice", ...(i >= 0 ? recs[i] : {}), ...rec }; i >= 0 ? recs[i] = v : recs.push(v); },
     async remove(id) { const i = recs.findIndex(r => r.id === id); if (i >= 0) recs.splice(i, 1); },
-    async posts() { return structuredClone(posts); }, async privOf(id) { return privs[id] || { raw: [], versions: [] }; },
+    async posts() { return structuredClone(posts); }, async folders() { return [{ id: "s1", range: "(000)", name: "Section 01 · Quran Revival", parent: null, order: 0 }, { id: "f12", range: "(021–040)", name: "Short clips (1 minute)", parent: "s1", order: 1 }]; }, async privOf(id) { return privs[id] || { raw: [], versions: [] }; },
     async savePost(id, f) { Object.assign(posts.find(x => x.id === id), f); },
     async addPost(id, post, priv) { posts.push({ id, ...post }); privs[id] = priv; },
     async upload(blob, name) { const id = "demo" + (++n); blobs.set(id, blob); return { id, name, mimeType: blob.type, size: blob.size, webViewLink: "#" }; },
@@ -564,7 +565,8 @@ function postAt(p) { const t = p.updated?.toDate ? p.updated.toDate() : new Date
 const STATUS = { pub: "Published", draft: "Draft", priv: "Private" };
 async function refresh() {
   if (!api) return setTimeout(refresh, 100);
-  try { const [recs, ps] = await Promise.all([api.list(), api.posts()]);
+  try { const [recs, ps, lf] = await Promise.all([api.list(), api.posts(), api.folders().catch(() => [])]); LF = lf;
+    if (await autoFile(ps)) return refresh();
     ITEMS = recs.map(r => ({ ...r, type: "rec" })).concat(ps.map(p => ({ ...p, type: "post", at: p.at || postAt(p) })));
   } catch (e) { $("rows").innerHTML = `<p class="empty">Could not load: ${esc(e.message)}</p>`; return; }
   ITEMS.sort((a, b) => (b.at || "").localeCompare(a.at || ""));
@@ -580,8 +582,10 @@ function draw() {
     const b = document.createElement("button"); b.type = "button"; b.className = "tl" + (view === v ? " on" : ""); b.innerHTML = `<span>${t}</span><span class="c">${n}</span>`;
     b.onclick = () => { view = v; sel.clear(); draw(); tab("files"); }; sp.append(b); });
   drawLTree();
-  const list = view === "all" ? ITEMS : view === "unfiled" ? ITEMS.filter(r => !r.mmj || !BY.has(r.mmj)) : ITEMS.filter(r => r.mmj && ancestors(r.mmj).includes(view));
-  $("fTitle").textContent = view === "all" ? "All files" : view === "unfiled" ? "Not yet filed" : BY.get(view)?.name || "Folder";
+  const lfIn = id => { const ids = new Set([id]); let grew = true; while (grew) { grew = false; LF.forEach(f => { if (ids.has(f.parent) && !ids.has(f.id)) { ids.add(f.id); grew = true; } }); } return ids; };
+  const isLF = typeof view === "string" && view.startsWith("lf:"), lfSet = isLF ? lfIn(view.slice(3)) : null;
+  const list = view === "all" ? ITEMS : view === "unfiled" ? ITEMS.filter(r => !r.mmj || !BY.has(r.mmj)) : isLF ? ITEMS.filter(r => r.type === "post" && lfSet.has(r.folder)) : ITEMS.filter(r => r.mmj && ancestors(r.mmj).includes(view));
+  $("fTitle").textContent = view === "all" ? "All files" : view === "unfiled" ? "Not yet filed" : isLF ? (LF.find(f => f.id === view.slice(3))?.name || "Library folder") : BY.get(view)?.name || "Folder";
   $("fCount").textContent = list.length + (list.length === 1 ? " file" : " files");
   $("rows").innerHTML = list.length ? list.map(r => `<div class="row${cur === r.id ? " on" : ""}" data-id="${r.id}" tabindex="0">
       <input type="checkbox" aria-label="Tick ${esc(r.title)}" ${sel.has(r.id) ? "checked" : ""}>
@@ -608,6 +612,29 @@ $("onlyWith").onchange = () => { onlyWith = $("onlyWith").checked; try { localSt
 $("openMap").onclick = () => openMap("The Map · go to a folder", "", typeof view === "number" ? view : null, f => { view = f.id; sel.clear(); draw(); tab("files"); });
 
 
+
+// ---------- owner's 2 Nov choice (BWN J27 n27vl6): A file the first talks on the Map, B keep the first Library folders too ----------
+let LF = [], autoDone = false;
+const AUTO_MMJ = 241; // (1301) Al-Quran - The SOURCE of the CERTAIN knowledge, under (751 - 800) Study Deen - Get the CERTAIN KNOWLEDGE
+async function autoFile(ps) { // once per talk: a talk still only in a first Library folder is also filed in MMJ 241
+  if (autoDone || !ownerOk) return false; autoDone = true;
+  const lfIds = new Set(LF.map(f => f.id)), todo = ps.filter(p => !p.mmj && !p.mmjAuto && lfIds.has(p.folder));
+  if (!todo.length) return false;
+  const f = BY.get(AUTO_MMJ), m = { mmj: AUTO_MMJ, mmjName: f?.name || "(1301) Al-Quran - The SOURCE of the CERTAIN knowledge - The GUIDANCE & CONSTITUTION of the WORLD", mmjPath: f?.path || "", mmjAuto: true };
+  try { for (const p of todo) await api.savePost(p.id, m); toast(`${todo.length} talk${todo.length > 1 ? "s" : ""} filed in “Al-Quran - The SOURCE of the CERTAIN knowledge”. Move any of them when you work on it.`, 7000); return true; }
+  catch (e) { setupNote(e); return false; }
+}
+function lfTreeHTML() { // the first Library folders, in the Library look; each talk also shows in its old folder
+  if (!LF.length) return "";
+  const kidsOf = pid => LF.filter(f => (f.parent ?? null) === pid).sort((a, b) => (a.order ?? 0) - (b.order ?? 0) || String(a.range).localeCompare(String(b.range)));
+  const postsOf = id => ITEMS.filter(r => r.type === "post" && r.folder === id).sort((a, b) => String(a.no).localeCompare(String(b.no)));
+  const cnt = id => postsOf(id).length + kidsOf(id).reduce((n, f) => n + cnt(f.id), 0);
+  const row = r => `<li><div class="lr${cur === r.id ? " sel" : ""}" data-i="${esc(r.id)}" tabindex="0"><span class="ltw"></span>${r.no ? `<span class="rng">${esc(r.no)}</span>` : ""}<span class="nm">${esc(r.title)}</span><span class="kind">${r.kind === "AUDIO" ? "AUDIO" : "VIDEO"}</span>${r.status !== "pub" ? `<span class="lock">${r.status === "draft" ? "draft" : "private"}</span>` : ""}</div></li>`;
+  const build = pid => kidsOf(pid).map(f => { const k = "L" + f.id, open = OPEN.has(k), has = kidsOf(f.id).length || postsOf(f.id).length;
+    return `<li><div class="lr${view === "lf:" + f.id ? " sel" : ""}" data-lf="${esc(f.id)}" tabindex="0"><span class="ltw">${has ? (open ? "−" : "+") : ""}</span><span class="rng">${esc(f.range || "")}</span><span class="nm"${pid === null ? ' style="text-transform:uppercase;font-size:.82rem;letter-spacing:.02em"' : ""}>${esc(f.name)}</span><span class="cnt">(${cnt(f.id)})</span>${f.private ? '<span class="lock">private</span>' : ""}</div>${open && has ? `<ul>${build(f.id)}${postsOf(f.id).map(row).join("")}</ul>` : ""}</li>`; }).join("");
+  const open = OPEN.has("LF");
+  return `<li><div class="lr" data-lf="" tabindex="0"><span class="ltw">${open ? "−" : "+"}</span><span class="nm">📚 First Library folders</span><span class="cnt">(${LF.length})</span></div>${open ? `<ul>${build(null)}</ul>` : ""}</li>`;
+}
 // ---------- section 1: the Map in the Video Library's look (open/close folders, files listed inside their folder) ----------
 let OPEN = new Set(); try { OPEN = new Set(JSON.parse(localStorage.getItem("viOpen") || "[]")); } catch { }
 const saveOpen = () => { try { localStorage.setItem("viOpen", JSON.stringify([...OPEN])); } catch { } };
@@ -622,11 +649,13 @@ function drawLTree() {
     const kids = (KIDS.get(f.id) || []).filter(k => !onlyWith || COUNTS.get(k.id)), its = items(f.id), has = kids.length || its.length, open = has && OPEN.has(f.id), [rng, nm] = splitName(f.name), n = COUNTS.get(f.id);
     return `<li><div class="lr${view === f.id ? " sel" : ""}" data-f="${f.id}" tabindex="0"${has ? ` aria-expanded="${open}"` : ""}><span class="ltw">${has ? (open ? "−" : "+") : ""}</span>${rng ? `<span class="rng">${esc(rng)}</span>` : ""}<span class="nm">${esc(nm)}</span>${n ? `<span class="cnt">(${n})</span>` : ""}</div>${open ? `<ul>${build(f.id)}${its.map(itemRow).join("")}</ul>` : ""}</li>`;
   }).join("");
-  const html = build(0);
+  const html = lfTreeHTML() + build(0);
   host.innerHTML = html ? `<ul class="ltree">${html}</ul>` : `<p class="empty">${TREE.length ? "No folder has files yet." : "Loading the Map…"}</p>`;
 }
 $("ltree").addEventListener("click", e => { const r = e.target.closest(".lr"); if (!r) return;
   if (r.dataset.f) { const id = +r.dataset.f; if (OPEN.has(id) && view === id) OPEN.delete(id); else OPEN.add(id); saveOpen(); view = id; sel.clear(); draw(); }
+  else if (r.dataset.lf !== undefined) { const id = r.dataset.lf, k = id ? "L" + id : "LF"; if (!id) { OPEN.has(k) ? OPEN.delete(k) : OPEN.add(k); }
+    else { if (OPEN.has(k) && view === "lf:" + id) OPEN.delete(k); else OPEN.add(k); view = "lf:" + id; sel.clear(); } saveOpen(); draw(); }
   else if (r.dataset.i) { draft = null; cur = r.dataset.i; draw(); showNote(); tab("note"); } });
 $("ltree").addEventListener("keydown", e => { if ((e.key === "Enter" || e.key === " ") && e.target.closest(".lr")) { e.preventDefault(); e.target.click(); } });
 $("openall").onclick = () => { COUNTS.forEach((n, id) => OPEN.add(id)); saveOpen(); draw(); };
