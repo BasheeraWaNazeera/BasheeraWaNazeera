@@ -137,6 +137,7 @@ export function editorHTML(id, html) {
       ${b("bold", "<b>B</b>", "Bold (Ctrl+B)")}${b("italic", "<i>I</i>", "Italic (Ctrl+I)")}${b("underline", "<u>U</u>", "Underline (Ctrl+U)")}
       <span class="tb-sep"></span>${b("h:h2", "H1", "Heading")}${b("h:h3", "H2", "Sub-heading")}${b("h:blockquote", "❝", "Quote")}
       <span class="tb-sep"></span>${b("insertUnorderedList", "•", "Bullet list")}${b("insertOrderedList", "1.", "Numbered list")}
+      <span class="tb-sep"></span>${b("w:code", "&lt;/&gt;", "Code")}${b("link", "🔗", "Link")}${b("w:mark", "<mark>H</mark>", "Highlight")}
       <span class="tb-sep"></span>${b("undo", "↶", "Undo (Ctrl+Z)")}${b("redo", "↷", "Redo (Ctrl+Y)")}${b("clear", "T̸", "Clear formatting")}${b("find", "⌕", "Find in note (Ctrl+F)")}
       <span class="fw-saved" id="fw-saved-${id}" aria-live="polite"></span>
     </div>
@@ -195,6 +196,17 @@ export function wireEditor(host, id, onSave) {
         const blk = n && ed.contains(n) && n.closest("h2,h3,blockquote"); if (blk) cur = blk.tagName.toLowerCase();
       } catch { }
       document.execCommand("formatBlock", false, "<" + (cur === tag ? "p" : tag) + ">");
+    } else if (cmd.startsWith("w:")) {   // wrap the selection in <code> or <mark>; the same again unwraps it
+      const tag = cmd.slice(2), s = getSelection(); if (!s.rangeCount || s.isCollapsed) return;
+      const r = s.getRangeAt(0), inTag = (r.commonAncestorContainer.nodeType === 1 ? r.commonAncestorContainer : r.commonAncestorContainer.parentElement).closest(tag);
+      if (inTag && ed.contains(inTag)) inTag.replaceWith(...inTag.childNodes); else { const el = document.createElement(tag); el.append(r.extractContents()); r.insertNode(el); }
+      ed.dispatchEvent(new Event("input"));
+    } else if (cmd === "link") {
+      const s = getSelection(); if (!s.rangeCount || s.isCollapsed) return;
+      const r = s.getRangeAt(0).cloneRange(), u = (prompt("Link (https://…):") || "").trim(); if (!/^https?:\/\//i.test(u)) return;
+      s.removeAllRanges(); s.addRange(r); document.execCommand("createLink", false, u);
+      ed.querySelectorAll(`a[href="${CSS.escape(u)}"]`).forEach(a => { a.target = "_blank"; a.rel = "noopener"; });
+      ed.dispatchEvent(new Event("input"));
     } else if (cmd === "clear") {
       document.execCommand("removeFormat"); document.execCommand("formatBlock", false, "<p>");
     } else document.execCommand(cmd, false, btn.dataset.val || null);

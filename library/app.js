@@ -159,6 +159,7 @@ function renderPost() {
     p.ytUrl && `<a class="btn solid" href="${esc(p.ytUrl)}" target="_blank" rel="noopener">${YT_ICON}Watch on YouTube</a>`,
     p.audioUrl && `<a class="btn" href="${esc(p.audioUrl)}" target="_blank" rel="noopener">${AU_ICON}Listen (audio only)</a>`,
     p.articleUrl && `<a class="btn" href="${esc(p.articleUrl)}">Read the article</a>`,
+    p.kind === "LINK" && p.url && `<a class="btn" href="${esc(p.url)}" target="_blank" rel="noopener">↗ Open</a>`,
   ].filter(Boolean).join("");
   const media = links ? `<div class="media">${links}</div>`
     : `<p class="empty">Not on YouTube yet. When you publish it, the YouTube link appears here for visitors.</p>`;
@@ -167,7 +168,7 @@ function renderPost() {
   el.innerHTML = `
     <div class="crumb">${esc((sec ? sec.name + "  ›  " : "") + f.name)}  ›  ${esc(p.no)}</div>
     <h2>${esc(p.title)}</h2>
-    <div class="meta">${chip}<span class="chip">${p.kind === "VIDEO" ? "Video" : p.kind === "AUDIO" ? "Audio" : "Text"} · ${esc(p.len)}</span><span class="chip">${esc(p.lang)}</span><span class="chip">${esc(p.date)}</span></div>
+    <div class="meta">${chip}<span class="chip">${p.kind === "VIDEO" ? "Video" : p.kind === "AUDIO" ? "Audio" : p.kind === "LINK" ? "Link" : "Text"}${p.len && p.len !== "—" ? " · " + esc(p.len) : ""}</span><span class="chip">${esc(p.lang)}</span><span class="chip">${esc(p.date)}</span></div>
     ${media}
     ${owner ? `<div class="bis" lang="ar">بِسْمِ ٱللَّٰهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ</div>
     <p class="note">Note pane (private). Type straight in; it saves by itself. The talk’s text is published as an Article on the main site, not here.</p>
