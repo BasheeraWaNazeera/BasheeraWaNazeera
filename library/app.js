@@ -110,9 +110,36 @@ const noteHTML = p => p.html ?? (p.text || []).map(({ t, s }) => `<p>${t ? `<spa
 
 function toast(msg) { const t = $("toast"); if (t) t.textContent = msg; }
 
+// ---- the Map: posts filed in My view carry an MMJ folder number (mmj); show them under those
+// Mapping My Journey folders (only the folders that hold a post). Older posts keep their own folder.
+async function mapFolders() {
+  const filed = posts.filter(p => p.mmj); if (!filed.length) return;
+  let tree = null;
+  try { const c = JSON.parse(safeGet("mmjTree2") || "null"); if (c && Date.now() - c.at < 7 * 864e5) tree = c.t; } catch { }
+  if (!tree) {
+    try {
+      const url = n => `https://mappingmyjourney.com/wp-json/wp/v2/categories?per_page=100&page=${n}&_fields=id,name,parent`;
+      const r1 = await fetch(url(1)), pages = +r1.headers.get("X-WP-TotalPages") || 1;
+      const rest = await Promise.all(Array.from({ length: pages - 1 }, (_, i) => fetch(url(i + 2)).then(r => r.json())));
+      const tx = document.createElement("textarea");
+      tree = [await r1.json(), ...rest].flat().map(c => { tx.innerHTML = c.name; return { id: c.id, name: tx.value, parent: c.parent || 0 }; });
+      safeSet("mmjTree2", JSON.stringify({ at: Date.now(), t: tree }));
+    } catch { tree = []; }
+  }
+  const by = new Map(tree.map(f => [f.id, f])), need = new Map();
+  filed.forEach(p => {
+    let x = by.get(p.mmj), n = 0;
+    if (!x) { x = { id: p.mmj, name: p.mmjName || "Folder", parent: 0 }; by.set(x.id, x); }
+    p.folder = "m" + p.mmj;
+    while (x && n++ < 9) { need.set(x.id, x); x = by.get(x.parent); }
+  });
+  const sorted = [...need.values()].sort((a, b) => a.name.localeCompare(b.name, "en", { numeric: true }));
+  sorted.forEach((f, i) => folders.push({ id: "m" + f.id, name: f.name, range: "", parent: need.has(f.parent) ? "m" + f.parent : null, private: false, order: 1000 + i }));
+}
+
 // ---- render ----------------------------------------------------------------
 function renderTree() {
-  const build = pid => kids(pid).map(f => {
+  const build = pid => kids(pid).filter(f => owner || count(f.id)).map(f => {
     const isOpen = open.has(f.id);
     const inner = kids(f.id).length || postsIn(f.id).length
       ? `<ul ${isOpen ? "" : "hidden"}>${build(f.id)}${postsIn(f.id).map(p => `<li><div class="row ${p.id === sel ? "sel" : ""}" data-post="${esc(p.id)}" tabindex="0"><span class="tw"></span><span class="rng">${esc(p.no)}</span><span class="nm">${esc(p.title)}</span><span class="kind">${esc(p.kind)}</span>${p.status !== "pub" ? `<span class="lock">${p.status === "draft" ? "draft" : "private"}</span>` : ""}</div></li>`).join("")}</ul>` : "";
@@ -263,7 +290,7 @@ async function setView(o) {
   owner = o && isOwner();
   $("v-pub").setAttribute("aria-pressed", !owner); $("v-own").setAttribute("aria-pressed", owner);
   $("newfolder").hidden = $("newpost").hidden = !owner;
-  try { ({ folders, posts } = await store.load(owner)); }
+  try { ({ folders, posts } = await store.load(owner)); await mapFolders(); }
   catch (e) { $("post").innerHTML = `<p class="empty">Could not load the library: ${esc(e.message)}. Refresh to try again.</p>`; return; }
   renderTree(); renderPost();
   if (owner && !folders.length && store.seed) {
@@ -275,7 +302,8 @@ async function setView(o) {
   }
 }
 $("v-pub").onclick = () => setView(false);
-$("v-own").onclick = () => setView(true);
+// My view is the owner's desk (my.html: the Map, recordings and video posts; BWN J27). The demo keeps its in-page view.
+$("v-own").onclick = () => { if (DEMO) setView(true); else location.href = "./my.html"; };
 
 // ---- start -------------------------------------------------------------------
 // ---- pop-up windows ----------------------------------------------------------
