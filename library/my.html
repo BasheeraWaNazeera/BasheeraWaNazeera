@@ -152,6 +152,42 @@ textarea{min-height:120px;resize:vertical}
 .help h3{font-family:var(--f-display);font-weight:400;font-size:1.15rem;margin:.4em 0 .2em}
 .help ul{padding-left:20px;margin:.2em 0}
 
+/* Video Library look (index.html): the Map rows and the post pane */
+:root{--private:var(--warn);--private-soft:var(--warn-soft)}
+.oc{display:flex;gap:10px;align-items:center;font-size:.82rem;color:var(--muted);flex-wrap:wrap}
+.oc button{font:inherit;border:0;background:none;color:var(--accent);cursor:pointer;padding:0;text-decoration:underline;text-underline-offset:2px}
+.ltree,.ltree ul{list-style:none;margin:0;padding:0}
+.ltree{padding:6px 8px 24px}
+.ltree ul{margin-left:13px;border-left:1px dotted var(--line);padding-left:8px}
+.lr{display:flex;align-items:baseline;gap:6px;padding:3px 4px;border-radius:6px;cursor:pointer;user-select:none;font-size:.9rem}
+.lr:hover{background:var(--accent-soft)}
+.lr.sel{background:var(--accent-soft);box-shadow:inset 2px 0 0 var(--accent)}
+.ltw{width:12px;flex:none;color:var(--muted);font-family:var(--f-mono);font-size:.75rem}
+.rng{font-family:var(--f-mono);font-size:.74rem;color:var(--gold);flex:none;font-variant-numeric:tabular-nums}
+.nm{min-width:0;overflow-wrap:anywhere}
+.ltree>li>.lr .nm{font-weight:600}
+.cnt{color:var(--muted);font-size:.8rem;flex:none}
+.kind{font-family:var(--f-mono);font-size:.66rem;border:1px solid var(--line);border-radius:4px;padding:0 4px;color:var(--muted);flex:none;letter-spacing:.04em}
+.lock{font-size:.7rem;color:var(--private);border:1px solid currentColor;border-radius:4px;padding:0 4px;flex:none;font-family:var(--f-mono)}
+.note{padding:18px clamp(14px,2.4vw,28px) 30px;gap:14px}
+.crumb{font-family:var(--f-mono);font-size:.74rem;color:var(--muted);letter-spacing:.03em;overflow-wrap:anywhere}
+.ptitle{font-family:var(--f-display);font-weight:400;font-size:1.6rem;line-height:1.25;margin:0;text-wrap:balance}
+.chips2{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.chip{font-size:.78rem;border-radius:999px;padding:1px 10px;border:1px solid var(--line);color:var(--muted)}
+.chip.pub{border-color:var(--accent);color:var(--accent)}.chip.draft{border-color:var(--gold);color:var(--gold)}.chip.priv{border-color:var(--private);color:var(--private)}
+.media{display:flex;flex-wrap:wrap;gap:10px}
+.bis{font-family:"Amiri",serif;font-size:1.35rem;direction:rtl;text-align:center;color:var(--accent)}
+.pnote{font-size:.82rem;color:var(--muted);margin:0}
+.tools{display:flex;flex-wrap:wrap;gap:10px;align-items:center;font-size:.88rem}
+.linkin{font:inherit;font-size:.86rem;flex:1;min-width:0;padding:6px 8px;border:1px solid var(--line);border-radius:8px;background:var(--panel);color:var(--ink)}
+.privbox{border:1px solid var(--private);background:var(--private-soft);border-radius:10px;padding:14px 16px;display:grid;gap:10px}
+.privbox h3{margin:0;font-size:.95rem;color:var(--private);font-weight:600}
+.files{width:100%;border-collapse:collapse;font-size:.86rem}
+.files td{padding:6px 4px;border-top:1px solid var(--line);vertical-align:top}
+.files td.sz{font-family:var(--f-mono);font-size:.78rem;text-align:right;white-space:nowrap}
+.files a{color:var(--accent)}
+.np .np-ti{border-bottom:1px solid var(--line);padding:10px 14px;font-size:1.2rem}
+
 /* note editor (Siyagah note pane, as in the Video Library) */
 .np{display:grid;border:1px solid var(--line);border-radius:10px;overflow:clip;background:var(--panel)}
 .fw-tb{display:flex;flex-wrap:wrap;gap:3px;align-items:center;padding:6px 8px;border-bottom:1px solid var(--line);background:var(--bg)}
@@ -251,7 +287,7 @@ textarea{min-height:120px;resize:vertical}
       <div class="ph">
         <h2>The Map <span class="r"><button class="link" id="openMap" type="button">⤢ Full window</button><button class="pop" data-pop="folders" type="button" title="Pop out as a window">⧉</button></span></h2>
         <input type="search" id="fq" placeholder="Find a folder…" aria-label="Find a folder">
-        <label class="chk"><input type="checkbox" id="onlyWith"> Only folders with recordings</label>
+        <div class="oc"><label class="chk"><input type="checkbox" id="onlyWith"> Only folders with files</label><span style="flex:1"></span><button id="openall" type="button">open all</button>|<button id="closeall" type="button">close all</button></div>
       </div>
       <div class="special" id="special"></div>
       <div class="tree" id="ltree"></div>
@@ -543,7 +579,7 @@ function draw() {
   [["all", "All files", ITEMS.length], ["unfiled", "Not yet filed", unf]].forEach(([v, t, n]) => {
     const b = document.createElement("button"); b.type = "button"; b.className = "tl" + (view === v ? " on" : ""); b.innerHTML = `<span>${t}</span><span class="c">${n}</span>`;
     b.onclick = () => { view = v; sel.clear(); draw(); tab("files"); }; sp.append(b); });
-  drawTree($("ltree"), { counts: COUNTS, only: onlyWith, sel: typeof view === "number" ? view : null, q: $("fq").value, onPick: f => { view = f.id; sel.clear(); draw(); tab("files"); } });
+  drawLTree();
   const list = view === "all" ? ITEMS : view === "unfiled" ? ITEMS.filter(r => !r.mmj || !BY.has(r.mmj)) : ITEMS.filter(r => r.mmj && ancestors(r.mmj).includes(view));
   $("fTitle").textContent = view === "all" ? "All files" : view === "unfiled" ? "Not yet filed" : BY.get(view)?.name || "Folder";
   $("fCount").textContent = list.length + (list.length === 1 ? " file" : " files");
@@ -555,7 +591,7 @@ function draw() {
   $("rows").querySelectorAll(".row").forEach(el => {
     const id = el.dataset.id, cb = el.querySelector("input");
     cb.onclick = e => { e.stopPropagation(); cb.checked ? sel.add(id) : sel.delete(id); bulkState(list); };
-    el.onclick = () => { draft = null; cur = id; draw(); showNote(); tab("note"); };
+    el.onclick = () => { draft = null; cur = id; const it = ITEMS.find(x => x.id === id); if (it?.mmj) { ancestors(it.mmj).forEach(x => OPEN.add(x)); saveOpen(); } draw(); showNote(); tab("note"); };
     el.onkeydown = e => { if (e.key === "Enter") el.click(); if (e.key === " ") { e.preventDefault(); cb.click(); } };
   });
   $("selAll").onchange = () => { list.forEach(r => $("selAll").checked ? sel.add(r.id) : sel.delete(r.id)); draw(); };
@@ -571,6 +607,30 @@ $("fq").oninput = () => draw();
 $("onlyWith").onchange = () => { onlyWith = $("onlyWith").checked; try { localStorage.setItem("viOnly", onlyWith ? "1" : "0"); } catch { } draw(); };
 $("openMap").onclick = () => openMap("The Map · go to a folder", "", typeof view === "number" ? view : null, f => { view = f.id; sel.clear(); draw(); tab("files"); });
 
+
+// ---------- section 1: the Map in the Video Library's look (open/close folders, files listed inside their folder) ----------
+let OPEN = new Set(); try { OPEN = new Set(JSON.parse(localStorage.getItem("viOpen") || "[]")); } catch { }
+const saveOpen = () => { try { localStorage.setItem("viOpen", JSON.stringify([...OPEN])); } catch { } };
+const splitName = n => { const m = n.match(/^\s*(\([^)]*\))\s*(.*)$/); return m && m[2] ? [m[1], m[2]] : ["", n]; };
+function drawLTree() {
+  const host = $("ltree"), q = $("fq").value.trim();
+  if (cur !== drawLTree.last) { drawLTree.last = cur; const c = cur && ITEMS.find(x => x.id === cur); if (c?.mmj && BY.has(c.mmj)) ancestors(c.mmj).forEach(a => OPEN.add(a)); } // show where a newly opened file sits
+  if (q.length >= 2) return drawTree(host, { counts: COUNTS, only: onlyWith, sel: typeof view === "number" ? view : null, q, onPick: f => { view = f.id; ancestors(f.id).forEach(a => OPEN.add(a)); saveOpen(); $("fq").value = ""; sel.clear(); draw(); tab("files"); } });
+  const items = id => ITEMS.filter(r => r.mmj === id);
+  const itemRow = r => `<li><div class="lr${cur === r.id ? " sel" : ""}" data-i="${esc(r.id)}" tabindex="0"><span class="ltw"></span><span class="nm">${r.type === "post" ? "🎬" : "🎙"} ${esc(r.title)}</span><span class="kind">${r.type === "post" ? (r.kind === "AUDIO" ? "AUDIO" : "VIDEO") : "REC"}</span>${r.type === "post" && r.status !== "pub" ? `<span class="lock">${r.status === "draft" ? "draft" : "private"}</span>` : ""}</div></li>`;
+  const build = pid => (KIDS.get(pid) || []).filter(f => !onlyWith || COUNTS.get(f.id)).map(f => {
+    const kids = (KIDS.get(f.id) || []).filter(k => !onlyWith || COUNTS.get(k.id)), its = items(f.id), has = kids.length || its.length, open = has && OPEN.has(f.id), [rng, nm] = splitName(f.name), n = COUNTS.get(f.id);
+    return `<li><div class="lr${view === f.id ? " sel" : ""}" data-f="${f.id}" tabindex="0"${has ? ` aria-expanded="${open}"` : ""}><span class="ltw">${has ? (open ? "−" : "+") : ""}</span>${rng ? `<span class="rng">${esc(rng)}</span>` : ""}<span class="nm">${esc(nm)}</span>${n ? `<span class="cnt">(${n})</span>` : ""}</div>${open ? `<ul>${build(f.id)}${its.map(itemRow).join("")}</ul>` : ""}</li>`;
+  }).join("");
+  const html = build(0);
+  host.innerHTML = html ? `<ul class="ltree">${html}</ul>` : `<p class="empty">${TREE.length ? "No folder has files yet." : "Loading the Map…"}</p>`;
+}
+$("ltree").addEventListener("click", e => { const r = e.target.closest(".lr"); if (!r) return;
+  if (r.dataset.f) { const id = +r.dataset.f; if (OPEN.has(id) && view === id) OPEN.delete(id); else OPEN.add(id); saveOpen(); view = id; sel.clear(); draw(); }
+  else if (r.dataset.i) { draft = null; cur = r.dataset.i; draw(); showNote(); tab("note"); } });
+$("ltree").addEventListener("keydown", e => { if ((e.key === "Enter" || e.key === " ") && e.target.closest(".lr")) { e.preventDefault(); e.target.click(); } });
+$("openall").onclick = () => { COUNTS.forEach((n, id) => OPEN.add(id)); saveOpen(); draw(); };
+$("closeall").onclick = () => { OPEN.clear(); saveOpen(); draw(); };
 // ---------- bulk actions ----------
 const picked = () => ITEMS.filter(r => sel.has(r.id));
 async function bulk(label, fn) { const rs = picked(); if (!rs.length) return; let i = 0;
@@ -612,19 +672,23 @@ async function drawPost(p) {
   const N = $("note"), f = p.mmj && BY.get(p.mmj);
   const noteHtml = (p.html ?? (p.text || []).map(({ t, s }) => `<p>${t ? `<span class="ts">${esc(t)}</span> ` : ""}${esc(s)}</p>`).join("")) || "<p></p>";
   const src = p.from && ITEMS.find(x => x.id === p.from);
-  N.innerHTML = `<input class="np-ti" id="nTitle" value="${esc(p.title)}" aria-label="Title">
-    <span class="meta">🎬 Video post · ${esc(p.lang)}${p.len && p.len !== "—" ? " · " + esc(p.len) : ""}${p.date ? " · " + esc(p.date) : ""}</span>
-    <div class="nbar">${p.ytUrl ? `<a class="btn" href="${esc(p.ytUrl)}" target="_blank" rel="noopener">▶ Watch</a>` : ""}
+  N.innerHTML = `<div class="crumb">${f ? esc(f.path) : "Not yet filed on the Map"}</div>
+    <h2 class="ptitle">${esc(p.title)}</h2>
+    <div class="chips2"><span class="chip ${esc(p.status)}">${p.status === "pub" ? "Published" : p.status === "draft" ? "Draft · only you see it" : "Private"}</span><span class="chip">${p.kind === "AUDIO" ? "Audio" : "Video"}${p.len && p.len !== "—" ? " · " + esc(p.len) : ""}</span><span class="chip">${esc(p.lang)}</span>${p.date ? `<span class="chip">${esc(p.date)}</span>` : ""}</div>
+    ${p.ytUrl || p.audioUrl || p.articleUrl ? `<div class="media">${p.ytUrl ? `<a class="btn" href="${esc(p.ytUrl)}" target="_blank" rel="noopener">▶ Watch on YouTube</a>` : ""}${p.audioUrl ? `<a class="btn ghost" href="${esc(p.audioUrl)}" target="_blank" rel="noopener">Listen (audio only)</a>` : ""}${p.articleUrl ? `<a class="btn ghost" href="${esc(p.articleUrl)}" target="_blank" rel="noopener">Read the article</a>` : ""}</div>` : `<p class="empty" style="padding:0">Not on YouTube yet. When you publish it, the YouTube link appears here for visitors.</p>`}
+    <div class="nbar">
       <span class="fname" title="${f ? esc(f.path) + " · MMJ " + f.id : ""}">📁 ${f ? `<b>${esc(f.name)}</b>` : "Not yet filed on the Map"}</span>
       <button class="btn ghost" id="nFolder" type="button">${f ? "Change folder" : "Choose folder"}</button>
       <select class="sel" id="pStatus" style="width:auto" aria-label="Who can see it">${Object.entries(STATUS).map(([k, v]) => `<option value="${k}"${p.status === k ? " selected" : ""}>${v}${k === "pub" ? " (visitors see it)" : k === "draft" ? " (only you)" : " (only you)"}</option>`).join("")}</select>
       <div class="lmenu"><button class="btn ghost" id="nLinks" type="button" aria-haspopup="true" aria-expanded="false">🔗 Links ▾</button>
         <div class="drop" id="nLinksDrop" hidden role="menu">${p.ytUrl ? `<a role="menuitem" href="${esc(p.ytUrl)}" target="_blank" rel="noopener">YouTube ↗</a>` : ""}${p.articleUrl ? `<a role="menuitem" href="${esc(p.articleUrl)}" target="_blank" rel="noopener">Article ↗</a>` : ""}
           ${src ? `<button type="button" role="menuitem" id="pSrc">🎙 Source recording</button>` : ""}<a role="menuitem" href="./" target="_blank" rel="noopener">Visitor view ↗</a></div></div></div>
-    <div class="pfld"><label for="pYt">YouTube link</label><input id="pYt" type="text" placeholder="https://youtu.be/…" value="${esc(p.ytUrl || "")}"><button class="btn ghost" id="pYtS" type="button">Save</button>
-      <label for="pArt">Article link</label><input id="pArt" type="text" placeholder="https://basheerawanazeera.github.io/BasheeraWaNazeera/…" value="${esc(p.articleUrl || "")}"><button class="btn ghost" id="pArtS" type="button">Save</button></div>
-    <div class="fld">Note (private; the talk’s text becomes an Article on the main site)<div class="np" id="nEd">${editorHTML("p" + p.id, noteHtml)}</div></div>
-    <div class="fld">Private files · your Google Drive<ul class="privf" id="pPriv"><li class="meta">Loading…</li></ul></div>`;
+    <div class="bis" lang="ar">بِسْمِ ٱللَّٰهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ</div>
+    <p class="pnote">Note pane (private). Type straight in; it saves by itself. The talk’s text is published as an Article on the main site, not here.</p>
+    <section class="np" id="nEd"><input class="np-ti" id="nTitle" value="${esc(p.title)}" aria-label="Title">${editorHTML("p" + p.id, noteHtml)}</section>
+    <div class="tools"><label for="pYt">YouTube link</label><input id="pYt" class="linkin" placeholder="https://youtu.be/…" value="${esc(p.ytUrl || "")}"><button class="btn ghost" id="pYtS" type="button">Save link</button></div>
+    <div class="tools"><label for="pArt">Article link</label><input id="pArt" class="linkin" placeholder="https://basheerawanazeera.github.io/BasheeraWaNazeera/…" value="${esc(p.articleUrl || "")}"><button class="btn ghost" id="pArtS" type="button">Save link</button></div>
+    <section class="privbox" aria-label="Private files"><h3>Private · your Google Drive</h3><p class="pnote">Visitors never see this box.</p><table class="files"><tbody id="pPriv"><tr><td class="pnote">Loading…</td></tr></tbody></table></section>`;
   wireEditor($("nEd"), "p" + p.id, async html => { await api.savePost(p.id, { html }); p.html = html; });
   const save = async (fields, msg) => { try { await flushAll(); await api.savePost(p.id, fields); Object.assign(p, fields); toast(msg); draw(); if ("ytUrl" in fields || "articleUrl" in fields) drawPost(p); } catch (e) { setupNote(e); } };
   $("nTitle").onchange = () => { const t = $("nTitle").value.trim(); if (t) save({ title: t }, "Title saved."); };
@@ -636,8 +700,8 @@ async function drawPost(p) {
   $("nLinksDrop").onclick = () => { $("nLinksDrop").hidden = true; };
   if (src) $("pSrc").onclick = () => { cur = src.id; draw(); showNote(); };
   try { const pv = await api.privOf(p.id); if (cur !== p.id) return;
-    $("pPriv").innerHTML = (pv.raw || []).map(x => `<li>${esc(x.label)}: ${x.url ? `<a href="${esc(x.url)}" target="_blank" rel="noopener">${esc(x.name)}</a>` : esc(x.name)}${x.size ? " · " + esc(x.size) : ""}${x.kept ? " · ✓ kept" : ""}</li>`).join("") || `<li class="meta">No files yet.</li>`; }
-  catch { $("pPriv").innerHTML = `<li class="meta">Could not load.</li>`; }
+    $("pPriv").innerHTML = (pv.raw || []).map(x => `<tr><td>${esc(x.label)}<br><span class="pnote">${x.url ? `<a href="${esc(x.url)}" target="_blank" rel="noopener">${esc(x.name)}</a>` : esc(x.name)}</span></td><td class="sz">${esc(x.size || "")}</td><td>${x.kept ? "✓ kept" : ""}</td></tr>`).join("") || `<tr><td class="pnote">No files yet.</td></tr>`; }
+  catch { $("pPriv").innerHTML = `<tr><td class="pnote">Could not load.</td></tr>`; }
 }
 // ---------- note pane ----------
 function showNote() {
@@ -648,8 +712,9 @@ function showNote() {
   if (r.type === "post") return drawPost(r);
   const au = r.files?.find(f => f.audio), f = r.mmj && BY.get(r.mmj);
   const noteHtml = r.note || (r.text ? `<p>${esc(r.text).replace(/\n+/g, "</p><p>")}</p>` : "<p></p>");
-  N.innerHTML = `<input class="np-ti" id="nTitle" value="${esc(r.title)}" aria-label="Title">
-    <span class="meta">${esc(r.src)} · ${esc(r.lang)}${r.dur ? " · " + esc(r.dur) : ""} · ${esc(when(r.at))}${r.textFrom ? " · transcript: " + esc(r.textFrom) : ""}</span>
+  N.innerHTML = `<div class="crumb">${f ? esc(f.path) : "Not yet filed on the Map"}</div>
+    <h2 class="ptitle">${esc(r.title)}</h2>
+    <div class="chips2"><span class="chip draft">Recording · only you see it</span><span class="chip">${esc(r.src)}${r.dur ? " · " + esc(r.dur) : ""}</span><span class="chip">${esc(r.lang)}</span><span class="chip">${esc(when(r.at))}</span>${r.textFrom ? `<span class="chip">transcript: ${esc(r.textFrom)}</span>` : ""}${r.shared ? `<span class="chip priv">link shared</span>` : ""}</div>
     <div class="nbar">${au ? `<button class="btn" id="nPlay" type="button">▶ Play</button>` : ""}
       <span class="fname" title="${f ? esc(f.path) + " · MMJ " + f.id : ""}">📁 ${f ? `<b>${esc(f.name)}</b>` : "Not yet filed"}</span>
       <button class="btn ghost" id="nFolder" type="button">${f ? "Change folder" : "Choose folder"}</button>
@@ -659,7 +724,11 @@ function showNote() {
       <button class="btn ghost" id="nMake" type="button">${r.post && ITEMS.some(x => x.id === r.post) ? "🎬 Open video post" : "🎬 Make video post"}</button>
       <button class="ib" id="nDel" type="button" title="Delete (to Drive Bin)" aria-label="Delete">🗑</button></div>
     <div id="nAudio" hidden></div>
-    <div class="fld">Notes and transcript (saves by itself)<div class="np" id="nEd">${editorHTML("v" + r.id, noteHtml)}</div></div>`;
+    <div class="bis" lang="ar">بِسْمِ ٱللَّٰهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ</div>
+    <p class="pnote">Notes and transcript (private). Type straight in; it saves by itself.</p>
+    <section class="np" id="nEd"><input class="np-ti" id="nTitle" value="${esc(r.title)}" aria-label="Title">${editorHTML("v" + r.id, noteHtml)}</section>
+    <section class="privbox" aria-label="Private files"><h3>Private · your Google Drive</h3><p class="pnote">In your Drive folder “To BwN”. Nobody else can open them unless you share the link.</p>
+      <table class="files"><tbody>${(r.files || []).map(x => `<tr><td>${x.audio ? "Recording" : "Transcript / file"}<br><span class="pnote">${x.link ? `<a href="${esc(x.link)}" target="_blank" rel="noopener">${esc(x.name)}</a>` : esc(x.name)}</span></td><td class="sz">${x.size ? (x.size / 1048576).toFixed(1) + " MB" : ""}</td></tr>`).join("") || `<tr><td class="pnote">No files.</td></tr>`}</tbody></table></section>`;
   if (r.lang === "Arabic") { const ed = N.querySelector(".fw-ed"); ed.lang = "ar"; ed.dir = "rtl"; }
   wireEditor($("nEd"), "v" + r.id, async html => { await api.saveRec(r.id, { note: html }); r.note = html; });
   $("nTitle").onchange = async () => { const t = $("nTitle").value.trim(); if (!t) return; try { await api.saveRec(r.id, { title: t }); r.title = t; draw(); toast("Title saved."); } catch (e) { setupNote(e); } };
