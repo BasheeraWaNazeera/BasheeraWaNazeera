@@ -261,6 +261,7 @@ textarea{min-height:120px;resize:vertical}
 .cdot.done{border-color:var(--accent);background:var(--accent)}
 .newb{font-size:.66rem;background:var(--warn);color:var(--panel);border-radius:999px;padding:0 6px;margin-left:6px;vertical-align:2px;font-weight:600}
 .grp{font-size:.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;padding:9px 12px 3px;border-bottom:1px solid var(--line);background:var(--panel);position:sticky;top:0;z-index:1}
+.fwin.drop{outline:3px dashed var(--gold)}
 .lr.drop,.row.drop{outline:2px dashed var(--gold);background:var(--accent-soft)}
 .wftools{display:flex;gap:4px;align-items:center;flex-wrap:wrap;padding:4px 8px;font-size:.78rem;color:var(--muted)}
 .wftools button{border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:6px;padding:0 7px;font-size:.78rem}
@@ -286,10 +287,58 @@ textarea{min-height:120px;resize:vertical}
 .wfdlg footer{display:flex;justify-content:flex-end;gap:8px;padding:10px 14px;border-top:1px solid var(--line)}
 .wfpick{display:block;width:100%;text-align:left;border:0;background:none;color:var(--ink);padding:5px 8px;border-radius:6px;font-size:.88rem}
 .wfpick:hover{background:var(--accent-soft)}
+/* one menu bar (owner, 2 Nov): menus, record, search, filters, sort and account in one line */
+.menubar{gap:4px 6px;padding:5px max(10px,env(safe-area-inset-left,0px));flex-wrap:wrap}
+.menubar .menu>button{padding:4px 8px;font-size:.88rem}
+.mdiv{width:1px;height:22px;background:var(--line);margin:0 4px}
+.menubar .ops,.menubar .wfbar{display:flex;align-items:center;gap:6px;padding:0;border:0;background:none;flex-wrap:nowrap}
+.menubar .ops select{font-size:.78rem;padding:3px 4px;border-radius:7px}
+.menubar .wfbar{flex:1 1 380px;min-width:0}
+.menubar .wfbar input[type=search]{flex:1 1 140px;min-width:100px}
+.btn.sm{padding:4px 11px;font-size:.84rem}
+.ibtn{display:inline-grid;place-items:center;width:30px;height:30px;border:1px solid var(--line);border-radius:8px;background:var(--panel);color:var(--accent);font-size:.95rem;cursor:pointer}
+.ibtn:hover,.tbtn:hover{background:var(--accent-soft)}
+.tbtn{border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:8px;padding:3px 9px;font-size:.82rem;white-space:nowrap}
+.tbtn.act{border-color:var(--accent);color:var(--accent);font-weight:600}
+.fpw,.acw{position:relative}
+.fpop{position:absolute;top:calc(100% + 6px);left:0;z-index:1100;display:grid;gap:8px;min-width:240px;padding:10px;background:var(--panel);border:1px solid var(--line);border-radius:10px;box-shadow:0 10px 30px rgba(0,0,0,.16)}
+.fpop select{max-width:none!important;width:100%}
+.fpop label{display:grid!important;gap:3px}
+.sortl{white-space:nowrap}
+.sortl select{max-width:150px!important}
+.who{margin-left:0;flex-wrap:nowrap;gap:6px}
+.acct{width:30px;height:30px;border-radius:50%;border:1px solid var(--line);background:var(--accent);color:var(--panel);font-weight:600;font-size:.85rem;position:relative}
+.acct.warn::after{content:"";position:absolute;right:-1px;top:-1px;width:9px;height:9px;border-radius:50%;background:var(--warn);border:2px solid var(--panel)}
+.acctd{left:auto;right:0;min-width:230px}
+.acctd .whot{padding:6px 10px;font-size:.84rem;color:var(--muted);overflow-wrap:anywhere}
+.owl{font-size:.8rem;color:var(--accent);white-space:nowrap}
+.opsmsg:empty{display:none}
+.opsmsg{flex-basis:100%;font-size:.8rem}
+.rowpath{display:block;font-size:.76rem;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lr .fpop1{margin-left:auto;border:0;background:none;color:var(--accent);font-size:.78rem;padding:0 4px;border-radius:5px;opacity:0;flex-shrink:0}
+.lr:hover .fpop1,.lr:focus-within .fpop1,.lr.sel .fpop1{opacity:.9}
+.lr .fpop1:hover{background:var(--panel)}
+.lr .cnt{margin-left:auto}.lr .cnt+.fpop1{margin-left:2px}
+.fwin{background:var(--bg);z-index:75}
+.fwin .fw-body{overflow:auto}
+.fwin .fw-hd button{border:0;background:none;color:var(--accent);font-size:.8rem;padding:2px 6px;border-radius:6px}
+.fwin .fw-hd button:hover{background:var(--panel)}
+.fwin .rows .row{padding-left:10px}
+@media (hover:none){.lr .fpop1{opacity:.7}}
+@media (max-width:639.98px){.fwin{z-index:1200!important}}
+.owl{display:inline-grid;place-items:center;width:30px;height:30px;border:1px solid var(--line);border-radius:8px;text-decoration:none;font-size:1rem;background:var(--panel)}
+.owl:hover{background:var(--accent-soft)}
+.menubar .seg{margin-right:0}
+#lyNote,#lyCards{font-size:1rem;line-height:1.2;padding:2px 9px}
+@media (max-width:1499.98px){.sortl .sl{display:none}}
 @media (max-width:999.98px){
-  .wftog{display:inline-block}
-  .wfbar:not(.openf) select,.wfbar:not(.openf) label,.wfbar:not(.openf) #wAll,.wfbar:not(.openf) .seg{display:none}
-  .wfbar select{max-width:48%}
+  .mdiv{display:none}
+  .menubar .wfbar{flex-basis:100%;order:5;flex-wrap:wrap}
+  .menubar .wfbar input[type=search]{flex-basis:100%}
+  .menubar .ops{order:4}
+  .who{margin-left:auto;order:3}
+  .sortl select{max-width:120px!important}
+  .fpop{left:auto;right:0}
 }
 .toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:var(--ink);color:var(--panel);padding:8px 16px;border-radius:999px;font-size:.88rem;max-width:calc(100vw - 32px);z-index:3000}
 </style>
@@ -299,42 +348,39 @@ textarea{min-height:120px;resize:vertical}
   <nav class="menubar" aria-label="Menu" id="menubar">
     <span class="brand">BwN Video Library</span>
     <span class="seg" role="group" aria-label="View"><a class="segb" href="./" id="toPub">Visitor view</a><span class="segb on" aria-current="page">My view</span></span>
-    <div class="who">
-      <span id="who">Not signed in.</span>
-      <button class="btn" id="signin">Sign in with Google</button>
-      <button class="btn ghost" id="reconnect" hidden>Reconnect Drive</button>
-      <a class="link" href="./my.html" target="_blank" rel="noopener">↗ Open in its own window</a>
-    </div>
-  </nav>
-
-  <section class="ops" aria-label="Operations" id="ops">
-    <div class="grp">
-      <select id="rlang" aria-label="Language of the recording"><option value="en-AU">English</option><option value="bn-BD">Bangla</option><option value="ar-SA">Arabic</option></select>
-      <button class="btn" id="rec">● Record</button>
-      <span class="timer" id="timer">0:00</span>
+    <span class="mdiv" id="mdiv" aria-hidden="true"></span>
+    <section class="ops" aria-label="Record and take in" id="ops">
+      <select id="rlang" aria-label="Language of the recording" title="Language of the recording"><option value="en-AU">EN</option><option value="bn-BD">BN</option><option value="ar-SA">AR</option></select>
+      <button class="btn sm" id="rec" title="New recording (R)">● Record</button>
+      <span class="timer" id="timer" hidden>0:00</span>
       <span id="live" class="meta" hidden><span class="dot"></span></span>
-    </div>
-    <div class="grp">
-      <label class="btn ghost" for="ofile" title="Otter: ⋯ → Export → Audio (and Text)">⤒ Upload Otter file(s)</label>
+      <label class="ibtn" for="ofile" title="Upload Otter file(s) (U) · in Otter: ⋯ → Export → Audio (and Text)" aria-label="Upload Otter file(s)">⤒</label>
       <input id="ofile" type="file" multiple accept="audio/*,video/*,.m4a,.mp3,.wav,.txt,.docx,.srt,.pdf" hidden>
-      <button class="btn ghost" id="pick">☁ Take in from Drive</button>
+      <button class="ibtn" id="pick" type="button" title="Take in from Drive (D)" aria-label="Take in from Drive">☁</button>
+    </section>
+    <section class="wfbar" aria-label="Find, filter and sort" id="wfbar">
+      <input type="search" id="wq" placeholder="Search cards, recordings, posts…" aria-label="Search">
+      <span class="fpw"><button class="tbtn" id="wTog" type="button" aria-expanded="false" aria-controls="fpop">Filters ▾</button>
+        <span class="fpop" id="fpop" hidden>
+          <select id="wTopic" aria-label="Topic"></select>
+          <select id="wSubject" aria-label="Subject"></select>
+          <select id="wProject" aria-label="Project"></select>
+          <select id="wType" aria-label="Type"></select>
+          <label>Group <select id="wGrp"><option value="none">None</option><option value="folder">Folder</option><option value="stage">Stage</option><option value="topic">Topic</option><option value="project">Project</option><option value="type">Type</option></select></label>
+          <button class="link" id="wAll" type="button">Show all</button>
+        </span></span>
+      <label class="sortl" title="Sort the list"><span class="sl">Sort</span> <select id="wSort"><option value="new">Date · newest</option><option value="old">Date · oldest</option><option value="type">Type</option><option value="project">Project</option><option value="size">Size · largest</option><option value="draft">Draft first</option><option value="working">Under process first</option><option value="finished">Finished first</option><option value="published">Published first</option><option value="name">Name A–Z</option></select></label>
+      <span class="seg" role="group" aria-label="Layout"><button class="segb on" id="lyNote" type="button" title="Notebook: folders, list and note side by side" aria-label="Notebook layout">▥</button><button class="segb" id="lyCards" type="button" title="Cards: everything as cards" aria-label="Cards layout">▦</button></span>
+      <button class="btn sm" id="wAdd" type="button">+ Add</button>
+    </section>
+    <div class="who">
+      <button class="btn sm" id="signin">Sign in with Google</button>
+      <span class="acw"><button class="acct" id="acct" type="button" aria-haspopup="true" aria-expanded="false" title="Account" hidden>?</button>
+        <span class="drop acctd" id="acctd" hidden><span class="whot" id="who">Not signed in.</span><button type="button" id="reconnect" hidden>Reconnect Drive</button></span></span>
+      <a class="owl" href="./my.html" target="_blank" rel="noopener" title="↗ Open in its own window" aria-label="Open in its own window">↗</a>
     </div>
     <span class="opsmsg" id="opsmsg" aria-live="polite"></span>
-  </section>
-
-  <section class="wfbar" aria-label="Find, filter and sort" id="wfbar">
-    <input type="search" id="wq" placeholder="Search cards, recordings, posts…" aria-label="Search">
-    <button class="btn ghost wftog" id="wTog" type="button" aria-expanded="false">Filters ▾</button>
-    <select id="wTopic" aria-label="Topic"></select>
-    <select id="wSubject" aria-label="Subject"></select>
-    <select id="wProject" aria-label="Project"></select>
-    <select id="wType" aria-label="Type"></select>
-    <button class="link" id="wAll" type="button">Show all</button>
-    <label>Group <select id="wGrp"><option value="none">None</option><option value="folder">Map folder</option><option value="topic">Topic</option><option value="project">Project</option></select></label>
-    <label>Sort <select id="wSort"><option value="new">Newest</option><option value="name">Name A–Z</option><option value="status">Status</option><option value="type">Type</option></select></label>
-    <span class="seg" role="group" aria-label="Layout"><button class="segb on" id="lyNote" type="button">Notebook</button><button class="segb" id="lyCards" type="button">Cards</button></span>
-    <button class="btn" id="wAdd" type="button">+ Add item</button>
-  </section>
+  </nav>
 
   <div class="tabs" role="tablist" id="tabs">
     <button role="tab" data-tab="folders" aria-selected="false">The Map</button>
@@ -626,12 +672,14 @@ function showAuth() {
   const live = !!user && ownerOk;
   $("who").textContent = DEMO ? "Demo: nothing leaves this browser" : !user ? "Not signed in." : !ownerOk ? `${user.email} is not the owner account.` : user.email + (token ? " · Drive ✓" : " · Drive not connected");
   $("signin").hidden = !!user || DEMO; $("reconnect").hidden = DEMO || !live || !!token;
-  $("ops").querySelectorAll("button,select,label.btn").forEach(b => { if (b.tagName === "LABEL") b.style.pointerEvents = live ? "" : "none"; else b.disabled = !live; });
+  const ac = $("acct"); ac.hidden = !user && !DEMO; ac.textContent = DEMO ? "D" : (user?.email || "?")[0].toUpperCase(); ac.classList.toggle("warn", !DEMO && live && !token);
+  ac.title = $("who").textContent;
+  $("ops").querySelectorAll("button,select,label").forEach(b => { if (b.tagName === "LABEL") b.style.pointerEvents = live ? "" : "none"; else b.disabled = !live; });
   $("ops").style.opacity = live ? "" : ".55";
   if (live) refresh(); else { ITEMS = []; draw(); showNote(); }
 }
 function setupNote(e) {
-  if (e.code === "token") { $("reconnect").hidden = false; toast(e.message, 6000); return; }
+  if (e.code === "token") { $("reconnect").hidden = false; $("acct").classList.add("warn"); toast(e.message, 6000); return; }
   let html = "";
   if (e.code === "disabled") html = `<b>One-time step:</b> Google Drive is not switched on for project basheera-wa-nazeera. Open <a href="https://console.cloud.google.com/apis/library/drive.googleapis.com?project=basheera-wa-nazeera" target="_blank" rel="noopener">Google Drive API</a> → <b>Enable</b>, wait a minute, try again.`;
   else if (/developer key|API key|picker/i.test(e.message)) html = `<b>For “Take in from Drive”:</b><ol><li>Open <a href="https://console.cloud.google.com/apis/library/picker.googleapis.com?project=basheera-wa-nazeera" target="_blank" rel="noopener">Google Picker API</a> → <b>Enable</b>.</li><li>Open <a href="https://console.cloud.google.com/apis/credentials?project=basheera-wa-nazeera" target="_blank" rel="noopener">Credentials</a> → <b>Browser key (auto created by Firebase)</b> → API restrictions → tick <b>Google Picker API</b> → Save.</li></ol>Until then “Upload Otter file(s)” does the same job.`;
@@ -654,6 +702,20 @@ async function refresh() {
   if (cur && !ITEMS.some(r => r.id === cur)) cur = null;
   draw(); if (!draft) showNote();
 }
+// the list for a view: "all", "unfiled", a Map folder (number), "lf:<id>" or "wf:<id>"
+const lfIn = id => { const ids = new Set([id]); let grew = true; while (grew) { grew = false; LF.forEach(f => { if (ids.has(f.parent) && !ids.has(f.id)) { ids.add(f.id); grew = true; } }); } return ids; };
+function listFor(v) {
+  const isLF = typeof v === "string" && v.startsWith("lf:"), isWF = typeof v === "string" && v.startsWith("wf:");
+  if (isWF) { const s = v.length > 3 ? wfIn(v.slice(3)) : null; return ITEMS.filter(r => r.type === "card" && (!s || s.has(r.wf))); }
+  if (isLF) { const s = lfIn(v.slice(3)); return ITEMS.filter(r => r.type === "post" && s.has(r.folder)); }
+  return v === "all" ? ITEMS : v === "unfiled" ? ITEMS.filter(r => !r.wf && (!r.mmj || !BY.has(r.mmj))) : ITEMS.filter(r => r.mmj && ancestors(r.mmj).includes(v));
+}
+const titleFor = v => typeof v === "string" && v.startsWith("wf:") ? (v.length > 3 ? wfName(v.slice(3)) : "WorkFlow · all cards") : v === "all" ? "All files" : v === "unfiled" ? "Not yet filed"
+  : typeof v === "string" && v.startsWith("lf:") ? (LF.find(f => f.id === v.slice(3))?.name || "Library folder") : BY.get(v)?.name || "Folder";
+const rowH = r => r.type === "card" ? cardRow(r) : `<div class="row${cur === r.id ? " on" : ""}" data-id="${r.id}" tabindex="0">
+      <input type="checkbox" aria-label="Tick ${esc(r.title)}" ${sel.has(r.id) ? "checked" : ""}>
+      <span><b>${r.type === "post" ? "🎬 " : "🎙 "}${esc(r.title)}</b>${r.type === "post" ? `<span class="st ${esc(r.status)}">${STATUS[r.status] || ""}</span>` : ""}<span class="meta">${r.type === "post" ? `Video post · ${esc(r.lang)}${r.len && r.len !== "—" ? " · " + esc(r.len) : ""}${r.ytUrl ? " · on YouTube" : ""}` : `${esc(r.src)} · ${esc(r.lang)}${r.dur ? " · " + esc(r.dur) : ""}${r.post ? " · 🎬 has a video post" : ""}`}${r.at ? " · " + esc(when(r.at)) : ""}${r.shared ? " · 🔗" : ""}</span>
+      ${pathLine(r)}</span></div>`;
 function draw() {
   COUNTS = new Map(); let unf = 0;
   ITEMS.forEach(r => { if (r.mmj && BY.has(r.mmj)) ancestors(r.mmj).forEach(a => COUNTS.set(a, (COUNTS.get(a) || 0) + 1)); else if (!r.wf) unf++; });
@@ -662,17 +724,10 @@ function draw() {
     const b = document.createElement("button"); b.type = "button"; b.className = "tl" + (view === v ? " on" : ""); b.innerHTML = `<span>${t}</span><span class="c">${n}</span>`;
     b.onclick = () => { view = v; sel.clear(); draw(); tab("files"); }; sp.append(b); });
   drawLTree(); drawWfTools();
-  const lfIn = id => { const ids = new Set([id]); let grew = true; while (grew) { grew = false; LF.forEach(f => { if (ids.has(f.parent) && !ids.has(f.id)) { ids.add(f.id); grew = true; } }); } return ids; };
-  const isLF = typeof view === "string" && view.startsWith("lf:"), lfSet = isLF ? lfIn(view.slice(3)) : null;
-  const isWF = typeof view === "string" && view.startsWith("wf:"), wfSet = isWF && view.length > 3 ? wfIn(view.slice(3)) : null;
-  let list = isWF ? ITEMS.filter(r => r.type === "card" && (!wfSet || wfSet.has(r.wf))) : view === "all" ? ITEMS : view === "unfiled" ? ITEMS.filter(r => !r.wf && (!r.mmj || !BY.has(r.mmj))) : isLF ? ITEMS.filter(r => r.type === "post" && lfSet.has(r.folder)) : ITEMS.filter(r => r.mmj && ancestors(r.mmj).includes(view));
+  let list = listFor(view);
   drawFilters(list); list = sortL(applyF(list)); LAST = list;
-  $("fTitle").textContent = isWF ? (view.length > 3 ? wfName(view.slice(3)) : "WorkFlow · all cards") : view === "all" ? "All files" : view === "unfiled" ? "Not yet filed" : isLF ? (LF.find(f => f.id === view.slice(3))?.name || "Library folder") : BY.get(view)?.name || "Folder";
+  $("fTitle").textContent = titleFor(view);
   $("fCount").textContent = list.length + (list.length === 1 ? " file" : " files");
-  const rowH = r => r.type === "card" ? cardRow(r) : `<div class="row${cur === r.id ? " on" : ""}" data-id="${r.id}" tabindex="0">
-      <input type="checkbox" aria-label="Tick ${esc(r.title)}" ${sel.has(r.id) ? "checked" : ""}>
-      <span><b>${r.type === "post" ? "🎬 " : "🎙 "}${esc(r.title)}</b>${r.type === "post" ? `<span class="st ${esc(r.status)}">${STATUS[r.status] || ""}</span>` : ""}<span class="meta">${r.type === "post" ? `Video post · ${esc(r.lang)}${r.len && r.len !== "—" ? " · " + esc(r.len) : ""}${r.ytUrl ? " · on YouTube" : ""}` : `${esc(r.src)} · ${esc(r.lang)}${r.dur ? " · " + esc(r.dur) : ""}${r.post ? " · 🎬 has a video post" : ""}`}${r.at ? " · " + esc(when(r.at)) : ""}${r.shared ? " · 🔗" : ""}</span>
-      ${view === "all" || typeof view === "number" ? `<span class="meta">📁 ${r.mmj && BY.has(r.mmj) ? esc(BY.get(r.mmj).name) : "Not yet filed"}</span>` : ""}</span></div>`;
   $("rows").innerHTML = list.length ? groupsOf(list).map(([g, arr]) => (g === null ? "" : `<div class="grp">${esc(g)} · ${arr.length}</div>`) + arr.map(rowH).join("")).join("")
     : `<p class="empty">${user ? (ITEMS.length ? "Nothing matches here. Tap Show all." : "No recordings here. Record or upload one with the buttons at the top.") : "Sign in to see your recordings."}</p>`;
   $("rows").querySelectorAll(".row").forEach(el => {
@@ -683,7 +738,7 @@ function draw() {
     el.draggable = true; el.ondragstart = e => { e.dataTransfer.setData("text/bwn", id); e.dataTransfer.effectAllowed = "move"; };
   });
   $("rows").querySelectorAll("[data-dot]").forEach(b => b.onclick = e => { e.stopPropagation(); cycleCard(b.dataset.dot); });
-  drawCards(list);
+  drawCards(list); drawFwins();
   $("selAll").onchange = () => { list.forEach(r => $("selAll").checked ? sel.add(r.id) : sel.delete(r.id)); draw(); };
   bulkState(list);
 }
@@ -737,8 +792,11 @@ function drawLTree() {
   }).join("");
   const html = wfTreeHTML() + lfTreeHTML() + build(0);
   host.innerHTML = html ? `<ul class="ltree">${html}</ul>` : `<p class="empty">${TREE.length ? "No folder has files yet." : "Loading the Map…"}</p>`;
+  host.querySelectorAll(".lr[data-f],.lr[data-lf]:not([data-lf='']),.lr[data-wf]").forEach(r => { const b = document.createElement("button"); b.type = "button"; b.className = "fpop1";
+    b.dataset.pop = r.dataset.f ? "m" + r.dataset.f : r.dataset.lf ? "lf:" + r.dataset.lf : "wf:" + r.dataset.wf; b.title = "Open this folder as its own window"; b.setAttribute("aria-label", b.title); b.textContent = "⧉"; r.append(b); });
 }
-$("ltree").addEventListener("click", e => { const r = e.target.closest(".lr"); if (!r) return;
+$("ltree").addEventListener("click", e => { const pb = e.target.closest(".fpop1"); if (pb) { e.stopPropagation(); popFolder(pb.dataset.pop); return; }
+  const r = e.target.closest(".lr"); if (!r) return;
   if (r.dataset.f) { const id = +r.dataset.f; if (OPEN.has(id) && view === id) OPEN.delete(id); else OPEN.add(id); saveOpen(); view = id; sel.clear(); draw(); }
   else if (r.dataset.lf !== undefined) { const id = r.dataset.lf, k = id ? "L" + id : "LF"; if (!id) { OPEN.has(k) ? OPEN.delete(k) : OPEN.add(k); }
     else { if (OPEN.has(k) && view === "lf:" + id) OPEN.delete(k); else OPEN.add(k); view = "lf:" + id; sel.clear(); } saveOpen(); draw(); }
@@ -852,6 +910,9 @@ const cdot = r => `<button type="button" class="cdot ${CSTAT.includes(r.status) 
 const projOf = r => r.type === "card" && r.projects?.length ? r.projects : ["BwN"];
 const topOf = r => Array.isArray(r.topics) ? r.topics : [];
 const subjOf = r => r.wf ? "WorkFlow" : r.mmj && BY.has(r.mmj) ? BY.get(ancestors(r.mmj).at(-1)).name : "Not yet filed";
+const mmjPath = id => ancestors(id).reverse().map(x => BY.get(x)?.name || "").join(" › ");
+const placeOf = r => r.wf ? wfPath(r.wf) : r.mmj && BY.has(r.mmj) ? "The Map › " + mmjPath(r.mmj) : r.type === "post" && r.folder && LF.some(f => f.id === r.folder) ? "First Library folders › " + LF.find(f => f.id === r.folder).name : r.mmjPath || "Not yet filed";
+const pathLine = r => { const p = placeOf(r), q = p.split(" › "), short = q.length > 3 ? [q[0], "…", q.at(-1)].join(" › ") : p; return `<span class="rowpath" title="${esc(p)}">📁 ${esc(short)}</span>`; };
 const folderOf = r => r.wf ? wfName(r.wf) : r.mmj && BY.has(r.mmj) ? BY.get(r.mmj).name : "Not yet filed";
 function setWF(own) { WFOWN = own || []; WF = WF0.map(f => ({ ...f, ...(WFOWN.find(o => o.id === f.id) || {}) })).concat(WFOWN.filter(o => !WF0.some(f => f.id === o.id))); }
 const wfKids = pid => WF.filter(f => (f.parent ?? null) === pid).sort((a, b) => (a.order ?? 50) - (b.order ?? 50) || a.name.localeCompare(b.name, "en", { numeric: true }));
@@ -935,22 +996,33 @@ function drawFilters(base) {
   fill("wTopic", "topic", "Topic", r => topOf(r).length ? topOf(r) : ["(no topic)"]); fill("wSubject", "subject", "Subject", r => [subjOf(r)]);
   fill("wProject", "project", "Project", projOf); fill("wType", "type", "Type", r => [typeOf(r)]);
   if (document.activeElement !== $("wq")) $("wq").value = FL.q; $("wGrp").value = FL.grp; $("wSort").value = FL.sort;
-  $("wAll").style.fontWeight = FL.q || FL.topic || FL.subject || FL.project || FL.type ? "600" : "";
+  $("wAll").style.fontWeight = FL.q || FL.topic || FL.subject || FL.project || FL.type ? "600" : ""; fbadge();
 }
-function sortL(list) { const by = { new: (a, b) => (b.at || "").localeCompare(a.at || ""), name: (a, b) => (a.title || "").localeCompare(b.title || ""),
-  status: (a, b) => (a.type === "card" ? CSTAT.indexOf(a.status) : 9) - (b.type === "card" ? CSTAT.indexOf(b.status) : 9), type: (a, b) => typeOf(a).localeCompare(typeOf(b)) };
-  return list.slice().sort(by[FL.sort] || by.new); }
+// stage of any item: Draft · Under process · Finished · Published (owner, 2 Nov)
+const STAGES = ["Draft", "Under process", "Finished", "Published"];
+const stageOf = r => r.type === "card" ? (r.show ? "Published" : r.status === "done" ? "Finished" : r.status === "working" ? "Under process" : "Draft")
+  : r.type === "post" ? (r.status === "pub" || r.ytUrl ? "Published" : r.status === "priv" ? "Finished" : "Draft") : (r.post ? "Under process" : "Draft");
+const durS = d => { const m = String(d || "").match(/(\d+):(\d{2})(?::(\d{2}))?/); return m ? (m[3] ? (+m[1] * 3600 + +m[2] * 60 + +m[3]) : (+m[1] * 60 + +m[2])) : 0; };
+const sizeOf = r => +r.size || +r.bytes || durS(r.dur || r.len) * 16000 || (String(r.html || "").length + textOf(r).length + JSON.stringify(r.items || []).length);
+function sortL(list) { const newest = (a, b) => (b.at || "").localeCompare(a.at || ""), stFirst = s => (a, b) => (stageOf(b) === s) - (stageOf(a) === s) || STAGES.indexOf(stageOf(a)) - STAGES.indexOf(stageOf(b)) || newest(a, b);
+  const by = { new: newest, old: (a, b) => -newest(a, b), name: (a, b) => (a.title || "").localeCompare(b.title || "", "en", { numeric: true }),
+    type: (a, b) => typeOf(a).localeCompare(typeOf(b)) || newest(a, b), project: (a, b) => projOf(a)[0].localeCompare(projOf(b)[0]) || newest(a, b),
+    size: (a, b) => sizeOf(b) - sizeOf(a) || newest(a, b), draft: stFirst("Draft"), working: stFirst("Under process"), finished: stFirst("Finished"), published: stFirst("Published"), status: stFirst("Under process") };
+  return list.slice().sort(by[FL.sort] || newest); }
 function groupsOf(list) { if (FL.grp === "none") return [[null, list]];
   const g = new Map(), put = (k, r) => (g.get(k) || g.set(k, []).get(k)).push(r);
-  list.forEach(r => FL.grp === "topic" ? (topOf(r).length ? topOf(r) : ["(no topic)"]).forEach(t => put(t, r)) : FL.grp === "project" ? projOf(r).forEach(p => put(p, r)) : put(folderOf(r), r));
-  return [...g].sort((a, b) => a[0].localeCompare(b[0], "en", { numeric: true })); }
+  list.forEach(r => FL.grp === "topic" ? (topOf(r).length ? topOf(r) : ["(no topic)"]).forEach(t => put(t, r)) : FL.grp === "project" ? projOf(r).forEach(p => put(p, r)) : FL.grp === "stage" ? put(stageOf(r), r) : FL.grp === "type" ? put(typeOf(r), r) : put(folderOf(r), r));
+  return [...g].sort((a, b) => FL.grp === "stage" ? STAGES.indexOf(a[0]) - STAGES.indexOf(b[0]) : a[0].localeCompare(b[0], "en", { numeric: true })); }
 const fset = (k, v) => { FL[k] = v; saveFL(); draw(); };
 $("wTopic").onchange = e => fset("topic", e.target.value); $("wSubject").onchange = e => fset("subject", e.target.value);
 $("wProject").onchange = e => fset("project", e.target.value); $("wType").onchange = e => fset("type", e.target.value);
 $("wGrp").onchange = e => fset("grp", e.target.value); $("wSort").onchange = e => fset("sort", e.target.value);
 $("wq").oninput = e => { FL.q = e.target.value; saveFL(); clearTimeout(fset.t); fset.t = setTimeout(draw, 150); };
-$("wAll").onclick = () => { Object.assign(FL, { q: "", topic: "", subject: "", project: "", type: "" }); view = "all"; saveFL(); draw(); toast("Showing everything."); };
-$("wTog").onclick = () => { const o = $("wfbar").classList.toggle("openf"); $("wTog").setAttribute("aria-expanded", o); $("wTog").textContent = o ? "Filters ▴" : "Filters ▾"; };
+$("wAll").onclick = () => { Object.assign(FL, { q: "", topic: "", subject: "", project: "", type: "", grp: "none" }); view = "all"; saveFL(); draw(); toast("Showing everything."); };
+function fpopShow(o) { $("fpop").hidden = !o; $("wTog").setAttribute("aria-expanded", o); fbadge(); }
+function fbadge() { const n = ["topic", "subject", "project", "type"].filter(k => FL[k]).length + (FL.grp !== "none" ? 1 : 0);
+  $("wTog").textContent = "Filters" + (n ? " · " + n : "") + ($("fpop").hidden ? " ▾" : " ▴"); $("wTog").classList.toggle("act", !!n); }
+$("wTog").onclick = e => { e.stopPropagation(); fpopShow($("fpop").hidden); };
 function setLay(l) { FL.lay = l; saveFL(); const c = l === "cards"; $("lyNote").classList.toggle("on", !c); $("lyCards").classList.toggle("on", c);
   $("panes").hidden = c; $("tabs").style.display = c ? "none" : ""; $("cardsview").hidden = !c; draw(); }
 $("lyNote").onclick = () => setLay("note"); $("lyCards").onclick = () => setLay("cards");
@@ -959,13 +1031,13 @@ $("lyNote").onclick = () => setLay("note"); $("lyCards").onclick = () => setLay(
 function cardRow(r) {
   return `<div class="row${cur === r.id ? " on" : ""}" data-id="${esc(r.id)}" tabindex="0"><input type="checkbox" aria-label="Tick ${esc(r.title)}" ${sel.has(r.id) ? "checked" : ""}>
     <span><b>${cdot(r)}${ICONOF(r)} ${esc(r.title)}</b>${r.new ? '<span class="newb">New</span>' : ""}<span class="meta">${esc(typeOf(r))} · ${esc(projOf(r).join(", "))}${r.at ? " · " + esc(when(r.at)) : ""}${r.show ? " · 👁 visitors" : ""}</span>
-    ${view === "all" || typeof view === "number" || FL.q ? `<span class="meta">📁 ${esc(folderOf(r))}</span>` : ""}</span></div>`;
+    ${pathLine(r)}</span></div>`;
 }
 function drawCards(list) {
   const host = $("cardsview"); if (host.hidden) return;
   host.innerHTML = list.length ? groupsOf(list).map(([g, arr]) => `${g === null ? "" : `<h3>${esc(g)} <span class="meta">${arr.length}</span></h3>`}<div class="cgrid">${arr.map(r => `
     <article class="wcard" data-id="${esc(r.id)}"><div class="t">${r.type === "card" ? cdot(r) : ""}${ICONOF(r)} ${esc(r.title)}${r.new ? '<span class="newb">New</span>' : ""}</div>
-      <div class="meta">${esc(typeOf(r))} · ${esc(projOf(r).join(", "))}${r.ver ? " · " + esc(r.ver) : ""} · 📁 ${esc(folderOf(r))}</div>
+      <div class="meta">${esc(typeOf(r))} · ${esc(projOf(r).join(", "))}${r.ver ? " · " + esc(r.ver) : ""} · ${esc(stageOf(r))}</div>${pathLine(r)}
       <p>${esc(r.what || textOf(r) || r.lang || "")}</p>
       <div class="acts"><button type="button" data-open="${esc(r.id)}">Open note</button>${r.url ? `<a href="${esc(r.url)}" target="_blank" rel="noopener">↗ Own window</a>` : ""}</div></article>`).join("")}</div>`).join("")
     : `<p class="empty">Nothing matches. Tap Show all.</p>`;
@@ -1112,9 +1184,9 @@ function helpHTML() {
     <li><b>Files</b> (middle): 🎙 recordings and 🎬 video posts. Tick several, then Move to folder, Share link or Delete in one go (video posts are never deleted here).</li>
     <li><b>🎬 Make video post</b> (on a recording): makes the post visitors will see, as a Draft, in the same folder, with the transcript as its note. Add the YouTube link, then set it to Published.</li>
     <li><b>🗂 WorkFlow · private</b> (top of the Map): your work cards (lists, demos, reports, databases) from MyDatabase, one folder per project. New cards from the Architects arrive in <b>🆕 Inbox</b> with a New mark. Drag a card onto any folder to file it; + Folder, Rename and Move are under “All files” when a WorkFlow folder is open. Tap a card’s dot to go todo → working → done.</li>
-    <li><b>Find bar</b> (under the buttons): search, filters by Topic · Subject · Project · Type with counts, Show all, Group and Sort; this device remembers them. <b>Cards</b> shows everything as cards; <b>Notebook</b> brings back the three sections. <b>+ Add item</b> adds a card (a file goes to your Drive folder “To BwN”).</li>
+    <li><b>Find bar</b> (in the top bar): search, filters by Topic · Subject · Project · Type with counts, Show all, Group and Sort; this device remembers them. <b>▦ Cards</b> shows everything as cards; <b>▥ Notebook</b> brings back the three sections. <b>+ Add item</b> adds a card (a file goes to your Drive folder “To BwN”).</li>
     <li><b>Note</b> (right): ▶ Play, the folder and Choose folder, 🔗 Links (Drive files, share link) and 🗑 on one bar; below it the notes and transcript, which save by itself.</li>
-    <li><b>Sizes:</b> drag the thin bars between the sections to make one wider. <b>⧉</b> on a section’s header pops it out as its own window: drag it by its header, resize it from any side or corner; <b>⇲</b> docks it back (View → Dock all sections). Sizes are remembered on this device.</li></ul>
+    <li><b>Sizes:</b> drag the thin bars between the sections to make one wider. <b>⧉</b> on a section’s header pops it out as its own window: drag it by its header, resize it from any side or corner; <b>⇲</b> docks it back (View → Dock all sections). <b>⧉</b> beside any folder opens that folder as its own window; open as many as you like, drag each by its title, resize it from any side or corner, and drop a file or card on it to file it there (View → Close all folder windows). Sizes are remembered on this device.</li><li><b>Find and sort</b> (top bar): search, <b>Filters</b> (Topic, Subject, Project, Type, Group) and <b>Sort</b> by date, type, project, size or stage (Draft · Under process · Finished · Published). Every row shows 📁 where it belongs.</li></ul>
     <h3>Where your files are kept</h3><ul>
     <li><b>Recordings and Otter files:</b> in your own Google Drive (BasheeraWaNazeera@gmail.com) → My Drive → folder <b>“To BwN”</b>. Nobody else can open them unless you press “Share link”.</li>
     <li><b>Title, folder, transcript and notes:</b> in the BWN Firebase database (project basheera-wa-nazeera), readable only by your Google account.</li>
@@ -1204,13 +1276,13 @@ async function record() {
   const d = draft;
   mr.ondataavailable = e => e.data.size && chunks.push(e.data);
   mr.onstop = () => { const secs = (Date.now() - t0) / 1000; stream.getTracks().forEach(t => t.stop()); clearInterval(tick); srOn = false; try { sr?.stop(); } catch { }
-    $("rec").textContent = "● Record"; $("rec").classList.remove("on"); $("live").hidden = true; $("rlang").disabled = false;
+    $("rec").textContent = "● Record"; $("rec").classList.remove("on"); $("live").hidden = true; $("timer").hidden = true; $("rlang").disabled = false;
     if (draft !== d) return; // discarded while recording
     d.blob = new Blob(chunks, { type: mr.mimeType || "audio/webm" }); d.dur = fmt(secs);
     if ($("dText")) d.text = $("dText").value; if ($("dTitle")) d.title = $("dTitle").value;
     if (!d.title) d.title = "Voice note " + stamp(); drawDraft(); };
   mr.start(1000); t0 = Date.now(); tick = setInterval(() => $("timer").textContent = fmt((Date.now() - t0) / 1000), 500);
-  $("rec").textContent = "■ Stop"; $("rec").classList.add("on"); $("live").hidden = false; $("rlang").disabled = true;
+  $("rec").textContent = "■ Stop"; $("rec").classList.add("on"); $("live").hidden = false; $("timer").hidden = false; $("rlang").disabled = true;
   if (SR) { sr = new SR(); sr.lang = code; sr.continuous = true; sr.interimResults = true; srOn = true;
     sr.onresult = e => { let interim = ""; for (let i = e.resultIndex; i < e.results.length; i++) { const r = e.results[i]; if (r.isFinal) finalText += r[0].transcript.trim() + " "; else interim += r[0].transcript; }
       if (draft === d && $("dText")) { $("dText").value = finalText + interim; d.text = $("dText").value; } };
@@ -1237,14 +1309,14 @@ const MENUS = () => [
     ["Move ticked to folder…", bulkMove, "M", !sel.size], ["Delete ticked…", bulkDel, "Del", !sel.size]]],
   ["View", [["⤢ The Map in a full window", () => $("openMap").click(), "F"], [(onlyWith ? "✓ " : "") + "Only folders with recordings", () => { $("onlyWith").checked = !onlyWith; $("onlyWith").onchange(); }],
     ["All files", () => { view = "all"; draw(); tab("files"); }], ["Not yet filed", () => { view = "unfiled"; draw(); tab("files"); }], "-",
-    ["Refresh the Map from Mapping My Journey", async () => { await loadTree(true); draw(); toast("The Map is up to date."); }], ["Dock all sections", () => { Object.keys(PANES).forEach(k => floatPane(k, false)); }], ["Reset section and window sizes", () => { try { ["bwnlib.geo", "viCols", "viGeo"].forEach(k => localStorage.removeItem(k)); } catch { } COLS = { ...COLS0 }; GEO = {}; Object.keys(PANES).forEach(k => floatPane(k, false)); layout(); toast("Sizes reset."); }]]],
+    ["Refresh the Map from Mapping My Journey", async () => { await loadTree(true); draw(); toast("The Map is up to date."); }], ["Dock all sections", () => { Object.keys(PANES).forEach(k => floatPane(k, false)); }], ["Close all folder windows", () => { FWINS = []; saveFw(); drawFwins(); }, "", !FWINS.length], ["Reset section and window sizes", () => { try { ["bwnlib.geo", "viCols", "viGeo"].forEach(k => localStorage.removeItem(k)); } catch { } COLS = { ...COLS0 }; GEO = {}; Object.keys(PANES).forEach(k => floatPane(k, false)); layout(); toast("Sizes reset."); }]]],
   ["Share", [["Share links of ticked files", () => bulkShare(true), "", !sel.size], ["Stop sharing ticked files", () => bulkShare(false), "", !sel.size]]],
   ["Help", [["How it works · where files are kept", () => { draft = null; cur = null; draw(); showNote(); tab("note"); }, "?"]]],
 ];
 let openMenu = null;
 function buildMenus() {
   const bar = $("menubar"); bar.querySelectorAll(".menu").forEach(m => m.remove());
-  const who = bar.querySelector(".who");
+  const who = $("mdiv");
   MENUS().forEach(([name, items]) => {
     const m = document.createElement("div"); m.className = "menu";
     const b = document.createElement("button"); b.type = "button"; b.textContent = name; b.setAttribute("aria-haspopup", "true"); b.setAttribute("aria-expanded", openMenu === name);
@@ -1258,10 +1330,14 @@ function buildMenus() {
     m.append(b, d); bar.insertBefore(m, who);
   });
 }
-document.addEventListener("click", e => { if (openMenu && !e.target.closest(".menu")) { openMenu = null; buildMenus(); } });
+document.addEventListener("click", e => { if (openMenu && !e.target.closest(".menu")) { openMenu = null; buildMenus(); }
+  if (!$("fpop").hidden && !e.target.closest(".fpw")) fpopShow(false);
+  if (!$("acctd").hidden && !e.target.closest(".acw")) { $("acctd").hidden = true; $("acct").setAttribute("aria-expanded", "false"); } });
+$("acct").onclick = e => { e.stopPropagation(); const o = $("acctd").hidden; $("acctd").hidden = !o; $("acct").setAttribute("aria-expanded", o); };
 document.addEventListener("click", e => { const d = $("nLinksDrop"); if (d && !d.hidden && !e.target.closest(".lmenu")) d.hidden = true; });
 document.addEventListener("keydown", e => {
   if (e.key === "Escape" && openMenu) { openMenu = null; buildMenus(); return; }
+  if (e.key === "Escape" && !$("fpop").hidden) { fpopShow(false); $("wTog").focus(); return; }
   if (e.target.closest("input,textarea,select,[contenteditable]") || e.ctrlKey || e.metaKey || e.altKey || !ownerOk || !mapwin.hidden) return;
   const k = e.key.toLowerCase();
   if (k === "r") { e.preventDefault(); record(); } else if (k === "u") chooseFiles(); else if (k === "d") takeIn(); else if (k === "f") $("openMap").click();
@@ -1306,7 +1382,7 @@ function floatPane(k, on) {
   if (on) { placePane(k); grips(el, k); } else ["width", "height", "left", "top", "zIndex"].forEach(p => el.style[p] = "");
   layout();
 }
-function grips(el, k) {
+function grips(el, k, onEnd) {
   [["t", "modal-resize-t"], ["r", "modal-resize-r"], ["b", "modal-resize-b"], ["l", "modal-resize-l"], ["tr", "modal-corner modal-corner-tr"], ["tl", "modal-corner modal-corner-tl"], ["bl", "modal-corner modal-corner-bl"], ["br", "modal-corner modal-corner-br"]].forEach(([dir, cls]) => {
     const g = document.createElement("div"); g.className = cls + " fw-grip";
     g.addEventListener("pointerdown", e => { if (e.button !== 0) return; e.preventDefault(); e.stopPropagation(); const r = el.getBoundingClientRect(), s = { x: e.clientX, y: e.clientY, l: r.left, t: r.top, w: r.width, h: r.height };
@@ -1314,7 +1390,7 @@ function grips(el, k) {
         if (dir.includes("r")) w = Math.max(320, s.w + dx); if (dir.includes("l")) { w = Math.max(320, s.w - dx); l = s.l + (s.w - w); }
         if (dir.includes("b")) h = Math.max(240, s.h + dy); if (dir.includes("t")) { h = Math.max(240, s.h - dy); t = Math.max(0, s.t + (s.h - h)); }
         Object.assign(el.style, { width: w + "px", height: h + "px", left: l + "px", top: t + "px" }); };
-      const up = () => { removeEventListener("pointermove", move); removeEventListener("pointerup", up); document.body.style.userSelect = ""; saveGeo(k); };
+      const up = () => { removeEventListener("pointermove", move); removeEventListener("pointerup", up); document.body.style.userSelect = ""; onEnd ? onEnd() : saveGeo(k); };
       document.body.style.userSelect = "none"; addEventListener("pointermove", move); addEventListener("pointerup", up); });
     el.append(g); });
 }
@@ -1334,6 +1410,56 @@ function initPanes() {
     if (!desk()) { if (isF) floatPaneOff(k); } else if (FLOAT[k]) { if (!isF) floatPane(k, true); else placePane(k); } }); layout(); }, 150); });
 }
 function floatPaneOff(k) { const el = $(PANES[k]); el.classList.remove("float-win"); el.querySelectorAll(":scope>.fw-grip").forEach(g => g.remove()); ["width", "height", "left", "top", "zIndex"].forEach(p => el.style[p] = ""); }
+// ---------- folders as their own windows (owner, 2 Nov): ⧉ on any folder opens it; several at once; drag by the title, resize from every side and corner ----------
+let FWINS = []; try { FWINS = JSON.parse(localStorage.getItem("viFwins") || "[]"); } catch { }
+const saveFw = () => { try { localStorage.setItem("viFwins", JSON.stringify(FWINS)); } catch { } };
+const fwView = k => k.startsWith("m") ? +k.slice(1) : k;
+function popFolder(k) {
+  let w = FWINS.find(x => x.k === k); const vw = innerWidth, vh = innerHeight, n = FWINS.length;
+  if (!w) { w = { k, w: Math.min(440, vw - 16), h: Math.min(480, vh - 90) }; w.x = Math.max(0, Math.min(140 + n * 34, vw - w.w - 8)); w.y = Math.max(0, Math.min(80 + n * 30, vh - w.h - 8)); FWINS.push(w); saveFw(); }
+  drawFwins(); const el = document.querySelector(`.fwin[data-k="${CSS.escape(k)}"]`); if (el) { el.style.zIndex = ++zTopP; el.querySelector(".fw-x").focus(); }
+}
+function closeFw(k) { FWINS = FWINS.filter(w => w.k !== k); saveFw(); drawFwins(); }
+function drawFwins() {
+  document.querySelectorAll(".fwin").forEach(el => { if (!FWINS.some(w => w.k === el.dataset.k)) el.remove(); });
+  FWINS.forEach(w => { const v = fwView(w.k); let el = document.querySelector(`.fwin[data-k="${CSS.escape(w.k)}"]`);
+    if (!el) { el = document.createElement("div"); el.className = "fwin float-win"; el.dataset.k = w.k; el.setAttribute("role", "dialog");
+      el.innerHTML = `<div class="fw-hd"><span class="fw-drag" aria-hidden="true">⠿</span><span class="fw-title-disp"></span><button type="button" data-a="here" title="Show this folder in the Files list">Open in Files</button><button type="button" class="fw-x" aria-label="Close this window" title="Close">✕</button></div><div class="fw-body"><div class="rows"></div></div>`;
+      const geo = () => { const r = el.getBoundingClientRect(); Object.assign(w, { x: Math.round(r.left), y: Math.round(r.top), w: Math.round(r.width), h: Math.round(r.height) }); saveFw(); };
+      Object.assign(el.style, { left: Math.max(0, Math.min(w.x, innerWidth - 120)) + "px", top: Math.max(0, Math.min(w.y, innerHeight - 60)) + "px", width: w.w + "px", height: w.h + "px", zIndex: ++zTopP });
+      document.body.append(el); grips(el, null, geo);
+      el.addEventListener("pointerdown", () => { el.style.zIndex = ++zTopP; }, { capture: true });
+      const hd = el.querySelector(".fw-hd");
+      hd.addEventListener("pointerdown", e => { if (e.button !== 0 || e.target.closest("button")) return; e.preventDefault(); const r = el.getBoundingClientRect(), sx = e.clientX, sy = e.clientY;
+        const move = ev => { el.style.left = Math.max(0, Math.min(r.left + ev.clientX - sx, innerWidth - 80)) + "px"; el.style.top = Math.max(0, Math.min(r.top + ev.clientY - sy, innerHeight - 40)) + "px"; };
+        const up = () => { removeEventListener("pointermove", move); removeEventListener("pointerup", up); geo(); };
+        addEventListener("pointermove", move); addEventListener("pointerup", up); });
+      el.querySelector(".fw-x").onclick = () => closeFw(w.k);
+      el.querySelector("[data-a=here]").onclick = () => { view = v; sel.clear(); draw(); tab("files"); };
+      el.addEventListener("keydown", e => { if (e.key === "Escape") closeFw(w.k); });
+      const rows = el.querySelector(".rows");
+      rows.addEventListener("click", e => { const d = e.target.closest("[data-dot]"); if (d) { e.stopPropagation(); cycleCard(d.dataset.dot); return; }
+        const row = e.target.closest(".row"); if (!row) return; const id = row.dataset.id;
+        if (e.target.matches("input[type=checkbox]")) { e.target.checked ? sel.add(id) : sel.delete(id); draw(); return; }
+        draft = null; cur = id; draw(); showNote(); tab("note"); });
+      rows.addEventListener("dragstart", e => { const row = e.target.closest(".row"); if (row) { e.dataTransfer.setData("text/bwn", row.dataset.id); e.dataTransfer.effectAllowed = "move"; } });
+      // drop a file or card on the window to file it in this folder
+      el.addEventListener("dragover", e => { if (typeof v === "string" && (v === "all" || v === "unfiled" || v.startsWith("lf:"))) return; if (e.dataTransfer.types.includes("text/bwn")) { e.preventDefault(); el.classList.add("drop"); } });
+      el.addEventListener("dragleave", e => { if (!el.contains(e.relatedTarget)) el.classList.remove("drop"); });
+      el.addEventListener("drop", async e => { el.classList.remove("drop"); const id = e.dataTransfer.getData("text/bwn"), it = ITEMS.find(x => x.id === id); if (!it || !ownerOk) return; e.preventDefault();
+        const rs = sel.has(id) ? picked() : [it];
+        try { if (typeof v === "number") { const f = BY.get(v); await moveTo(rs, f); toast("Moved to " + f.name + "."); }
+          else { const wv = v.slice(3) || "inbox", cs = rs.filter(x => x.type === "card"); if (cs.length < rs.length) toast("Only work cards go in WorkFlow; recordings and video posts stay on the Map.", 5000);
+            for (const c of cs) await cardSave(c, { wf: wv, mmj: null, mmjName: "", mmjPath: "", new: false, show: false }); if (cs.length) toast("Filed in " + wfName(wv) + "."); }
+        } catch (err) { setupNote(err); } sel.clear(); refresh(); });
+    }
+    const list = sortL(listFor(v));
+    el.querySelector(".fw-title-disp").textContent = "📁 " + titleFor(v) + " · " + list.length;
+    el.querySelector(".fw-title-disp").title = typeof v === "number" ? "The Map › " + mmjPath(v) : typeof v === "string" && v.startsWith("wf:") && v.length > 3 ? wfPath(v.slice(3)) : titleFor(v);
+    el.querySelector(".rows").innerHTML = list.length ? list.map(rowH).join("") : `<p class="empty">This folder is empty. Drag a file or card here to file it.</p>`;
+    el.querySelectorAll(".row").forEach(r => r.draggable = true);
+  });
+}
 // ---------- start ----------
 $("signin").onclick = () => api?.connect().catch(e => toast(e.message));
 $("reconnect").onclick = () => api?.connect().catch(e => toast(e.message));
