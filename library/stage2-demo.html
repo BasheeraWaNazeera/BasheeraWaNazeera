@@ -81,12 +81,12 @@ select,input[type=text]{border:1px solid var(--line);background:var(--panel);col
 <div class="grid" id="grid">
   <section class="app" id="a-siy" data-name="Siyagah"><h2>🌿 Siyagah <small>the source</small></h2><p class="why">The one tree (1A). Notes sent from other apps arrive straight in their folder (2B).</p><ul class="tree" id="t-siy"></ul>
     <div class="foot"><button class="ghost" data-new="Siyagah" type="button">+ Folder</button><span class="lock" id="lockst"></span></div></section>
-  <section class="app" id="a-msa" data-name="MSA / QR"><h2>📖 MSA · QuranRevival <small>Map</small></h2><p class="why">Shows Siyagah’s tree only (6A). Only notes you tick are sent (5A).</p>
+  <section class="app" id="a-msa" data-name="MSA / QR"><h2>📖 MSA · QuranRevival <small>Map</small></h2><p class="why">Shows Siyagah’s tree only (6A), read-only. Only notes you tick are sent (5A).</p>
     <ul class="notes" id="msaNotes"></ul>
     <div class="foot" style="border-top:0;border-bottom:1px solid var(--line)"><select id="sendTo" aria-label="Folder to send to"></select><button id="sendBtn" type="button" disabled>Send ticked</button></div>
     <ul class="tree" id="t-msa"></ul>
     <div class="foot"><button class="ghost" data-new="MSA" type="button">+ Folder</button><button class="ghost" id="msaDel" type="button" title="Tries to delete a Siyagah folder from MSA">Delete a Siyagah folder</button></div></section>
-  <section class="app" id="a-bwn" data-name="BwN My view"><h2>🎬 BwN Library <small>My view</small></h2><p class="why">The same tree, with your talks filed in it. The 7 starter folders are now inside MMJ folders (8A).</p><ul class="tree" id="t-bwn"></ul>
+  <section class="app" id="a-bwn" data-name="BwN My view"><h2>🎬 BwN Library <small>My view</small></h2><p class="why">The same tree, with your talks filed in it. The 7 starter folders are now inside MMJ folders (8A). Each talk keeps its folder’s id (e.g. mmj-c-241), so renaming a folder never breaks it.</p><ul class="tree" id="t-bwn"></ul>
     <div class="foot"><button class="ghost" data-new="BwN" type="button">+ Folder</button></div></section>
   <section class="app" id="a-pub" data-name="Visitors"><h2>👁 BwN Library <small>visitors</small></h2><p class="why">Visitors see the full tree (7B), every folder, with your published talks.</p><ul class="tree" id="t-pub"></ul>
     <div class="foot"><span style="font-size:.78rem;color:var(--muted)">Visitors cannot add folders.</span></div></section>
@@ -133,7 +133,7 @@ function tree(host,mode){
   const li=f=>{const k=kids(f.id),its=T.filter(x=>x.f===f.id&&(mode!=="pub"||x.k==="talk"&&x.pub)&&(mode!=="msa"||x.k==="note")),has=k.length||its.length,o=open.has(f.id),c=count(f.id);
     return `<li><div class="${fresh.has(f.id)?"flash":""}"><span class="tw" data-tw="${f.id}">${has?(o?"−":"+"):""}</span><span class="nm">${esc(f.name)}${f.from&&mode==="bwn"?` <span class="mapped" title="was a BwN starter folder">BwN starter</span>`:""}</span>${c&&mode!=="msa"?`<span class="c">(${c})</span>`:""}</div>`+
       (o&&has?`<ul>${k.map(li).join("")}${its.map(x=>`<li><div class="${x.fresh?"flash":""}"><span class="tw"></span><span class="${x.k==="talk"?"nm":"note"}">${x.k==="talk"?"🎬 ":""}${esc(x.t)}${x.from?` <span class="c">from ${esc(x.from)}</span>`:""}</span></div></li>`).join("")}</ul>`:"")+`</li>`;};
-  host.innerHTML=kids(null).map(li).join("");
+  host.innerHTML=`<li><div><span class="tw"></span><span class="nm" style="font-weight:600">📂 Section: Mapping My Journey</span></div><ul>${kids(null).map(li).join("")}</ul></li>`;
 }
 function draw(){
   tree($("t-siy"),"siy");tree($("t-msa"),"msa");tree($("t-bwn"),"bwn");tree($("t-pub"),"pub");
