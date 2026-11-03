@@ -76,7 +76,7 @@ button:disabled{opacity:.45;cursor:not-allowed}
   <div class="rules"><h3>What changes (your words, 3 Nov 8:25pm: “MMJ folders should be the main folder systems everywhere … editable/addable/deletable from any site/project”)</h3>
     <ul><li>The same Mapping My Journey folders in every app, kept in step. Tap a folder, then <b>+ Folder</b> (inside it), <b>Rename</b> or <b>Delete</b> in any app: the others follow at once.</li>
     <li><b>Private by default</b> (your words, 3 Nov): visitors see no MMJ folder or note unless you switch it on. Choose a folder, then <b>👁 Visitors</b>; each note has its own <b>🔒 / 👁</b> switch. The 👁 Visitors panel shows exactly what the public sees.</li>
-    <li><b>Delete</b> follows your rule D6: only an empty folder (no posts or notes in it or below it); it goes to Trash, with <b>Undo</b>. Otherwise: “Move or delete its notes first”.</li>
+    <li><b>Delete</b> (your answer B, 4 Nov): a folder can be deleted with its notes inside; the folder, its sub-folders and their notes go to Trash together, and <b>Undo</b> brings them all back together.</li>
     <li>A rename keeps the folder’s id and your own numbers, e.g. “(04.01.05)”, exactly as you write them. If two apps change the same folder at once, the newest change wins.</li></ul></div>
   <div class="log"><h3>What just happened</h3><ol id="log"></ol></div>
 </div>
@@ -115,9 +115,9 @@ function draw(){apps.forEach((a,i)=>{render(i);a.querySelectorAll("[data-act=ren
   $("pubn").textContent=`Visitors see ${VIS.size} folder(s) and ${NOTES.filter(n=>n.vis).length} note(s).`;setTimeout(()=>{fresh.clear();NOTES.forEach(n=>delete n.fresh)},2700)}
 const log=m=>{const li=document.createElement("li");li.textContent=new Date().toLocaleTimeString("en-AU",{timeZone:"Australia/Sydney",hour:"numeric",minute:"2-digit"})+" · "+m;$("log").prepend(li)};
 const showAll=id=>{const p=path(id).slice(0,-1);OPEN.forEach(O=>p.forEach(x=>O.add(x)))};
-const snap=()=>JSON.stringify([...F.values()]);
+const snap=()=>JSON.stringify({f:[...F.values()],n:NOTES});
 function undoBar(m){$("undot").textContent=m;$("undo").hidden=false;clearTimeout(undoBar.h);undoBar.h=setTimeout(()=>$("undo").hidden=true,8000)}
-$("undob").onclick=()=>{if(!undoSnap)return;F=new Map(JSON.parse(undoSnap).map(f=>[f.id,f]));undoSnap=null;index();$("undo").hidden=true;draw();log("Undo: the folder is back from Trash, in every app.")};
+$("undob").onclick=()=>{if(!undoSnap)return;{const o=JSON.parse(undoSnap);F=new Map(o.f.map(f=>[f.id,f]));NOTES=o.n;}undoSnap=null;index();$("undo").hidden=true;draw();log("Undo: the folder and everything in it are back from Trash, in every app.")};
 document.addEventListener("click",e=>{
   const t=e.target.closest("[data-tw]");if(t){const i=apps.indexOf(t.closest(".app")),id=+t.dataset.tw;OPEN[i].has(id)?OPEN[i].delete(id):OPEN[i].add(id);render(i);return}
   const nv=e.target.closest("[data-nv]");if(nv){const x=NOTES.find(k=>k.id===nv.dataset.nv);x.vis=!x.vis;x.fresh=true;const app=nv.closest(".app").dataset.app;
@@ -131,9 +131,9 @@ document.addEventListener("click",e=>{
     log(`${app}: “${f.name}” is now ${on?"visible to visitors (👁). Its notes stay private until you switch each on":"private (🔒) again"}; folders inside it keep their own setting.`);return}
   if(act==="ren"&&f){const nn=(prompt(`Rename from ${app} (your numbers stay as you write them):`,f.name)||"").trim();if(!nn||nn===f.name)return;const old=f.name;f.name=nn.slice(0,200);index();fresh.add(f.id);draw();
     log(`${app} renamed “${old}” to “${f.name}”: every app shows the new name; items filed in it keep the same folder.`);return}
-  if(act==="del"&&f){const n=total(f.id);if(n){alert(`“${f.name}” still holds ${n} post(s)/note(s). Move or delete its notes first (rule D6).`);log(`${app} tried to delete “${f.name}”: refused, it still holds ${n} item(s) (rule D6).`);return}
-    const ids=sub(f.id);if(!confirm(`Delete the empty folder “${f.name}”${ids.length>1?` and the ${ids.length-1} empty folder(s) inside`:""} from every app? It goes to Trash.`))return;
-    undoSnap=snap();ids.forEach(i=>F.delete(i));index();sel=null;draw();log(`${app} deleted the empty folder “${f.name}”: it went to Trash in every app.`);undoBar(`Deleted “${f.name.slice(0,40)}” (to Trash)`)}});
+  if(act==="del"&&f){const n=total(f.id),ids=sub(f.id);
+    if(!confirm(`Delete “${f.name}”${ids.length>1?` with the ${ids.length-1} folder(s) inside`:""}${n?` and the ${n} note(s)/post(s) in it`:""} from every app? Everything goes to Trash together; Undo brings it all back.`))return;
+    undoSnap=snap();ids.forEach(i=>F.delete(i));NOTES=NOTES.filter(x=>!ids.includes(x.f));index();sel=null;draw();log(`${app} deleted “${f.name}”${n?` with its ${n} note(s)/post(s)`:""}: all of it went to Trash together, in every app.`);undoBar(`Deleted “${f.name.slice(0,40)}”${n?` + ${n} note(s)`:""} (to Trash)`)}});
 apps.forEach((a,i)=>a.querySelector(".find").addEventListener("input",()=>render(i)));
 $("tabs").innerHTML=apps.map((a,i)=>`<button type="button" class="${i?"":"on"}" data-tab="${i}">${esc(a.dataset.app)}</button>`).join("");apps[0].classList.add("on");
 $("tabs").onclick=e=>{const b=e.target.closest("[data-tab]");if(!b)return;apps.forEach((a,i)=>a.classList.toggle("on",i==+b.dataset.tab));$("tabs").querySelectorAll("button").forEach(x=>x.classList.toggle("on",x===b))};
