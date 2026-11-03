@@ -65,10 +65,12 @@ const SHIM = `(function(){
   var db={collection:col,doc:docRef};
   var dl={save:function(o){o=o||{};var data=o.data,blob=data instanceof Blob?data:new Blob([typeof data==="string"?data:data instanceof ArrayBuffer||ArrayBuffer.isView(data)?data:JSON.stringify(data)],{type:o.type||o.mimeType||"application/octet-stream"});
     var a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=o.filename||o.name||"download";document.body.appendChild(a);a.click();setTimeout(function(){URL.revokeObjectURL(a.href);a.remove();},2000);return Promise.resolve();}};
-  var art={publish:function(){return Promise.reject({code:"unavailable",message:"Saving a new version of this page is done in its Claude copy."});}};
+  var art={publish:function(html){if(!SAVE)return Promise.reject({code:"unavailable",message:"Sign in as the owner to save this page."});
+    return new Promise(function(ok,no){var id=Math.random().toString(36).slice(2);function h(e){if(e.source===parent&&e.data&&e.data.bwn==="published"&&e.data.id===id){removeEventListener("message",h);e.data.err?no({code:"failed",message:e.data.err}):ok();}}
+      addEventListener("message",h);parent.postMessage({bwn:"publish",id:id,html:String(html)},"*");});}};
   window.claude={use:function(n){return n==="db"?Promise.resolve(db):n==="downloads"?Promise.resolve(dl):n==="artifact"?Promise.resolve(art):Promise.reject({code:"unavailable",message:n+" is only in the Claude copy."});}};
 })();`;
-let canSave = false, onDb = null;
+let canSave = false, onDb = null, onPub = null;
 function show(d) {
   document.title = d.name || "BwN Library page";
   const jump = anchor ? `<script>try{const e=document.getElementById(${JSON.stringify(anchor)});if(e)e.scrollIntoView();}catch(e){}<\/script>` : "";
@@ -82,7 +84,9 @@ function show(d) {
   html = /<head[^>]*>/i.test(html) ? html.replace(/<head[^>]*>/i, m => m + tag) : tag + html;
   f.srcdoc = html.replace(/<\/body>(?![\s\S]*<\/body>)/i, jump + "</body>") + (/<\/body>/i.test(html) ? "" : jump);
   msg.hidden = true; document.body.append(f);
-  addEventListener("message", e => { if (e.source === f.contentWindow && e.data && e.data.bwn === "db" && onDb) onDb(e.data, err => f.contentWindow.postMessage({ bwn: "dberr", msg: err }, "*")); });
+  addEventListener("message", e => { if (e.source !== f.contentWindow || !e.data) return;
+    if (e.data.bwn === "db" && onDb) onDb(e.data, err => f.contentWindow.postMessage({ bwn: "dberr", msg: err }, "*"));
+    if (e.data.bwn === "publish" && onPub) onPub(e.data.html, err => f.contentWindow.postMessage({ bwn: "published", id: e.data.id, err: err || "" }, "*")); });
 }
 
 if (!key) say("No page chosen", "Open a page from its card in the Video Library.");
@@ -97,6 +101,11 @@ else {
       canSave = !!((d.live || /window\.__BWN_LIVE\s*=\s*true/.test(d.html || "")) && auth.currentUser && OWN.includes((auth.currentUser.email || "").toLowerCase()));
       onDb = ({ col, id, data }, fail) => { if (!canSave || !/^[A-Za-z0-9_-]{1,120}$/.test(col + id)) return fail("this copy cannot save");
         fs.updateDoc(fs.doc(db, "pages", key), new fs.FieldPath("db", col, id), data === null ? fs.deleteField() : data).catch(e => fail(e.message)); };
+      // a page that saves itself (e.g. Scholars Database) keeps its new version here, and stays a saving page
+      onPub = (html, done) => { if (!canSave) return done("sign in as the owner to save");
+        if (!/__BWN_LIVE\s*=\s*true/.test(html)) html = /<head[^>]*>/i.test(html) ? html.replace(/<head[^>]*>/i, m => m + "<script>window.__BWN_LIVE=true;<\/script>") : "<script>window.__BWN_LIVE=true;<\/script>" + html;
+        if (html.length > 1000000) return done("this page is too big to save (over 1 MB)");
+        fs.updateDoc(fs.doc(db, "pages", key), { html, at: new Date().toISOString() }).then(() => done(""), e => done(e.message)); };
       shown = true; show(d); return true;
     } catch (e) { return false; }
   };
