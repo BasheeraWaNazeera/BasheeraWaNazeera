@@ -156,6 +156,21 @@ textarea{min-height:120px;resize:vertical}
 :root{--private:var(--warn);--private-soft:var(--warn-soft)}
 .oc{display:flex;gap:10px;align-items:center;font-size:.82rem;color:var(--muted);flex-wrap:wrap}
 .oc button{font:inherit;border:0;background:none;color:var(--accent);cursor:pointer;padding:0;text-decoration:underline;text-underline-offset:2px}
+.oc button:disabled{color:var(--muted);text-decoration:none;cursor:default;opacity:.6}
+.ftools{display:inline-flex;gap:2px}
+.oc{flex-wrap:nowrap!important;gap:2px!important;min-width:0;overflow:hidden}
+.oc .chk{white-space:nowrap}
+.oc .ob{text-decoration:none!important;border-radius:6px!important;padding:2px 5px!important;font-size:.86rem;line-height:1.3;white-space:nowrap}
+.oc .ob:hover:not(:disabled){background:var(--accent-soft)}
+.oc .osep{width:1px;height:16px;background:var(--line);margin:0 2px}
+.ctx{position:fixed;z-index:3000;min-width:210px;background:var(--panel);border:1px solid var(--line);border-radius:10px;box-shadow:0 10px 30px rgba(0,0,0,.18);padding:5px;display:grid}
+.ctx button{display:flex;justify-content:space-between;gap:14px;text-align:left;border:0;background:none;color:var(--ink);padding:7px 10px;border-radius:6px;font-size:.88rem;cursor:pointer}
+.ctx button:hover:not(:disabled),.ctx button:focus-visible{background:var(--accent-soft)}
+.ctx button:disabled{color:var(--muted);cursor:default}
+.ctx hr{border:0;border-top:1px solid var(--line);margin:4px 2px}
+.ctx .ch{font-size:.76rem;color:var(--muted);padding:4px 10px 2px;max-width:260px;overflow-wrap:anywhere}
+.undot{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:var(--ink);color:var(--panel);padding:7px 8px 7px 16px;border-radius:999px;font-size:.88rem;display:flex;gap:10px;align-items:center;z-index:3001;max-width:calc(100vw - 32px)}
+.undot button{border:0;border-radius:999px;padding:4px 12px;background:var(--panel);color:var(--ink);font:inherit;cursor:pointer}
 .ltree,.ltree ul{list-style:none;margin:0;padding:0}
 .ltree{padding:6px 8px 24px}
 .ltree ul{margin-left:13px;border-left:1px dotted var(--line);padding-left:8px}
@@ -393,7 +408,7 @@ textarea{min-height:120px;resize:vertical}
       <div class="ph">
         <h2>The Map <span class="r"><button class="link" id="openMap" type="button">⤢ Full window</button><button class="pop" data-pop="folders" type="button" title="Pop out as a window">⧉</button></span></h2>
         <input type="search" id="fq" placeholder="Find a folder…" aria-label="Find a folder">
-        <div class="oc"><label class="chk"><input type="checkbox" id="onlyWith"> Only folders with files</label><span style="flex:1"></span><button id="openall" type="button">open all</button>|<button id="closeall" type="button">close all</button><button id="newpost" type="button">+ new post</button></div>
+        <div class="oc"><label class="chk" title="Show only folders with files"><input type="checkbox" id="onlyWith" aria-label="Show only folders with files"> 📂</label><span style="flex:1"></span><span class="ftools" id="ftools"><button class="ob" id="fAdd" type="button" title="New folder inside the chosen folder" aria-label="New folder">＋📁</button><button class="ob" id="fRen" type="button" title="Rename the chosen folder" aria-label="Rename folder">✎</button><button class="ob" id="fMov" type="button" title="Move the chosen folder" aria-label="Move folder">⇄</button><button class="ob" id="fDel" type="button" title="Delete the chosen folder (you can undo)" aria-label="Delete folder">🗑</button></span><span class="osep"></span><button class="ob" id="openall" type="button" title="Open all folders" aria-label="Open all">⊞</button><button class="ob" id="closeall" type="button" title="Close all folders" aria-label="Close all">⊟</button><button class="ob" id="newpost" type="button" title="New video post in the chosen folder" aria-label="New video post">＋🎬</button></div>
       </div>
       <div class="special" id="special"></div>
       <div class="wftools" id="wftools"></div>
@@ -451,6 +466,8 @@ textarea{min-height:120px;resize:vertical}
   </div>
 </div>
 <div class="toast" id="toast" hidden></div>
+<div class="ctx" id="ctx" role="menu" hidden></div>
+<div class="undot" id="undoT" hidden><span id="undoTt"></span><button type="button" id="undoTb">Undo</button></div>
 
 <script type="module">
 import { firebaseConfig } from "./config.js";
@@ -621,6 +638,8 @@ async function realApi() {
     async saveCard(id, f) { await fs.setDoc(fs.doc(db, "postPrivate", id), { ...f, kind: "card" }, { merge: true }); },
     async wfFolders() { const d = await fs.getDoc(fs.doc(db, "postPrivate", "wf-folders")); return d.exists() ? d.data().list || [] : []; },
     async saveWf(list) { await fs.setDoc(fs.doc(db, "postPrivate", "wf-folders"), { kind: "wf", list }); },
+    async saveLF(id, f) { await fs.setDoc(fs.doc(db, "folders", id), f, { merge: true }); },
+    async delLF(id) { await fs.deleteDoc(fs.doc(db, "folders", id)); },
     async inbox() { const s = await fs.getDocs(fs.collection(db, "inbox")); return s.docs.map(d => ({ id: d.id, ...d.data() })); },
     async inboxDone(id) { await fs.deleteDoc(fs.doc(db, "inbox", id)); },
     async showPublic(id, doc) { if (doc) await fs.setDoc(fs.doc(db, "posts", id), { ...doc, updated: fs.serverTimestamp() }); else await fs.deleteDoc(fs.doc(db, "posts", id)); },
@@ -628,6 +647,7 @@ async function realApi() {
     async pagePub(id, pub) { await fs.updateDoc(fs.doc(db, "pages", id), { pub: !!pub }); },
   };
 }
+let lfd = null;
 function demoApi() {
   const recs = [], blobs = new Map(), privs = {}; let n = 0;
   const posts = [{ id: "pdemo1", title: "The Need for Quranic Revival", no: "002", folder: "f12", kind: "VIDEO", lang: "English", len: "6:25", status: "draft", date: "25 Oct 2026", ytUrl: "", audioUrl: "", articleUrl: "", text: [{ t: "0:00", s: "Example talk text." }] }];
@@ -640,7 +660,7 @@ function demoApi() {
     async list() { return structuredClone(recs); },
     async saveRec(id, rec) { const i = recs.findIndex(r => r.id === id); const v = { id, kind: "voice", ...(i >= 0 ? recs[i] : {}), ...rec }; i >= 0 ? recs[i] = v : recs.push(v); },
     async remove(id) { const i = recs.findIndex(r => r.id === id); if (i >= 0) recs.splice(i, 1); },
-    async posts() { return structuredClone(posts); }, async folders() { return [{ id: "s1", range: "(000)", name: "Section 01 · Quran Revival", parent: null, order: 0 }, { id: "f12", range: "(021–040)", name: "Short clips (1 minute)", parent: "s1", order: 1 }]; }, async privOf(id) { return privs[id] || { raw: [], versions: [] }; },
+    async posts() { return structuredClone(posts); }, async folders() { return structuredClone(lfd ??= [{ id: "s1", range: "(000)", name: "Section 01 · Quran Revival", parent: null, order: 0 }, { id: "f12", range: "(021–040)", name: "Short clips (1 minute)", parent: "s1", order: 1 }]); }, async saveLF(id, f) { lfd ??= []; const x = lfd.find(o => o.id === id); x ? Object.assign(x, f) : lfd.push({ id, ...f }); }, async delLF(id) { lfd = (lfd || []).filter(o => o.id !== id); }, async privOf(id) { return privs[id] || { raw: [], versions: [] }; },
     async savePost(id, f) { Object.assign(posts.find(x => x.id === id), f); },
     async addPost(id, post, priv) { posts.push({ id, ...post }); privs[id] = priv; },
     async upload(blob, name) { const id = "demo" + (++n); blobs.set(id, blob); return { id, name, mimeType: blob.type, size: blob.size, webViewLink: "#" }; },
@@ -934,7 +954,7 @@ const pathHTML = p => { const q = p.split(" › ");
 const pathLine = r => pathHTML(placeOf(r));
 function setPathV(v) { PATHV = v; try { localStorage.setItem("viPath", v); } catch { } $("pvLine").classList.toggle("on", v !== "tree"); $("pvTree").classList.toggle("on", v === "tree"); draw(); if (!draft) showNote(); }
 const folderOf = r => r.wf ? wfName(r.wf) : r.mmj && BY.has(r.mmj) ? BY.get(r.mmj).name : "Not yet filed";
-function setWF(own) { WFOWN = own || []; WF = WF0.map(f => ({ ...f, ...(WFOWN.find(o => o.id === f.id) || {}) })).concat(WFOWN.filter(o => !WF0.some(f => f.id === o.id))); }
+function setWF(own) { WFOWN = own || []; WF = WF0.map(f => ({ ...f, ...(WFOWN.find(o => o.id === f.id) || {}) })).concat(WFOWN.filter(o => !WF0.some(f => f.id === o.id))).filter(f => !f.deleted); }
 const wfKids = pid => WF.filter(f => (f.parent ?? null) === pid).sort((a, b) => (a.order ?? 50) - (b.order ?? 50) || a.name.localeCompare(b.name, "en", { numeric: true }));
 const wfIn = id => { const s = new Set([id]); let g = true; while (g) { g = false; WF.forEach(f => { if (s.has(f.parent) && !s.has(f.id)) { s.add(f.id); g = true; } }); } return s; };
 const wfName = id => WF.find(f => f.id === id)?.name || "WorkFlow";
@@ -989,7 +1009,8 @@ function wfTreeHTML() {
   return `<li><div class="lr${view === "wf:" ? " sel" : ""}" data-wf="" tabindex="0" aria-expanded="${open}"><span class="ltw">${open ? "−" : "+"}</span><span class="nm">🗂 WorkFlow · private</span><span class="cnt">(${cards.filter(r => r.wf).length})</span></div>${open ? `<ul>${build(null)}</ul>` : ""}</li>`;
 }
 function drawWfTools() {
-  const t = $("wftools"); if (!ownerOk) { t.innerHTML = ""; return; }
+  const t = $("wftools"); t.innerHTML = ""; drawFolderTools(); return; // folded into the Map row (owner, 4 Nov)
+  if (!ownerOk) { t.innerHTML = ""; return; }
   const id = typeof view === "string" && view.startsWith("wf:") ? view.slice(3) : null;
   t.innerHTML = id === null ? "" : `<span>${id ? esc(wfName(id)) : "WorkFlow"}:</span><button type="button" id="wfNew">+ Folder</button>${id && id !== "inbox" ? `<button type="button" id="wfRen">Rename</button><button type="button" id="wfMove">Move</button>` : ""}`;
   if (id === null) return;
@@ -1004,6 +1025,70 @@ function drawWfTools() {
     $("wfdlgB").querySelectorAll(".wfpick").forEach(b => b.onclick = () => { const o = opts[+b.dataset.k]; $("wfdlg").close(); saveOwn({ ...cur0, parent: o.id }, "Moved into " + o.name + "."); }); };
 }
 
+
+// ---------- folder tools: one row on the Map + right-click menu (owner, 4 Nov) ----------
+const MMJWAIT = "Mapping My Journey folders are added, renamed, moved and deleted through Siyagah’s shared folders (Stage 2, BWN J27). That link is being built; until then use Siyagah or the website for MMJ folders.";
+function fctx(v) {
+  if (typeof v === "number") return BY.has(v) ? { k: "mmj", id: v, name: BY.get(v).name } : null;
+  if (typeof v === "string" && v.startsWith("wf:")) { const id = v.slice(3); return { k: "wf", id, name: id ? wfName(id) : "WorkFlow", fixed: !id || id === "inbox" }; }
+  if (typeof v === "string" && v.startsWith("lf:")) { const id = v.slice(3); return { k: "lf", id, name: LF.find(f => f.id === id)?.name || "Library folder" }; }
+  return null;
+}
+function drawFolderTools() {
+  const c = ownerOk ? fctx(view) : null, mm = c?.k === "mmj";
+  $("fAdd").disabled = !c; ["fRen", "fMov", "fDel"].forEach(id => $(id).disabled = !c || c.fixed);
+  $("ftools").title = !c ? "Tap a folder first (or right-click it)" : mm ? MMJWAIT : "For “" + c.name + "”";
+}
+const wfSaveOwn = async (list, m) => { try { await api.saveWf(list); setWF(list); toast(m); } catch (e) { setupNote(e); } draw(); };
+const putOwn = (list, f) => { const l = list.slice(), i = l.findIndex(o => o.id === f.id); i >= 0 ? l[i] = f : l.push(f); return l; };
+function undoT(msg, fn) { $("undoTt").textContent = msg; $("undoT").hidden = false; clearTimeout(undoT.h); undoT.h = setTimeout(() => $("undoT").hidden = true, 9000);
+  $("undoTb").onclick = async () => { $("undoT").hidden = true; try { await fn(); toast("Undone."); } catch (e) { setupNote(e); } refresh(); }; }
+const lfSub = id => [...lfIn(id)];
+async function fAdd(c) { if (!c) return toast("Tap a folder first, or right-click it."); if (c.k === "mmj") return toast(MMJWAIT, 7000);
+  const n = (prompt(`Name of the new folder inside “${c.name}”:`) || "").trim(); if (!n) return;
+  if (c.k === "wf") { const f = { id: "f" + Date.now().toString(36), name: n.slice(0, 120), parent: c.id || null, order: 50 }; OPEN.add("WF"); if (c.id) OPEN.add("W" + c.id); saveOpen(); view = "wf:" + f.id; return wfSaveOwn(putOwn(WFOWN, f), "Folder added: " + f.name + "."); }
+  const id = "lf" + Date.now().toString(36); try { await api.saveLF(id, { name: n.slice(0, 120), range: "", parent: c.id || null, order: 50, private: true }); OPEN.add("LF"); OPEN.add("L" + c.id); saveOpen(); view = "lf:" + id; toast("Folder added (private: visitors do not see it)."); } catch (e) { setupNote(e); } refresh(); }
+async function fRen(c) { if (!c || c.fixed) return; if (c.k === "mmj") return toast(MMJWAIT, 7000);
+  const n = (prompt("New name:", c.name) || "").trim(); if (!n || n === c.name) return;
+  if (c.k === "wf") return wfSaveOwn(putOwn(WFOWN, { ...WF.find(f => f.id === c.id), name: n.slice(0, 120) }), "Renamed.");
+  try { await api.saveLF(c.id, { name: n.slice(0, 120) }); toast("Renamed."); } catch (e) { setupNote(e); } refresh(); }
+function fMov(c) { if (!c || c.fixed) return; if (c.k === "mmj") return toast(MMJWAIT, 7000);
+  const opts = c.k === "wf" ? [{ id: null, name: "WorkFlow (top level)" }].concat(WF.filter(f => !wfIn(c.id).has(f.id) && f.id !== "inbox").map(f => ({ id: f.id, name: wfPath(f.id).replace(/^WorkFlow › /, "") })))
+    : [{ id: null, name: "First Library folders (top level)" }].concat(LF.filter(f => !lfIn(c.id).has(f.id)).map(f => ({ id: f.id, name: f.name })));
+  dlg("Move “" + c.name + "” into…", opts.map((o, i) => `<button type="button" class="wfpick" data-k="${i}">${esc(o.name)}</button>`).join(""), "");
+  $("wfdlgB").querySelectorAll(".wfpick").forEach(b => b.onclick = async () => { const o = opts[+b.dataset.k]; $("wfdlg").close();
+    if (c.k === "wf") return wfSaveOwn(putOwn(WFOWN, { ...WF.find(f => f.id === c.id), parent: o.id }), "Moved into " + o.name + ".");
+    try { await api.saveLF(c.id, { parent: o.id }); toast("Moved into " + o.name + "."); } catch (e) { setupNote(e); } refresh(); }); }
+async function fDel(c) { if (!c || c.fixed) return; if (c.k === "mmj") return toast(MMJWAIT, 7000);
+  if (c.k === "wf") { const ids = wfIn(c.id), cs = ITEMS.filter(r => r.type === "card" && ids.has(r.wf));
+    if (!confirm(`Delete the WorkFlow folder “${c.name}”${ids.size > 1 ? ` and the ${ids.size - 1} folder(s) inside` : ""}?${cs.length ? ` Its ${cs.length} card(s) move to the Inbox.` : ""} You can undo.`)) return;
+    const before = JSON.parse(JSON.stringify(WFOWN)), old = cs.map(r => [r, r.wf]); let list = WFOWN.slice();
+    ids.forEach(id => { list = WF0.some(f => f.id === id) ? putOwn(list, { ...(list.find(o => o.id === id) || WF0.find(f => f.id === id)), deleted: true }) : list.filter(o => o.id !== id); });
+    try { for (const r of cs) await cardSave(r, { wf: "inbox" }); } catch (e) { setupNote(e); }
+    view = "wf:"; await wfSaveOwn(list, "Folder deleted.");
+    return undoT(`Deleted “${c.name.slice(0, 40)}”`, async () => { await api.saveWf(before); setWF(before); for (const [r, w] of old) await cardSave(r, { wf: w }); }); }
+  const ids = lfSub(c.id), ps = ITEMS.filter(r => r.type === "post" && ids.includes(r.folder)), keep = LF.filter(f => ids.includes(f.id)).map(f => JSON.parse(JSON.stringify(f)));
+  if (!confirm(`Delete the folder “${c.name}”${ids.length > 1 ? ` and the ${ids.length - 1} folder(s) inside` : ""}?${ps.length ? ` Its ${ps.length} video post(s) stay in their Mapping My Journey folders.` : ""} You can undo.`)) return;
+  try { for (const r of ps) await api.savePost(r.id, { folder: "" }); for (const id of ids) await api.delLF(id); toast("Folder deleted."); } catch (e) { setupNote(e); }
+  view = "all"; refresh();
+  undoT(`Deleted “${c.name.slice(0, 40)}”`, async () => { for (const f of keep) { const { id, ...rest } = f; await api.saveLF(id, rest); } for (const r of ps) await api.savePost(r.id, { folder: r.folder }); }); }
+$("fAdd").onclick = () => fAdd(fctx(view)); $("fRen").onclick = () => fRen(fctx(view)); $("fMov").onclick = () => fMov(fctx(view)); $("fDel").onclick = () => fDel(fctx(view));
+// right-click (or long-press on a phone) on any folder
+const vOfRow = r => r.dataset.f ? +r.dataset.f : r.dataset.lf !== undefined ? (r.dataset.lf ? "lf:" + r.dataset.lf : null) : r.dataset.wf !== undefined ? "wf:" + r.dataset.wf : null;
+function ctxMenu(x, y, v) { const c = fctx(v), m = $("ctx"); if (!c || !ownerOk) return; const mm = c.k === "mmj", dis = mm || c.fixed;
+  const it = [["Open", () => { view = v; sel.clear(); draw(); tab("files"); }], ["⧉ Open as its own window", () => popFolder(typeof v === "number" ? "m" + v : v)], "-",
+    ["+ New folder inside…", () => fAdd(c), mm], ["Rename…", () => fRen(c), dis], ["Move to…", () => fMov(c), dis], ["Delete…", () => fDel(c), dis]];
+  if (mm) it.push("-", ["+ New post here", () => { view = v; $("newpost").click(); }]);
+  m.innerHTML = `<div class="ch">${esc(c.name)}</div>` + it.map((t, i) => t === "-" ? "<hr>" : `<button type="button" role="menuitem" data-i="${i}"${t[2] ? " disabled" : ""}>${esc(t[0])}</button>`).join("") + (mm ? `<div class="ch">${esc(MMJWAIT)}</div>` : "");
+  m.hidden = false; const r = m.getBoundingClientRect(); m.style.left = Math.max(6, Math.min(x, innerWidth - r.width - 6)) + "px"; m.style.top = Math.max(6, Math.min(y, innerHeight - r.height - 6)) + "px";
+  m.querySelectorAll("button[data-i]").forEach(b => b.onclick = () => { m.hidden = true; it[+b.dataset.i][1](); }); m.querySelector("button:not(:disabled)")?.focus(); }
+$("ltree").addEventListener("contextmenu", e => { const r = e.target.closest(".lr[data-f],.lr[data-lf],.lr[data-wf]"); if (!r || !ownerOk) return; const v = vOfRow(r); if (v === null) return;
+  e.preventDefault(); view = v; draw(); ctxMenu(e.clientX, e.clientY, v); });
+let lpT; $("ltree").addEventListener("pointerdown", e => { if (e.pointerType !== "touch") return; const r = e.target.closest(".lr[data-f],.lr[data-lf],.lr[data-wf]"); if (!r) return;
+  clearTimeout(lpT); lpT = setTimeout(() => { const v = vOfRow(r); if (v === null) return; view = v; draw(); ctxMenu(e.clientX, e.clientY, v); }, 550); });
+["pointerup", "pointermove", "pointercancel"].forEach(t => $("ltree").addEventListener(t, () => clearTimeout(lpT)));
+document.addEventListener("click", e => { if (!$("ctx").hidden && !e.target.closest("#ctx")) $("ctx").hidden = true; });
+document.addEventListener("keydown", e => { if (e.key === "Escape" && !$("ctx").hidden) $("ctx").hidden = true; });
 // find, filter, group, sort (remembered on this device)
 const FL = { q: "", topic: "", subject: "", project: "", type: "", grp: "none", sort: "new", lay: "note" };
 try { Object.assign(FL, JSON.parse(localStorage.getItem("viFilt") || "{}")); } catch { }
@@ -1212,7 +1297,7 @@ function helpHTML() {
     <li><b>🗂 WorkFlow · private</b> (top of the Map): your work cards (lists, demos, reports, databases) from MyDatabase, one folder per project. New cards from the Architects arrive in <b>🆕 Inbox</b> with a New mark. Drag a card onto any folder to file it; + Folder, Rename and Move are under “All files” when a WorkFlow folder is open. Tap a card’s dot to go todo → working → done.</li>
     <li><b>Find bar</b> (in the top bar): search, filters by Topic · Subject · Project · Type with counts, Show all, Group and Sort; this device remembers them. <b>▦ Cards</b> shows everything as cards; <b>▥ Notebook</b> brings back the three sections. <b>+ Add item</b> adds a card (a file goes to your Drive folder “To BwN”).</li>
     <li><b>Note</b> (right): ▶ Play, the folder and Choose folder, 🔗 Links (Drive files, share link) and 🗑 on one bar; below it the notes and transcript, which save by itself.</li>
-    <li><b>Sizes:</b> drag the thin bars between the sections to make one wider. <b>⧉</b> on a section’s header pops it out as its own window: drag it by its header, resize it from any side or corner; <b>⇲</b> docks it back (View → Dock all sections). <b>⧉</b> beside any folder opens that folder as its own window; open as many as you like, drag each by its title, resize it from any side or corner, and drop a file or card on it to file it there (View → Close all folder windows). Sizes are remembered on this device.</li><li><b>📄 Pages outside Claude:</b> a card’s page (demo, list, report) is kept in your Library and opens on its own at <code>…/library/page.html</code>, private to you; tick <b>Show to visitors</b> on the card to make that page public (anyone with the link).</li><li><b>Find and sort</b>: search in the top bar; <b>Filters</b> and <b>Sort</b> sit on the Files bar: search, <b>Filters</b> (Topic, Subject, Project, Type, Group) and <b>Sort</b> by date, type, project, size or stage (Draft · Under process · Finished · Published). Every row and note shows 📁 where it belongs; Filters → Folder paths (or View) shows it in one line or as a tree.</li></ul>
+    <li><b>Sizes:</b> drag the thin bars between the sections to make one wider. <b>⧉</b> on a section’s header pops it out as its own window: drag it by its header, resize it from any side or corner; <b>⇲</b> docks it back (View → Dock all sections). <b>⧉</b> beside any folder opens that folder as its own window; open as many as you like, drag each by its title, resize it from any side or corner, and drop a file or card on it to file it there (View → Close all folder windows). Sizes are remembered on this device.</li><li><b>Folders:</b> tap a folder, then <b>＋📁 new · ✎ rename · ⇄ move · 🗑 delete</b> on the Map’s top row (⊞ / ⊟ open or close all, ＋🎬 new post, 📂 only folders with files), or right-click a folder (long-press on a phone) for the same menu. WorkFlow and Library folders change at once (delete can be undone); Mapping My Journey folders change through Siyagah’s shared folders (Stage 2).</li><li><b>📄 Pages outside Claude:</b> a card’s page (demo, list, report) is kept in your Library and opens on its own at <code>…/library/page.html</code>, private to you; tick <b>Show to visitors</b> on the card to make that page public (anyone with the link).</li><li><b>Find and sort</b>: search in the top bar; <b>Filters</b> and <b>Sort</b> sit on the Files bar: search, <b>Filters</b> (Topic, Subject, Project, Type, Group) and <b>Sort</b> by date, type, project, size or stage (Draft · Under process · Finished · Published). Every row and note shows 📁 where it belongs; Filters → Folder paths (or View) shows it in one line or as a tree.</li></ul>
     <h3>Where your files are kept</h3><ul>
     <li><b>Recordings and Otter files:</b> in your own Google Drive (BasheeraWaNazeera@gmail.com) → My Drive → folder <b>“To BwN”</b>. Nobody else can open them unless you press “Share link”.</li>
     <li><b>Title, folder, transcript and notes:</b> in the BWN Firebase database (project basheera-wa-nazeera), readable only by your Google account.</li>
