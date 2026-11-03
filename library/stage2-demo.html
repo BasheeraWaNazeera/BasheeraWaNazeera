@@ -4,184 +4,123 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow">
-<title>One Folder Tree</title>
-<!-- BWN J27 Stage 2 DEMO (owner's answers 3 Nov 2:15pm). Mock only: nothing is saved, nothing real is built. -->
+<title>MMJ Folders In Step</title>
+<!-- BWN J27 Stage 2 DEMO (owner, 3 Nov 8:25pm): the real Mapping My Journey folders, kept in step in every app.
+     Loaded live from mappingmyjourney.com; changes here are a demo only and are not saved anywhere. -->
 <style>
-:root{--bg:#f4f5f1;--panel:#fff;--ink:#1d2420;--muted:#5d6a63;--line:#d9ded8;--accent:#1f5c47;--soft:#e3efe8;--gold:#b7862c;--warn:#a3402e;--new:#fff3cd}
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#141816;--panel:#1b201d;--ink:#e6ebe7;--muted:#9aa79f;--line:#2e3631;--accent:#7cc4a0;--soft:#1f3229;--gold:#d9b25a;--warn:#e08a78;--new:#3a3218}}
-:root[data-theme="dark"]{--bg:#141816;--panel:#1b201d;--ink:#e6ebe7;--muted:#9aa79f;--line:#2e3631;--accent:#7cc4a0;--soft:#1f3229;--gold:#d9b25a;--warn:#e08a78;--new:#3a3218}
+:root{--bg:#f4f5f1;--panel:#fff;--ink:#1d2420;--muted:#5d6a63;--line:#d9ded8;--accent:#1f5c47;--soft:#e3efe8;--gold:#b7862c;--new:#fff3cd}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#141816;--panel:#1b201d;--ink:#e6ebe7;--muted:#9aa79f;--line:#2e3631;--accent:#7cc4a0;--soft:#1f3229;--gold:#d9b25a;--new:#3a3218}}
+:root[data-theme="dark"]{--bg:#141816;--panel:#1b201d;--ink:#e6ebe7;--muted:#9aa79f;--line:#2e3631;--accent:#7cc4a0;--soft:#1f3229;--gold:#d9b25a;--new:#3a3218}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif}
 .wrap{max-width:1280px;margin:0 auto;padding:18px max(16px,env(safe-area-inset-left,0px)) 40px}
-header h1{font-size:1.45rem;margin:0 0 4px;font-family:Georgia,serif;font-weight:600}
-header p{margin:0 0 10px;color:var(--muted);max-width:75ch}
-.top{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;margin-bottom:12px}
+.top{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;margin-bottom:8px}
 .top a{color:var(--accent)}
 .badge{font-size:.75rem;background:var(--gold);color:#fff;border-radius:999px;padding:2px 10px;font-weight:600;letter-spacing:.03em}
-.answers{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 14px;padding:0;list-style:none}
-.answers li{font-size:.8rem;background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:3px 10px}
-.answers li b{color:var(--accent)}
-.answers li.open{border-color:var(--gold)}
-.grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
-.app{background:var(--panel);border:1px solid var(--line);border-radius:12px;display:flex;flex-direction:column;min-height:420px;overflow:hidden}
-.app h2{margin:0;padding:9px 12px;font-size:.95rem;border-bottom:1px solid var(--line);background:var(--soft);display:flex;align-items:center;gap:8px}
+h1{font-size:1.45rem;margin:0 0 4px;font-family:Georgia,serif;font-weight:600}
+.lede{margin:0 0 14px;color:var(--muted);max-width:80ch}
+.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.app{background:var(--panel);border:1px solid var(--line);border-radius:12px;display:flex;flex-direction:column;overflow:hidden;min-width:0}
+.app h2{margin:0;padding:9px 12px;font-size:.95rem;border-bottom:1px solid var(--line);background:var(--soft);display:flex;gap:8px;align-items:center}
 .app h2 small{margin-left:auto;font-weight:400;color:var(--muted);font-size:.72rem}
-.app .why{margin:0;padding:6px 12px;font-size:.76rem;color:var(--muted);border-bottom:1px solid var(--line)}
-.tree{list-style:none;margin:0;padding:6px 8px;flex:1;overflow:auto;font-size:.86rem;max-height:430px}
-.tree ul{list-style:none;margin:0;padding-left:16px}
+.find{margin:8px 10px 0;border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:999px;padding:5px 12px;font:inherit;font-size:.84rem}
+.tree{list-style:none;margin:0;padding:6px 8px;overflow:auto;height:440px;font-size:.86rem}
+.tree ul{list-style:none;margin:0;padding-left:15px}
 .tree li>div{display:flex;align-items:baseline;gap:6px;padding:2px 4px;border-radius:6px}
-.tree .tw{width:12px;color:var(--muted);cursor:pointer;flex-shrink:0;text-align:center}
-.tree .nm{flex:1;min-width:0;overflow-wrap:anywhere}
-.tree .c{color:var(--muted);font-size:.75rem}
-.tree .note{font-size:.8rem;color:var(--ink)}
-.tree .note::before{content:"📝 "}
-.tree .mapped{font-size:.72rem;color:var(--accent);border:1px solid var(--accent);border-radius:999px;padding:0 6px;white-space:nowrap}
-.flash{animation:fl 2.4s ease-out}
-@keyframes fl{0%,40%{background:var(--new)}100%{background:transparent}}
+.tree .tw{width:14px;flex-shrink:0;text-align:center;color:var(--muted);cursor:pointer;border:0;background:none;padding:0;font:inherit}
+.tree .nm{flex:1;min-width:0;overflow-wrap:anywhere;cursor:pointer}
+.tree .c{color:var(--muted);font-size:.74rem;white-space:nowrap}
+.tree .sel{outline:2px solid var(--accent)}
+.tree .sec{font-weight:600}
+.flash{animation:fl 2.6s ease-out}
+@keyframes fl{0%,45%{background:var(--new)}100%{background:transparent}}
 @media (prefers-reduced-motion:reduce){.flash{animation:none;background:var(--new)}}
 .foot{padding:8px 10px;border-top:1px solid var(--line);display:flex;flex-wrap:wrap;gap:6px;align-items:center;background:var(--bg)}
-button,select,input{font:inherit;font-size:.82rem}
-button{border:1px solid var(--accent);background:var(--accent);color:var(--panel);border-radius:999px;padding:4px 12px;cursor:pointer}
-button.ghost{background:transparent;color:var(--accent)}
+button{font:inherit;font-size:.82rem;border:1px solid var(--accent);background:transparent;color:var(--accent);border-radius:999px;padding:4px 12px;cursor:pointer}
 button:disabled{opacity:.45;cursor:not-allowed}
-select,input[type=text]{border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:8px;padding:4px 6px;max-width:100%}
-.notes{list-style:none;margin:0;padding:6px 10px;border-bottom:1px solid var(--line);font-size:.84rem}
-.notes li{display:flex;gap:6px;align-items:center;padding:2px 0}
-.lock{display:flex;gap:8px;align-items:center;font-size:.8rem;color:var(--muted)}
+.rules{margin:14px 0 0;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px 14px;font-size:.86rem}
+.rules h3,.log h3{margin:0 0 4px;font-size:.92rem}
+.rules ul{margin:0;padding-left:20px}
+.log{margin:12px 0 0;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px 14px;font-size:.84rem}
+.log ol{margin:0;padding-left:20px;max-height:150px;overflow:auto}
 .undo{position:fixed;left:50%;bottom:16px;transform:translateX(-50%);background:var(--ink);color:var(--panel);padding:8px 10px 8px 16px;border-radius:999px;font-size:.86rem;display:flex;gap:10px;align-items:center;z-index:20;max-width:calc(100vw - 32px)}
 .undo button{background:var(--panel);color:var(--ink);border-color:var(--panel)}
-.tree .sel{outline:2px solid var(--accent);border-radius:6px}
-.tree [data-sel]{cursor:pointer}
-.log{margin:14px 0 0;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px 14px;font-size:.84rem}
-.log h3{margin:0 0 4px;font-size:.9rem}
-.log ol{margin:0;padding-left:20px;max-height:140px;overflow:auto}
-.map7{margin:14px 0 0;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px 14px}
-.map7 h3{margin:0 0 6px;font-size:.95rem}
-.map7 table{width:100%;border-collapse:collapse;font-size:.84rem}
-.map7 td{padding:5px 6px;border-top:1px solid var(--line);vertical-align:top}
-.map7 td:nth-child(2){color:var(--muted);width:2em;text-align:center}
 .tabs{display:none;gap:4px;margin-bottom:8px;overflow-x:auto}
-.tabs button{white-space:nowrap}
-.ask{margin:14px 0 0;background:var(--panel);border:1px solid var(--gold);border-radius:12px;padding:10px 14px;font-size:.88rem}
-.ask h3{margin:0 0 4px;font-size:.95rem}
-.ask ul{margin:4px 0 0;padding-left:20px}
-@media (max-width:1100px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
-@media (max-width:640px){.grid{grid-template-columns:1fr}.tabs{display:flex}.app{display:none}.app.on{display:flex}}
+.tabs button.on{background:var(--accent);color:var(--panel)}
+@media (max-width:980px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:640px){.grid{grid-template-columns:1fr}.tabs{display:flex}.app{display:none}.app.on{display:flex}.tree{height:56vh}}
+[hidden]{display:none!important}
 </style>
 </head>
 <body>
 <div class="wrap">
-<header>
-  <div class="top"><span class="badge">DEMO · nothing is saved</span><a href="./stage2-demo.html" target="_blank" rel="noopener">↗ Open in its own window</a><span style="color:var(--muted);font-size:.85rem">BWN J27 · Stage 2 · your answers of 3 Nov</span></div>
-  <h1>One folder tree for every app</h1>
-  <p>Siyagah holds the one folder tree. MSA, QuranRevival and the BwN Library all show the same tree. Try it: make a folder in any app, or tick a note in MSA and send it.</p>
-</header>
-<ul class="answers" aria-label="Your answers">
-  <li><b>1A</b> tree from Siyagah’s cloud</li><li><b>2B</b> notes land in the chosen folder</li><li><b>3</b> no lock: folders added, renamed, deleted from any app</li>
-  <li><b>4</b> MSA/QR may sign in to Siyagah</li><li><b>5A</b> only notes ticked “send”</li><li><b>6A</b> MSA/QR show Siyagah’s tree only</li>
-  <li><b>7B</b> Library visitors see the full tree</li><li><b>8A</b> BwN’s 7 starter folders map into MMJ</li><li><b>9</b> new folders from any app, synced</li><li><b>10</b> demo first</li>
-</ul>
-<div class="tabs" id="tabs" role="tablist"></div>
-<div class="grid" id="grid">
-  <section class="app" id="a-siy" data-name="Siyagah"><h2>🌿 Siyagah <small>the source</small></h2><p class="why">Keeps the one MMJ tree (1A). Notes sent from other apps arrive straight in their folder (2B). Tap a folder name to choose it.</p><ul class="tree" id="t-siy"></ul>
-    <div class="foot"><button class="ghost" data-new="Siyagah" type="button">+ Folder</button><button class="ghost" data-ren="Siyagah" type="button" disabled>Rename</button><button class="ghost" data-del="Siyagah" type="button" disabled>Delete</button></div></section>
-  <section class="app" id="a-msa" data-name="MSA / QR"><h2>📖 MSA · QuranRevival <small>Map</small></h2><p class="why">Shows the same MMJ tree (6A); folders can be added, renamed and deleted here too. Only notes you tick are sent (5A).</p>
-    <ul class="notes" id="msaNotes"></ul>
-    <div class="foot" style="border-top:0;border-bottom:1px solid var(--line)"><select id="sendTo" aria-label="Folder to send to"></select><button id="sendBtn" type="button" disabled>Send ticked</button></div>
-    <ul class="tree" id="t-msa"></ul>
-    <div class="foot"><button class="ghost" data-new="MSA" type="button">+ Folder</button><button class="ghost" data-ren="MSA" type="button" disabled>Rename</button><button class="ghost" data-del="MSA" type="button" disabled>Delete</button></div></section>
-  <section class="app" id="a-bwn" data-name="BwN My view"><h2>🎬 BwN Library <small>My view</small></h2><p class="why">The same tree, with your talks filed in it. The 7 starter folders are now inside MMJ folders (8A). Each talk keeps its folder’s id (e.g. mmj-c-241), so renaming a folder never breaks it.</p><ul class="tree" id="t-bwn"></ul>
-    <div class="foot"><button class="ghost" data-new="BwN" type="button">+ Folder</button><button class="ghost" data-ren="BwN" type="button" disabled>Rename</button><button class="ghost" data-del="BwN" type="button" disabled>Delete</button></div></section>
-  <section class="app" id="a-pub" data-name="Visitors"><h2>👁 BwN Library <small>visitors</small></h2><p class="why">Visitors see the full tree (7B), every folder, with your published talks.</p><ul class="tree" id="t-pub"></ul>
-    <div class="foot"><span style="font-size:.78rem;color:var(--muted)">Visitors cannot add folders.</span></div></section>
+  <div class="top"><span class="badge">DEMO · changes are not saved</span><a href="./stage2-demo.html" target="_blank" rel="noopener">↗ Open in its own window</a><span style="color:var(--muted);font-size:.85rem">BWN J27 · Stage 2</span></div>
+  <h1>Your Mapping My Journey folders, kept in step in every app</h1>
+  <p class="lede" id="lede">Loading your real folders from mappingmyjourney.com…</p>
+  <div class="tabs" id="tabs"></div>
+  <div class="grid" id="grid">
+    <section class="app" data-app="Siyagah"><h2>🌿 Siyagah <small>Notebook</small></h2><input class="find" type="search" placeholder="Find a folder…" aria-label="Find a folder in Siyagah"><ul class="tree"></ul>
+      <div class="foot"><button data-act="add" type="button">+ Folder</button><button data-act="ren" type="button" disabled>Rename</button><button data-act="del" type="button" disabled>Delete</button></div></section>
+    <section class="app" data-app="MSA / QR"><h2>📖 MSA · QuranRevival <small>Map</small></h2><input class="find" type="search" placeholder="Find a folder…" aria-label="Find a folder in MSA"><ul class="tree"></ul>
+      <div class="foot"><button data-act="add" type="button">+ Folder</button><button data-act="ren" type="button" disabled>Rename</button><button data-act="del" type="button" disabled>Delete</button></div></section>
+    <section class="app" data-app="BwN Library"><h2>🎬 BwN Library <small>My view · the Map</small></h2><input class="find" type="search" placeholder="Find a folder…" aria-label="Find a folder in BwN"><ul class="tree"></ul>
+      <div class="foot"><button data-act="add" type="button">+ Folder</button><button data-act="ren" type="button" disabled>Rename</button><button data-act="del" type="button" disabled>Delete</button></div></section>
+  </div>
+  <div class="rules"><h3>What changes (your words, 3 Nov 8:25pm: “MMJ folders should be the main folder systems everywhere … editable/addable/deletable from any site/project”)</h3>
+    <ul><li>The same Mapping My Journey folders in every app, kept in step. Tap a folder, then <b>+ Folder</b> (inside it), <b>Rename</b> or <b>Delete</b> in any app: the others follow at once.</li>
+    <li><b>Delete</b> follows your rule D6: only an empty folder (no posts or notes in it or below it); it goes to Trash, with <b>Undo</b>. Otherwise: “Move or delete its notes first”.</li>
+    <li>A rename keeps the folder’s id and your own numbers, e.g. “(04.01.05)”, exactly as you write them. If two apps change the same folder at once, the newest change wins.</li></ul></div>
+  <div class="log"><h3>What just happened</h3><ol id="log"></ol></div>
 </div>
-
-<div class="ask"><h3>3 · Folders: one MMJ tree, changed from any app</h3>
-  <p style="margin:0">Your words (3 Nov 8:25pm): “MMJ folders should be the main folder systems everywhere … editable/addable/deletable from any site/project.” So there is no lock for folders.</p>
-  <ul><li>Tap a folder name in any app, then <b>+ Folder</b> (inside it), <b>Rename</b> or <b>Delete</b>: every app changes at once.</li>
-  <li><b>Delete</b> follows your rule D6: only an <b>empty</b> folder can be deleted (it goes to Trash, with <b>Undo</b>). A folder with notes says “Move or delete its notes first”.</li>
-  <li>A new folder gets its own id; a rename keeps the id and the owner’s numbers, e.g. “(04.01.05)”, exactly as written. If two apps change the same folder at once, the newest change wins.</li></ul></div>
 <div class="undo" id="undo" hidden><span id="undot"></span><button type="button" id="undob">Undo</button></div>
-
-<div class="map7"><h3>8A · BwN’s 7 starter folders, mapped into Mapping My Journey folders (proposed; you can change any line)</h3>
-  <table id="map7"></table></div>
-
-<div class="log"><h3>What just happened</h3><ol id="log"><li>Open: one tree loaded from Siyagah into every app.</li></ol></div>
-</div>
 <script>
 const $=id=>document.getElementById(id);
 const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
-// Mock tree in the shape of Mapping My Journey (Siyagah's copy). Talks are BwN video posts; notes come from Siyagah or MSA.
-let F=[
- {id:"s4",name:"(001 - 010) Mindfulness (TAQWA)",parent:null},
- {id:"s5",name:"(021 - 100) MINDSET: The Prerequisites of the Journey (TAWHEED)",parent:null},
- {id:"s6",name:"(521 - 600) Understanding the MISGUIDANCE",parent:null},
- {id:"m6a",name:"Misguidance of ABANDONING Deen (Doing Partial Deen)",parent:"s6"},
- {id:"s7",name:"(701 - 750) Know the BASICS of Islam",parent:null},
- {id:"m7a",name:"(17.10) Know the BASIC AFFAIRS of Islam: Dawah",parent:"s7"},
- {id:"s8",name:"(751 - 800) Study Deen: Get the CERTAIN KNOWLEDGE",parent:null},
- {id:"m8a",name:"(1301) Al-Quran: The SOURCE of the CERTAIN knowledge",parent:"s8"},
- {id:"m8b",name:"Why the Quran was left aside",parent:"m8a",from:"BwN starter"},
- {id:"m8c",name:"Short clips (1 minute)",parent:"m8a",from:"BwN starter"},
- {id:"s9",name:"(801 - 850) Seerah: the Life of Rasulullah Sallallahu A'laihi Wa Sallam",parent:null},
- {id:"m9a",name:"Hijrah: the turning point",parent:"s9"},
- {id:"m9b",name:"The Hijrah",parent:"m9a",from:"BwN starter"},
-];
-let T=[ // talks (BwN posts) and notes
- {f:"m8a",t:"The Need for Quranic Revival",k:"talk",pub:true},{f:"m8a",t:"Quran Revival: Introduction 2",k:"talk",pub:true},{f:"m8c",t:"What is Quran Revival? (1 minute)",k:"talk",pub:true},
- {f:"m6a",t:"Khutbah 30.10.26: Misguidance",k:"talk",pub:false},{f:"m7a",t:"Dawah Groups",k:"talk",pub:true},{f:"m9b",t:"Hijrah: the turning point",k:"talk",pub:true},
- {f:"m8a",t:"Siyagah note: ayat on revival",k:"note"},
-];
-let MSA=[{t:"Hadith study: the Sahaba standard",send:false},{t:"Dua: seeking reconciliation",send:false},{t:"My private reflection (not for Siyagah)",send:false}];
-let selF=null, undoSnap=null;
-let open=new Set(["s6","s7","s8","m8a","s9","m9a"]), fresh=new Set(), n=0;
-const kids=p=>F.filter(f=>f.parent===p);
-const count=id=>{const ids=new Set([id]);let g=1;while(g){g=0;F.forEach(f=>{if(ids.has(f.parent)&&!ids.has(f.id)){ids.add(f.id);g=1}})}return T.filter(x=>ids.has(x.f)).length};
-function tree(host,mode){
-  const li=f=>{const k=kids(f.id),its=T.filter(x=>x.f===f.id&&(mode!=="pub"||x.k==="talk"&&x.pub)&&(mode!=="msa"||x.k==="note")),has=k.length||its.length,o=open.has(f.id),c=count(f.id);
-    return `<li><div class="${fresh.has(f.id)?"flash":""}${selF===f.id?" sel":""}"><span class="tw" data-tw="${f.id}">${has?(o?"−":"+"):""}</span><span class="nm" data-sel="${f.id}">${esc(f.name)}${f.from&&mode==="bwn"?` <span class="mapped" title="was a BwN starter folder">BwN starter</span>`:""}</span>${c&&mode!=="msa"?`<span class="c">(${c})</span>`:""}</div>`+
-      (o&&has?`<ul>${k.map(li).join("")}${its.map(x=>`<li><div class="${x.fresh?"flash":""}"><span class="tw"></span><span class="${x.k==="talk"?"nm":"note"}">${x.k==="talk"?"🎬 ":""}${esc(x.t)}${x.from?` <span class="c">from ${esc(x.from)}</span>`:""}</span></div></li>`).join("")}</ul>`:"")+`</li>`;};
-  host.innerHTML=`<li><div><span class="tw"></span><span class="nm" style="font-weight:600">📂 Section: Mapping My Journey</span></div><ul>${kids(null).map(li).join("")}</ul></li>`;
-}
-function draw(){
-  tree($("t-siy"),"siy");tree($("t-msa"),"msa");tree($("t-bwn"),"bwn");tree($("t-pub"),"pub");
-  $("msaNotes").innerHTML=MSA.map((x,i)=>`<li><input type="checkbox" id="mn${i}" ${x.send?"checked":""}><label for="mn${i}">${esc(x.t)}</label></li>`).join("")||`<li style="color:var(--muted)">All sent.</li>`;
-  MSA.forEach((x,i)=>{const c=$("mn"+i);if(c)c.onchange=()=>{x.send=c.checked;$("sendBtn").disabled=!MSA.some(m=>m.send)}});
-  const opts=[];const walk=(p,d)=>kids(p).forEach(f=>{opts.push(`<option value="${f.id}">${"  ".repeat(d)}${esc(f.name.slice(0,48))}</option>`);walk(f.id,d+1)});walk(null,0);
-  const v=$("sendTo").value;$("sendTo").innerHTML=opts.join("");if(v&&F.some(f=>f.id===v))$("sendTo").value=v;else $("sendTo").value="m8a";
-  document.querySelectorAll("[data-ren],[data-del]").forEach(b=>b.disabled=!selF||selF==="inbox");
-  setTimeout(()=>{fresh.clear();T.forEach(x=>delete x.fresh)},2500);
-}
-const log=m=>{const li=document.createElement("li");li.textContent=new Date().toLocaleTimeString("en-AU",{timeZone:"Australia/Sydney",hour:"numeric",minute:"2-digit",second:"2-digit"})+" · "+m;$("log").prepend(li)};
-document.addEventListener("click",e=>{const t=e.target.closest("[data-tw]");if(t){const id=t.dataset.tw;open.has(id)?open.delete(id):open.add(id);draw();return}
-  const b=e.target.closest("[data-new]");if(b){const app=b.dataset.new;const parent=selF&&selF!=="inbox"?selF:"m8a";const pf=F.find(f=>f.id===parent);
-    const name=prompt(`New folder from ${app}, inside “${pf?pf.name.slice(0,60):"the top"}” (tap a folder name first to choose another). Name:`,"My new folder");if(!name)return;
-    const f={id:"f"+Math.random().toString(36).slice(2,8),name:name.slice(0,80),parent};F.push(f);open.add(parent);fresh.add(f.id);draw();log(`${app} made the folder “${f.name}” (new id ${f.id}): it appeared in Siyagah, MSA/QR, BwN My view and the visitors’ tree at once (9).`)}});
-$("sendBtn").onclick=()=>{const to=$("sendTo").value,f=F.find(x=>x.id===to),go=MSA.filter(m=>m.send);
-  go.forEach(m=>T.push({f:to,t:m.t,k:"note",from:"MSA",fresh:true}));MSA=MSA.filter(m=>!m.send);open.add(to);let p=f;while(p){open.add(p.id);p=F.find(x=>x.id===p.parent)}
-  draw();$("sendBtn").disabled=true;log(`${go.length} ticked note${go.length>1?"s":""} sent from MSA straight into “${f.name}” in Siyagah (2B, 5A). Unticked notes stayed in MSA.`)};
-const snap=()=>JSON.stringify({F,T});
-function undoBar(m){$("undot").textContent=m;$("undo").hidden=false;clearTimeout(undoBar.h);undoBar.h=setTimeout(()=>$("undo").hidden=true,8000);}
-$("undob").onclick=()=>{if(!undoSnap)return;const o=JSON.parse(undoSnap);F=o.F;T=o.T;undoSnap=null;$("undo").hidden=true;draw();log("Undo: the folder is back from Trash, in every app.")};
-document.addEventListener("click",e=>{const s=e.target.closest("[data-sel]");if(s){selF=selF===s.dataset.sel?null:s.dataset.sel;draw();return}
-  const r=e.target.closest("[data-ren]");if(r&&selF){const f=F.find(x=>x.id===selF);const nn=prompt(`Rename from ${r.dataset.ren}:`,f.name);if(!nn||nn===f.name)return;
-    const old=f.name;f.name=nn.slice(0,120);fresh.add(f.id);draw();log(`${r.dataset.ren} renamed “${old}” to “${f.name}”: every app shows the new name; items keep the same folder id, so nothing breaks (9).`);return}
-  const d=e.target.closest("[data-del]");if(d&&selF){const f=F.find(x=>x.id===selF);const ids=new Set([f.id]);let g=1;while(g){g=0;F.forEach(x=>{if(ids.has(x.parent)&&!ids.has(x.id)){ids.add(x.id);g=1}})}
-    const has=T.filter(t=>ids.has(t.f));
-    if(has.length){alert(`“${f.name}” still holds ${has.length} note(s)/talk(s). Move or delete its notes first (rule D6).`);log(`${d.dataset.del} tried to delete “${f.name}”: refused, it still holds ${has.length} item(s) (rule D6).`);return}
-    if(!confirm(`Delete the empty folder “${f.name}”${ids.size>1?` and its ${ids.size-1} empty folder(s) inside`:""} from every app? It goes to Trash.`))return;
-    undoSnap=snap();F=F.filter(x=>!ids.has(x.id));selF=null;draw();
-    log(`${d.dataset.del} deleted the empty folder “${f.name}”: it went to Trash in every app. Undo is offered.`);undoBar(`Deleted “${f.name.slice(0,40)}” (to Trash)`);}});
-
-// 8A: the 7 starter folders
-const M7=[["Section 01 · Quran Revival","(1301) Al-Quran: The SOURCE of the CERTAIN knowledge"],["Why the Quran was left aside","inside (1301) Al-Quran, as its own folder"],["Short clips (1 minute)","inside (1301) Al-Quran, as its own folder"],["Section 02 · Seerah & Hijrah","(801 - 850) Seerah"],["The Hijrah","inside Hijrah: the turning point"],["Section 03 · Tawheed","(021 - 100) MINDSET: TAWHEED"],["Section 09 · Channel workroom (private)","stays in BwN’s private WorkFlow (not a Map folder)"]];
-$("map7").innerHTML=M7.map(([a,b])=>`<tr><td>${esc(a)}</td><td>→</td><td>${esc(b)}</td></tr>`).join("");
-// phone: one app at a time
-const apps=[...document.querySelectorAll(".app")];
-$("tabs").innerHTML=apps.map((a,i)=>`<button type="button" class="${i?"ghost":""}" data-tab="${a.id}">${esc(a.dataset.name)}</button>`).join("");
-apps[0].classList.add("on");
-$("tabs").onclick=e=>{const b=e.target.closest("[data-tab]");if(!b)return;apps.forEach(a=>a.classList.toggle("on",a.id===b.dataset.tab));$("tabs").querySelectorAll("button").forEach(x=>x.classList.toggle("ghost",x!==b))};
-draw();
+const dec=h=>{const t=document.createElement("textarea");t.innerHTML=h;return t.value};
+let F=new Map(), KIDS=new Map(), sel=null, undoSnap=null, fresh=new Set();
+const apps=[...document.querySelectorAll(".app")], OPEN=apps.map(()=>new Set());
+const SAMPLE=[{id:100,name:"(021 - 100) MINDSET - The Prerequisites of the Journey (TAWHEED):",parent:0,count:0},{id:101,name:"(02.03) :|: Know Your STATUS :|:",parent:100,count:3},
+ {id:200,name:"(121 - 200) HURDLES/ Obstacles to Overcome:",parent:0,count:0},{id:201,name:"(04.01) Jahannam (The Hell)",parent:200,count:0},{id:202,name:"(04.01.05) What are the DEEDS that causes a Muslim to enter JAHANNAM?",parent:201,count:2}];
+function index(){KIDS=new Map();const seen=new Set();
+  F.forEach(f=>{let p=f.parent,ok=F.has(p),n=0;const v=new Set([f.id]);while(ok&&n++<20){if(v.has(p)){ok=false;break}v.add(p);const q=F.get(p);if(!q||!q.parent||!F.has(q.parent))break;p=q.parent}
+    const key=F.has(f.parent)&&ok?f.parent:0;(KIDS.get(key)||KIDS.set(key,[]).get(key)).push(f)});
+  KIDS.forEach(a=>a.sort((x,y)=>x.name.localeCompare(y.name,"en",{numeric:true})));}
+const sub=id=>{const out=[id];for(let i=0;i<out.length;i++)(KIDS.get(out[i])||[]).forEach(k=>out.push(k.id));return out};
+const total=id=>sub(id).reduce((s,i)=>s+(F.get(i)?.count||0),0);
+const path=id=>{const a=[];let f=F.get(id),n=0;while(f&&n++<20){a.unshift(f.id);f=F.get(f.parent)}return a};
+function render(i){const host=apps[i].querySelector(".tree"),q=apps[i].querySelector(".find").value.trim().toLowerCase(),O=OPEN[i];
+  if(q.length>=2){const hits=[...F.values()].filter(f=>f.name.toLowerCase().includes(q)).slice(0,150);
+    host.innerHTML=hits.length?hits.map(f=>`<li><div class="${sel===f.id?"sel":""}${fresh.has(f.id)?" flash":""}"><span class="tw"></span><span class="nm" data-id="${f.id}">${esc(f.name)}</span><span class="c">${total(f.id)||""}</span></div></li>`).join(""):`<li style="color:var(--muted);padding:6px">No folder matches.</li>`;return}
+  const li=f=>{const k=KIDS.get(f.id)||[],o=O.has(f.id),n=total(f.id);
+    return `<li><div class="${sel===f.id?"sel":""}${fresh.has(f.id)?" flash":""}"><button class="tw" type="button" data-tw="${f.id}" aria-label="${o?"Close":"Open"}">${k.length?(o?"−":"+"):""}</button><span class="nm" data-id="${f.id}">${esc(f.name)}</span><span class="c">${n||""}</span></div>${o&&k.length?`<ul>${k.map(li).join("")}</ul>`:""}</li>`};
+  host.innerHTML=`<li><div><span class="tw"></span><span class="sec">📂 Section: Mapping My Journey</span></div><ul>${(KIDS.get(0)||[]).map(li).join("")}</ul></li>`;}
+function draw(){apps.forEach((a,i)=>{render(i);a.querySelectorAll("[data-act=ren],[data-act=del]").forEach(b=>b.disabled=!sel)});setTimeout(()=>{fresh.clear()},2700)}
+const log=m=>{const li=document.createElement("li");li.textContent=new Date().toLocaleTimeString("en-AU",{timeZone:"Australia/Sydney",hour:"numeric",minute:"2-digit"})+" · "+m;$("log").prepend(li)};
+const showAll=id=>{const p=path(id).slice(0,-1);OPEN.forEach(O=>p.forEach(x=>O.add(x)))};
+const snap=()=>JSON.stringify([...F.values()]);
+function undoBar(m){$("undot").textContent=m;$("undo").hidden=false;clearTimeout(undoBar.h);undoBar.h=setTimeout(()=>$("undo").hidden=true,8000)}
+$("undob").onclick=()=>{if(!undoSnap)return;F=new Map(JSON.parse(undoSnap).map(f=>[f.id,f]));undoSnap=null;index();$("undo").hidden=true;draw();log("Undo: the folder is back from Trash, in every app.")};
+document.addEventListener("click",e=>{
+  const t=e.target.closest("[data-tw]");if(t){const i=apps.indexOf(t.closest(".app")),id=+t.dataset.tw;OPEN[i].has(id)?OPEN[i].delete(id):OPEN[i].add(id);render(i);return}
+  const n=e.target.closest(".nm[data-id]");if(n){const id=+n.dataset.id;sel=id;showAll(sel);draw();return}
+  const b=e.target.closest("[data-act]");if(!b)return;const app=b.closest(".app").dataset.app,act=b.dataset.act,f=sel&&F.get(sel);
+  if(act==="add"){const name=(prompt(`New folder from ${app}${f?`, inside “${f.name.slice(0,60)}”`:" at the top"}. Name:`,"")||"").trim();if(!name)return;
+    const id=-Math.floor(Math.random()*1e9);F.set(id,{id,name:name.slice(0,200),parent:f?f.id:0,count:0});index();fresh.add(id);showAll(id);if(f)OPEN.forEach(O=>O.add(f.id));sel=id;draw();
+    log(`${app} added “${name}”${f?` inside “${f.name}”`:""}: it appeared in Siyagah, MSA/QR and the BwN Library at once.`);return}
+  if(act==="ren"&&f){const nn=(prompt(`Rename from ${app} (your numbers stay as you write them):`,f.name)||"").trim();if(!nn||nn===f.name)return;const old=f.name;f.name=nn.slice(0,200);index();fresh.add(f.id);draw();
+    log(`${app} renamed “${old}” to “${f.name}”: every app shows the new name; items filed in it keep the same folder.`);return}
+  if(act==="del"&&f){const n=total(f.id);if(n){alert(`“${f.name}” still holds ${n} post(s)/note(s). Move or delete its notes first (rule D6).`);log(`${app} tried to delete “${f.name}”: refused, it still holds ${n} item(s) (rule D6).`);return}
+    const ids=sub(f.id);if(!confirm(`Delete the empty folder “${f.name}”${ids.length>1?` and the ${ids.length-1} empty folder(s) inside`:""} from every app? It goes to Trash.`))return;
+    undoSnap=snap();ids.forEach(i=>F.delete(i));index();sel=null;draw();log(`${app} deleted the empty folder “${f.name}”: it went to Trash in every app.`);undoBar(`Deleted “${f.name.slice(0,40)}” (to Trash)`)}});
+apps.forEach((a,i)=>a.querySelector(".find").addEventListener("input",()=>render(i)));
+$("tabs").innerHTML=apps.map((a,i)=>`<button type="button" class="${i?"":"on"}" data-tab="${i}">${esc(a.dataset.app)}</button>`).join("");apps[0].classList.add("on");
+$("tabs").onclick=e=>{const b=e.target.closest("[data-tab]");if(!b)return;apps.forEach((a,i)=>a.classList.toggle("on",i==+b.dataset.tab));$("tabs").querySelectorAll("button").forEach(x=>x.classList.toggle("on",x===b))};
+(async()=>{let list,live=true;
+  try{const u=p=>`https://mappingmyjourney.com/wp-json/wp/v2/categories?per_page=100&page=${p}&_fields=id,name,parent,count`;const r1=await fetch(u(1));if(!r1.ok)throw 0;const n=+r1.headers.get("X-WP-TotalPages")||1;
+    list=(await r1.json()).concat(...await Promise.all(Array.from({length:n-1},(_,i)=>fetch(u(i+2)).then(r=>r.json()))));}catch(e){list=SAMPLE;live=false}
+  list.forEach(c=>F.set(c.id,{id:c.id,name:dec(c.name),parent:c.parent||0,count:c.count||0}));index();
+  $("lede").textContent=live?`Your real ${F.size} Mapping My Journey folders, read live from mappingmyjourney.com just now. The same folders are in Siyagah, MSA/QuranRevival and the BwN Library. Tap a folder in any app, then + Folder, Rename or Delete: the other apps follow.`:"Could not reach mappingmyjourney.com just now, so this shows a few sample folders. Try again later for your real folders.";
+  log(live?`Loaded ${F.size} real folders into all three apps.`:"Loaded sample folders.");draw();})();
 </script>
 </body>
 </html>
