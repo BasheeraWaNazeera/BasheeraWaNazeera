@@ -99,7 +99,8 @@ select,input[type=text]{border:1px solid var(--line);background:var(--panel);col
 <div class="ask"><h3>3 · Folders: one MMJ tree, changed from any app</h3>
   <p style="margin:0">Your words (3 Nov 8:25pm): “MMJ folders should be the main folder systems everywhere … editable/addable/deletable from any site/project.” So there is no lock for folders.</p>
   <ul><li>Tap a folder name in any app, then <b>+ Folder</b> (inside it), <b>Rename</b> or <b>Delete</b>: every app changes at once.</li>
-  <li><b>Delete, the safe default:</b> notes and talks in a deleted folder move to <b>📥 Inbox</b> (nothing is lost), and <b>Undo</b> puts everything back. Tell me if you want it to work differently.</li></ul></div>
+  <li><b>Delete</b> follows your rule D6: only an <b>empty</b> folder can be deleted (it goes to Trash, with <b>Undo</b>). A folder with notes says “Move or delete its notes first”.</li>
+  <li>A new folder gets its own id; a rename keeps the id and the owner’s numbers, e.g. “(04.01.05)”, exactly as written. If two apps change the same folder at once, the newest change wins.</li></ul></div>
 <div class="undo" id="undo" hidden><span id="undot"></span><button type="button" id="undob">Undo</button></div>
 
 <div class="map7"><h3>8A · BwN’s 7 starter folders, mapped into Mapping My Journey folders (proposed; you can change any line)</h3>
@@ -155,21 +156,23 @@ const log=m=>{const li=document.createElement("li");li.textContent=new Date().to
 document.addEventListener("click",e=>{const t=e.target.closest("[data-tw]");if(t){const id=t.dataset.tw;open.has(id)?open.delete(id):open.add(id);draw();return}
   const b=e.target.closest("[data-new]");if(b){const app=b.dataset.new;const parent=selF&&selF!=="inbox"?selF:"m8a";const pf=F.find(f=>f.id===parent);
     const name=prompt(`New folder from ${app}, inside “${pf?pf.name.slice(0,60):"the top"}” (tap a folder name first to choose another). Name:`,"My new folder");if(!name)return;
-    const f={id:"n"+(++n),name:name.slice(0,80),parent};F.push(f);open.add(parent);fresh.add(f.id);draw();log(`${app} made the folder “${f.name}”: it appeared in Siyagah, MSA/QR, BwN My view and the visitors’ tree at once (9).`)}});
+    const f={id:"f"+Math.random().toString(36).slice(2,8),name:name.slice(0,80),parent};F.push(f);open.add(parent);fresh.add(f.id);draw();log(`${app} made the folder “${f.name}” (new id ${f.id}): it appeared in Siyagah, MSA/QR, BwN My view and the visitors’ tree at once (9).`)}});
 $("sendBtn").onclick=()=>{const to=$("sendTo").value,f=F.find(x=>x.id===to),go=MSA.filter(m=>m.send);
   go.forEach(m=>T.push({f:to,t:m.t,k:"note",from:"MSA",fresh:true}));MSA=MSA.filter(m=>!m.send);open.add(to);let p=f;while(p){open.add(p.id);p=F.find(x=>x.id===p.parent)}
   draw();$("sendBtn").disabled=true;log(`${go.length} ticked note${go.length>1?"s":""} sent from MSA straight into “${f.name}” in Siyagah (2B, 5A). Unticked notes stayed in MSA.`)};
 const snap=()=>JSON.stringify({F,T});
 function undoBar(m){$("undot").textContent=m;$("undo").hidden=false;clearTimeout(undoBar.h);undoBar.h=setTimeout(()=>$("undo").hidden=true,8000);}
-$("undob").onclick=()=>{if(!undoSnap)return;const o=JSON.parse(undoSnap);F=o.F;T=o.T;undoSnap=null;$("undo").hidden=true;draw();log("Undo: the folder and its notes are back, in every app.")};
+$("undob").onclick=()=>{if(!undoSnap)return;const o=JSON.parse(undoSnap);F=o.F;T=o.T;undoSnap=null;$("undo").hidden=true;draw();log("Undo: the folder is back from Trash, in every app.")};
 document.addEventListener("click",e=>{const s=e.target.closest("[data-sel]");if(s){selF=selF===s.dataset.sel?null:s.dataset.sel;draw();return}
   const r=e.target.closest("[data-ren]");if(r&&selF){const f=F.find(x=>x.id===selF);const nn=prompt(`Rename from ${r.dataset.ren}:`,f.name);if(!nn||nn===f.name)return;
     const old=f.name;f.name=nn.slice(0,120);fresh.add(f.id);draw();log(`${r.dataset.ren} renamed “${old}” to “${f.name}”: every app shows the new name; items keep the same folder id, so nothing breaks (9).`);return}
   const d=e.target.closest("[data-del]");if(d&&selF){const f=F.find(x=>x.id===selF);const ids=new Set([f.id]);let g=1;while(g){g=0;F.forEach(x=>{if(ids.has(x.parent)&&!ids.has(x.id)){ids.add(x.id);g=1}})}
-    const moved=T.filter(t=>ids.has(t.f));if(!confirm(`Delete “${f.name}”${ids.size>1?` and its ${ids.size-1} folder(s) inside`:""} from every app?${moved.length?` Its ${moved.length} note(s)/talk(s) move to 📥 Inbox.`:""}`))return;
-    undoSnap=snap();if(moved.length&&!F.some(x=>x.id==="inbox"))F.unshift({id:"inbox",name:"📥 Inbox (from deleted folders)",parent:null});
-    moved.forEach(t=>{t.f="inbox";t.fresh=true});F=F.filter(x=>!ids.has(x.id));open.add("inbox");selF=null;draw();
-    log(`${d.dataset.del} deleted “${f.name}” in every app${moved.length?`; ${moved.length} item(s) moved to 📥 Inbox`:""}. Undo is offered.`);undoBar(`Deleted “${f.name.slice(0,40)}”${moved.length?` · ${moved.length} to Inbox`:""}`);}});
+    const has=T.filter(t=>ids.has(t.f));
+    if(has.length){alert(`“${f.name}” still holds ${has.length} note(s)/talk(s). Move or delete its notes first (rule D6).`);log(`${d.dataset.del} tried to delete “${f.name}”: refused, it still holds ${has.length} item(s) (rule D6).`);return}
+    if(!confirm(`Delete the empty folder “${f.name}”${ids.size>1?` and its ${ids.size-1} empty folder(s) inside`:""} from every app? It goes to Trash.`))return;
+    undoSnap=snap();F=F.filter(x=>!ids.has(x.id));selF=null;draw();
+    log(`${d.dataset.del} deleted the empty folder “${f.name}”: it went to Trash in every app. Undo is offered.`);undoBar(`Deleted “${f.name.slice(0,40)}” (to Trash)`);}});
+
 // 8A: the 7 starter folders
 const M7=[["Section 01 · Quran Revival","(1301) Al-Quran: The SOURCE of the CERTAIN knowledge"],["Why the Quran was left aside","inside (1301) Al-Quran, as its own folder"],["Short clips (1 minute)","inside (1301) Al-Quran, as its own folder"],["Section 02 · Seerah & Hijrah","(801 - 850) Seerah"],["The Hijrah","inside Hijrah: the turning point"],["Section 03 · Tawheed","(021 - 100) MINDSET: TAWHEED"],["Section 09 · Channel workroom (private)","stays in BwN’s private WorkFlow (not a Map folder)"]];
 $("map7").innerHTML=M7.map(([a,b])=>`<tr><td>${esc(a)}</td><td>→</td><td>${esc(b)}</td></tr>`).join("");
