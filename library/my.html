@@ -159,6 +159,7 @@ textarea{min-height:120px;resize:vertical}
 .oc button{font:inherit;border:0;background:none;color:var(--accent);cursor:pointer;padding:0;text-decoration:underline;text-underline-offset:2px}
 .oc button:disabled{color:var(--muted);text-decoration:none;cursor:default;opacity:.6}
 .ftools{display:inline-flex;gap:2px}
+.mgrid .ml{font-size:.74rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);align-self:center}
 .ph h2 .newi{font:inherit;font-size:.8rem;border:1px solid var(--line);background:var(--panel);color:var(--accent);border-radius:7px;padding:2px 9px;margin-right:8px;cursor:pointer;font-family:var(--f-body)}
 .ph h2 .newi:hover{background:var(--accent-soft)}
 .mmjst{font:inherit;font-size:.7rem;border:1px solid var(--line);border-radius:999px;padding:1px 8px;background:var(--panel);color:var(--muted);margin-left:6px;vertical-align:3px;cursor:pointer}
@@ -381,13 +382,30 @@ textarea{min-height:120px;resize:vertical}
   .who{margin-left:auto;order:3}
   .sortl select{max-width:120px!important}
 }
+/* banner header like MyDatabase (owner, 4 Nov): dark green bar, light controls; every function unchanged */
+:root{--banner:#1f5c47;--bannerInk:#fff}
+.menubar{background:var(--banner)!important;color:var(--bannerInk);border-bottom:0!important}
+.menubar .brand{color:var(--bannerInk)}
+.menubar .menu>button{color:var(--bannerInk)}
+.menubar .menu>button:hover,.menubar .menu>button[aria-expanded="true"]{background:rgba(255,255,255,.16)}
+.menubar .seg{background:rgba(255,255,255,.12);border-color:rgba(255,255,255,.28)}
+.menubar .segb{color:rgba(255,255,255,.85)}.menubar .segb.on{background:#fff;color:var(--banner)}
+.menubar .mdiv{background:rgba(255,255,255,.3)}
+.menubar .ibtn,.menubar .owl,.menubar .ops select,.menubar #wq{background:rgba(255,255,255,.12);color:var(--bannerInk);border-color:rgba(255,255,255,.3)}
+.menubar #wq::placeholder{color:rgba(255,255,255,.75)}
+.menubar .ops select option{color:#1d2420}
+.menubar #rec:not(.on),.menubar #wAdd,.menubar #signin{background:#fff;color:var(--banner);border-color:#fff}
+.menubar .acct{background:#fff;color:var(--banner);border-color:#fff}
+.menubar .opsmsg{color:rgba(255,255,255,.85)}
+.menubar .drop{color:var(--ink)}
+.tree .tsec,.ltree .tsec{list-style:none;font-size:.68rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);padding:10px 6px 2px}
 .toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:var(--ink);color:var(--panel);padding:8px 16px;border-radius:999px;font-size:.88rem;max-width:calc(100vw - 32px);z-index:3000}
 </style>
 </head>
 <body>
 <div class="app">
   <nav class="menubar" aria-label="Menu" id="menubar">
-    <span class="brand">BwN Database</span>
+    <span class="brand">🗄 BwN Database</span>
     <span class="seg" role="group" aria-label="View"><a class="segb" href="./" id="toPub">Visitor view</a><span class="segb on" aria-current="page">My view</span></span>
     <span class="mdiv" id="mdiv" aria-hidden="true"></span>
     <section class="ops" aria-label="Record and take in" id="ops">
@@ -400,7 +418,7 @@ textarea{min-height:120px;resize:vertical}
       <button class="ibtn" id="pick" type="button" title="Take in from Drive (D)" aria-label="Take in from Drive">☁</button>
     </section>
     <section class="wfbar" aria-label="Find, filter and sort" id="wfbar">
-      <input type="search" id="wq" placeholder="Search cards, recordings, posts…" aria-label="Search">
+      <input type="search" id="wq" placeholder="Search all items…" aria-label="Search">
       <span class="seg" role="group" aria-label="Layout"><button class="segb on" id="lyNote" type="button" title="Notebook: folders, list and note side by side" aria-label="Notebook layout">▥</button><button class="segb" id="lyCards" type="button" title="Cards: everything as cards" aria-label="Cards layout">▦</button></span>
       <button class="btn sm" id="wAdd" type="button">+ Add</button>
     </section>
@@ -457,7 +475,7 @@ textarea{min-height:120px;resize:vertical}
     </section>
 
     <section class="pane" id="pNote" aria-label="Note">
-      <div class="ph"><h2><span>Note</span><span class="r"><button class="pop" data-pop="note" type="button" title="Pop out as a window">⧉</button></span></h2></div>
+      <div class="ph"><h2><span id="nHead">Note</span><span class="r"><button class="ob newi" id="nDelH" type="button" hidden title="Delete this item">Delete</button><button class="pop" data-pop="note" type="button" title="Pop out as a window">⧉</button></span></h2></div>
       <div class="note" id="note"></div>
     </section>
   </main>
@@ -762,11 +780,13 @@ async function refresh() {
 const lfIn = id => { const ids = new Set([id]); let grew = true; while (grew) { grew = false; LF.forEach(f => { if (ids.has(f.parent) && !ids.has(f.id)) { ids.add(f.id); grew = true; } }); } return ids; };
 function listFor(v) {
   const isLF = typeof v === "string" && v.startsWith("lf:"), isWF = typeof v === "string" && v.startsWith("wf:");
+  if (typeof v === "string" && v.startsWith("wt:")) { const [fid, t] = v.slice(3).split("|"); return ITEMS.filter(r => r.wf === fid && typeOf(r) === t && (r.type === "card" || secRoot(r.wf))); }
   if (isWF) { const s = v.length > 3 ? wfIn(v.slice(3)) : null; return ITEMS.filter(r => s ? s.has(r.wf) && (r.type === "card" || secRoot(r.wf)) : r.type === "card" && !secRoot(r.wf)); }
   if (isLF) { const s = lfIn(v.slice(3)); return ITEMS.filter(r => r.type === "post" && s.has(r.folder)); }
   return v === "all" ? ITEMS : v === "unfiled" ? ITEMS.filter(r => !r.wf && (!r.mmj || !BY.has(r.mmj))) : ITEMS.filter(r => r.mmj && ancestors(r.mmj).includes(v));
 }
-const titleFor = v => typeof v === "string" && v.startsWith("wf:") ? (v.length > 3 ? wfName(v.slice(3)) : "WorkFlow · all cards") : v === "all" ? "All files" : v === "unfiled" ? "Not yet filed"
+const titleFor = v => typeof v === "string" && v.startsWith("wt:") ? wfName(v.slice(3).split("|")[0]) + " › " + TPL(v.slice(3).split("|")[1]) : titleFor0(v);
+const titleFor0 = v => typeof v === "string" && v.startsWith("wf:") ? (v.length > 3 ? wfName(v.slice(3)) : "WorkFlow · all cards") : v === "all" ? "All files" : v === "unfiled" ? "Not yet filed"
   : typeof v === "string" && v.startsWith("lf:") ? (LF.find(f => f.id === v.slice(3))?.name || "Library folder") : BY.get(v)?.name || "Folder";
 const rowH = r => r.type === "mmjnote" ? `<div class="row${cur === r.id ? " on" : ""}" data-id="${esc(r.id)}" tabindex="0"><input type="checkbox" disabled title="MMJ notes are moved and deleted in Siyagah for now" aria-label="MMJ note">
       <span><b>📝 ${esc(r.title)}</b><span class="st ${r.vis ? "pub" : "priv"}">${r.vis ? "👁 visitors" : "🔒 private"}</span><span class="meta">MMJ note · from Siyagah${r.tags?.length ? " · " + esc(r.tags.slice(0, 4).join(", ")) : ""}${r.at ? " · " + esc(when(r.at)) : ""}</span>${pathLine(r)}</span></div>` : r.type === "card" ? cardRow(r) : `<div class="row${cur === r.id ? " on" : ""}" data-id="${r.id}" tabindex="0">
@@ -848,7 +868,8 @@ function drawLTree() {
     const kids = (KIDS.get(f.id) || []).filter(k => !onlyWith || COUNTS.get(k.id)), its = items(f.id), has = kids.length || its.length, open = has && OPEN.has(f.id), [rng, nm] = splitName(f.name), n = COUNTS.get(f.id);
     return `<li><div class="lr${view === f.id ? " sel" : ""}" data-f="${f.id}" tabindex="0"${has ? ` aria-expanded="${open}"` : ""}><span class="ltw">${has ? (open ? "−" : "+") : ""}</span>${rng ? `<span class="rng">${esc(rng)}</span>` : ""}<span class="nm">${esc(nm)}</span>${n ? `<span class="cnt">(${n})</span>` : ""}</div>${open ? `<ul>${build(f.id)}${its.map(itemRow).join("")}</ul>` : ""}</li>`;
   }).join("");
-  const html = wfTreeHTML() + lfTreeHTML() + build(0);
+  const wfh = wfTreeHTML(), lfh = lfTreeHTML(), mm = build(0);
+  const html = (wfh ? `<li class="tsec">By project</li>` + wfh : "") + (lfh ? `<li class="tsec">Library</li>` + lfh : "") + (mm ? `<li class="tsec">Mapping My Journey</li>` + mm : "");
   host.innerHTML = html ? `<ul class="ltree">${html}</ul>` : `<p class="empty">${TREE.length ? "No folder has files yet." : "Loading the Map…"}</p>`;
   host.querySelectorAll(".lr[data-f],.lr[data-lf]:not([data-lf='']),.lr[data-wf]").forEach(r => { const b = document.createElement("button"); b.type = "button"; b.className = "fpop1";
     b.dataset.pop = r.dataset.f ? "m" + r.dataset.f : r.dataset.lf ? "lf:" + r.dataset.lf : "wf:" + r.dataset.wf; b.title = "Open this folder as its own window"; b.setAttribute("aria-label", b.title); b.textContent = "⧉"; r.append(b); });
@@ -858,6 +879,7 @@ $("ltree").addEventListener("click", e => { const pb = e.target.closest(".fpop1"
   if (r.dataset.f) { const id = +r.dataset.f; if (OPEN.has(id) && view === id) OPEN.delete(id); else OPEN.add(id); saveOpen(); view = id; sel.clear(); draw(); }
   else if (r.dataset.lf !== undefined) { const id = r.dataset.lf, k = id ? "L" + id : "LF"; if (!id) { OPEN.has(k) ? OPEN.delete(k) : OPEN.add(k); }
     else { if (OPEN.has(k) && view === "lf:" + id) OPEN.delete(k); else OPEN.add(k); view = "lf:" + id; sel.clear(); } saveOpen(); draw(); }
+  else if (r.dataset.wt !== undefined) { const k = "T" + r.dataset.wt, v = "wt:" + r.dataset.wt; if (OPEN.has(k) && view === v) OPEN.delete(k); else OPEN.add(k); view = v; sel.clear(); saveOpen(); draw(); }
   else if (r.dataset.wf !== undefined) { const id = r.dataset.wf, k = id ? "W" + id : "WF"; if (OPEN.has(k) && view === "wf:" + id) OPEN.delete(k); else OPEN.add(k); view = "wf:" + id; sel.clear(); saveOpen(); draw(); }
   else if (r.dataset.i) { if (e.target.closest("[data-dot]")) { cycleCard(e.target.closest("[data-dot]").dataset.dot); return; } draft = null; cur = r.dataset.i; draw(); showNote(); tab("note"); } });
 // drag a file or card onto a folder (Map or WorkFlow); ticked files move together
@@ -1040,8 +1062,11 @@ function wfTreeHTML() {
   const cards = ITEMS.filter(r => r.wf && (r.type === "card" || secRoot(r.wf)));
   const cardsIn = id => cards.filter(r => r.wf === id), cnt = id => cards.filter(r => r.wf && wfIn(id).has(r.wf)).length;
   const li = r => `<li><div class="lr${cur === r.id ? " sel" : ""}" data-i="${esc(r.id)}" tabindex="0" draggable="true"><span class="ltw"></span><span class="nm">${r.type === "card" ? cdot(r) : ""}${ICONOF(r)} ${esc(r.title)}</span>${r.new ? '<span class="newb">New</span>' : ""}</div></li>`;
+  const byType = (fid, its) => { const g = new Map(); its.forEach(r => (g.get(typeOf(r)) || g.set(typeOf(r), []).get(typeOf(r))).push(r));
+    return [...g].sort((a, b) => TPL(a[0]).localeCompare(TPL(b[0]))).map(([t, arr]) => { const k = "T" + fid + "|" + t, o = OPEN.has(k), v = "wt:" + fid + "|" + t;
+      return `<li><div class="lr${view === v ? " sel" : ""}" data-wt="${esc(fid + "|" + t)}" tabindex="0" aria-expanded="${o}"><span class="ltw">${o ? "−" : "+"}</span><span class="nm">📁 ${esc(TPL(t))}</span><span class="cnt">(${arr.length})</span></div>${o ? `<ul>${arr.map(li).join("")}</ul>` : ""}</li>`; }).join(""); };
   const build = pid => wfKids(pid).map(f => { const k = "W" + f.id, its = cardsIn(f.id), has = wfKids(f.id).length || its.length, open = has && OPEN.has(k), n = cnt(f.id);
-    return `<li><div class="lr${view === "wf:" + f.id ? " sel" : ""}" data-wf="${esc(f.id)}" tabindex="0"${has ? ` aria-expanded="${open}"` : ""}><span class="ltw">${has ? (open ? "−" : "+") : ""}</span><span class="nm">${esc(f.name)}</span>${n ? `<span class="cnt">(${n})</span>` : ""}</div>${open ? `<ul>${build(f.id)}${its.map(li).join("")}</ul>` : ""}</li>`; }).join("");
+    return `<li><div class="lr${view === "wf:" + f.id ? " sel" : ""}" data-wf="${esc(f.id)}" tabindex="0"${has ? ` aria-expanded="${open}"` : ""}><span class="ltw">${has ? (open ? "−" : "+") : ""}</span><span class="nm">${esc(f.name)}</span>${n ? `<span class="cnt">(${n})</span>` : ""}</div>${open ? `<ul>${build(f.id)}${byType(f.id, its)}</ul>` : ""}</li>`; }).join("");
   if (!ownerOk) return "";
   const open = OPEN.has("WF"), wfCards = cards.filter(r => r.type === "card" && !secRoot(r.wf)).length;
   const secs = WF.filter(f => f.sec && !f.parent).sort((a, b) => a.name.localeCompare(b.name, "en", { numeric: true })).map(f => { const k = "W" + f.id, its = cardsIn(f.id), has = wfKids(f.id).length || its.length, o = has && OPEN.has(k), n = cnt(f.id);
@@ -1226,6 +1251,7 @@ $("lyNote").onclick = () => setLay("note"); $("lyCards").onclick = () => setLay(
 
 // rows and cards
 const STW = { todo: "To do", working: "Doing", done: "Done" };
+const TPL = t => ({ Demo: "Demos", MyData: "Databases", Report: "Reports", List: "Lists", Other: "Others", Voice: "Voice", Video: "Videos", Note: "Notes" })[t] || t;
 const metaLine = r => `<span class="mt">${r.type === "card" ? cdot(r) : `<span class="sdot ${stOf(r)}"></span>`}${STW[stOf(r)]}${projOf(r).map(p => `<span class="tg">${esc(p)}</span>`).join("")}<span class="tg">${esc(typeOf(r))}</span>${jobOf(r) ? `<span class="tg">${esc(jobOf(r))}</span>` : ""}${r.at ? `<span class="dt">${esc(when(r.at))}</span>` : ""}${r.show || r.vis || r.status === "pub" ? '<span class="dt">👁</span>' : ""}</span>`;
 function cardRow(r) {
   return `<div class="row${cur === r.id ? " on" : ""}" data-id="${esc(r.id)}" tabindex="0"><input type="checkbox" aria-label="Tick ${esc(r.title)}" ${sel.has(r.id) ? "checked" : ""}>
@@ -1260,7 +1286,7 @@ function drawCard(c) {
     <div class="chips2">${cdot(c)}<span class="chip">${esc(c.status || "todo")}</span><span class="chip">${esc(typeOf(c))}</span><span class="chip">${esc(c.by || "")}${c.at ? " · " + esc(when(c.at)) : ""}</span>${c.show ? '<span class="chip pub">Visitors see its link</span>' : '<span class="chip draft">Only you see it</span>'}</div>
     <div class="nbar"><span class="fname">📁 <b>${esc(folderOf(c))}</b></span>
       <button class="btn ghost" id="nFolder" type="button">Map folder</button><button class="btn ghost" id="nWf" type="button">WorkFlow folder</button>
-      ${c.url ? `<a class="btn ghost" href="${esc(c.url)}" target="_blank" rel="noopener">↗ Open in its own window</a><button class="btn ghost" id="nView" type="button">View here</button>` : ""}
+      ${c.url ? `<a class="btn" href="${esc(c.url)}" target="_blank" rel="noopener">↗ Open in its own window</a><button class="btn ghost" id="nView" type="button">View here</button>` : ""}
       <button class="ib" id="nDel" type="button" title="Delete this card" aria-label="Delete this card">🗑</button></div>
     <div class="cview" id="cView" hidden></div>
     <div class="mgrid">
@@ -1268,8 +1294,11 @@ function drawCard(c) {
       <label for="cStat">Status</label><select id="cStat">${CSTAT.map(s => `<option${(c.status || "todo") === s ? " selected" : ""}>${s}</option>`).join("")}</select>
       <label for="cUrl">Link</label><input id="cUrl" type="url" value="${esc(c.url || "")}" placeholder="https://…">
       <label for="cVer">Version</label><input id="cVer" value="${esc(c.ver || "")}">
+      <label for="cWfSel">Folder</label><select id="cWfSel"><option value="">${c.wf ? "" : esc(folderOf(c))}</option>${WF.map(f => `<option value="${esc(f.id)}"${c.wf === f.id ? " selected" : ""}>${esc(wfPath(f.id).replace(/^WorkFlow › /, ""))}</option>`).join("")}</select>
       <label for="cProj">Projects</label><input id="cProj" value="${esc(projOf(c).join(", "))}">
       <label for="cTop">Topics</label><input id="cTop" value="${esc(topOf(c).join(", "))}" placeholder="comma between topics">
+      <span class="ml">By</span><span>${esc(c.by || "—")}</span>
+      <span class="ml">Updated</span><span>${c.at ? esc(when(c.at)) : "—"}</span>
     </div>
     <section class="np" id="nEd"><input class="np-ti" id="nTitle" value="${esc(c.title)}" aria-label="Title">${editorHTML("c" + c.id, c.html || html2(c.what))}</section>
     ${c.items?.length ? `<div class="citems"><h3 class="pnote">Items (${c.items.length})</h3>${c.items.map(x => `<div><b>${esc(x.n ?? "")}${x.topic ? " · " + esc(x.topic) : ""}</b><br>${esc(x.q || "")}${x.a ? `<br><span class="pnote">${esc(x.a)}</span>` : ""}${x.note ? `<br><i class="pnote">${esc(x.note)}</i>` : ""}</div>`).join("")}</div>` : ""}
@@ -1279,6 +1308,7 @@ function drawCard(c) {
   wireEditor($("nEd"), "c" + c.id, async html => { await cardSave(c, { html }); });
   $("nTitle").onchange = () => { const t = $("nTitle").value.trim(); if (t) save({ name: t }, "Title saved.", true); };
   $("cKind").onchange = e => save({ ckind: e.target.value }, "Kind saved.", true);
+  $("cWfSel").onchange = e => { const w = e.target.value; if (!w) return; save({ wf: w, ...(secRoot(w) ? {} : { mmj: null, mmjName: "", mmjPath: "", show: false }), new: false }, "Filed in " + wfName(w) + ".", true); };
   $("cStat").onchange = e => save({ status: e.target.value }, "Status saved.", true);
   $("cUrl").onchange = e => save({ url: e.target.value.trim() }, "Link saved.", true);
   $("cVer").onchange = e => save({ ver: e.target.value.trim() }, "Version saved.");
@@ -1328,7 +1358,10 @@ $("wAdd").onclick = () => { if (!ownerOk) return toast("Sign in first.");
   setTimeout(() => $("aName").focus(), 30);
 };
 // ---------- note pane ----------
-function showNote() {
+function showNote() { showNote0(); noteHead(); }
+function noteHead() { const r = !draft && ITEMS.find(x => x.id === cur); $("nHead").textContent = r ? `${projOf(r)[0]} · ${typeOf(r)}` : draft ? "New recording" : "Note";
+  const d = document.getElementById("nDel"); $("nDelH").hidden = !d; $("nDelH").onclick = () => document.getElementById("nDel")?.click(); }
+function showNote0() {
   const N = $("note"); flushAll();
   if (draft) return drawDraft();
   const r = ITEMS.find(x => x.id === cur);
