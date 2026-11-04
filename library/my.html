@@ -430,11 +430,11 @@ textarea{min-height:120px;resize:vertical}
         <span class="fpop" id="fpop" hidden>
           <select id="wTopic" aria-label="Topic"></select>
           <select id="wSubject" aria-label="Subject"></select>
-          <label>Group <select id="wGrp"><option value="none">None</option><option value="folder">Folder</option><option value="stage">Stage</option><option value="topic">Topic</option><option value="project">Project</option><option value="type">Type</option></select></label>
+          <label>Group <select id="wGrp"><option value="none">None</option><option value="folder">Folder</option><option value="stage">Stage</option><option value="topic">Topic</option><option value="project">Project</option><option value="type">Type</option><option value="job">Job</option></select></label>
           <span class="pv">Folder paths <span class="seg" role="group" aria-label="Folder paths"><button class="segb" type="button" id="pvLine" title="Folder path in one line, wrapped">Line</button><button class="segb" type="button" id="pvTree" title="Folder path as a tree">Tree</button></span></span>
           <button class="link" id="wAll" type="button">Show all</button>
         </span></span>
-      <label class="sortl" title="Sort the list"><span class="sl">Sort</span> <select id="wSort"><option value="new">Date · newest</option><option value="old">Date · oldest</option><option value="type">Type</option><option value="project">Project</option><option value="size">Size · largest</option><option value="draft">Draft first</option><option value="working">Under process first</option><option value="finished">Finished first</option><option value="published">Published first</option><option value="name">Name A–Z</option></select></label>
+      <label class="sortl" title="Sort the list"><span class="sl">Sort</span> <select id="wSort"><option value="new">Date · newest</option><option value="old">Date · oldest</option><option value="type">Type</option><option value="project">Project</option><option value="size">Size · largest</option><option value="draft">Draft first</option><option value="working">Under process first</option><option value="finished">Finished first</option><option value="published">Published first</option><option value="name">Name A–Z</option><option value="job">Job</option><option value="ver">Version · newest</option></select></label>
           </span>
         </div>
       </div>
@@ -939,6 +939,9 @@ let WF = WF0.slice(), WFOWN = [], LAST = [];
 const CSTAT = ["todo", "working", "done"];
 const ICONS = { Voice: "🎙", Video: "🎬", Demo: "◧", MyData: "🗄", Database: "🗄", List: "☰", Report: "📄", Other: "◇" };
 const TLAB = { Database: "MyData" }; // shown names (owner, 4 Nov): Video · Voice · Demo · MyData (databases like the Scholars Database) · List · Report · Other
+const jobOf = r => { const m = String((r.title || "") + " " + (r.ver || "") + " " + (r.cid || "")).match(/\bJ(\d{1,3})\b/i) || String(r.cid || r.id || "").match(/j(\d{2,3})/i); return m ? "J" + m[1].padStart(2, "0") : ""; };
+const verOf = r => { const m = String((r.ver || "") + " " + (r.title || "")).match(/\bv(\d+(?:\.\d+)?)/i); return m ? m[1] : ""; };
+const verNum = r => { const v = verOf(r); return v ? parseFloat(v) : -1; };
 const kindOf = r => ICONS[r.ckind] ? r.ckind : "Other";
 const typeOf = r => r.type === "rec" ? "Voice" : r.type === "post" ? "Video" : (TLAB[kindOf(r)] || kindOf(r));
 const ICONOF = r => ICONS[typeOf(r)] || "◇";
@@ -1124,13 +1127,13 @@ const stageOf = r => r.type === "card" ? (r.show ? "Published" : r.status === "d
 const durS = d => { const m = String(d || "").match(/(\d+):(\d{2})(?::(\d{2}))?/); return m ? (m[3] ? (+m[1] * 3600 + +m[2] * 60 + +m[3]) : (+m[1] * 60 + +m[2])) : 0; };
 const sizeOf = r => +r.size || +r.bytes || durS(r.dur || r.len) * 16000 || (String(r.html || "").length + textOf(r).length + JSON.stringify(r.items || []).length);
 function sortL(list) { const newest = (a, b) => (b.at || "").localeCompare(a.at || ""), stFirst = s => (a, b) => (stageOf(b) === s) - (stageOf(a) === s) || STAGES.indexOf(stageOf(a)) - STAGES.indexOf(stageOf(b)) || newest(a, b);
-  const by = { new: newest, old: (a, b) => -newest(a, b), name: (a, b) => (a.title || "").localeCompare(b.title || "", "en", { numeric: true }),
+  const by = { new: newest, old: (a, b) => -newest(a, b), job: (a, b) => (jobOf(a) || "J~").localeCompare(jobOf(b) || "J~", "en", { numeric: true }) || newest(a, b), ver: (a, b) => verNum(b) - verNum(a) || newest(a, b), name: (a, b) => (a.title || "").localeCompare(b.title || "", "en", { numeric: true }),
     type: (a, b) => typeOf(a).localeCompare(typeOf(b)) || newest(a, b), project: (a, b) => projOf(a)[0].localeCompare(projOf(b)[0]) || newest(a, b),
     size: (a, b) => sizeOf(b) - sizeOf(a) || newest(a, b), draft: stFirst("Draft"), working: stFirst("Under process"), finished: stFirst("Finished"), published: stFirst("Published"), status: stFirst("Under process") };
   return list.slice().sort(by[FL.sort] || newest); }
 function groupsOf(list) { if (FL.grp === "none") return [[null, list]];
   const g = new Map(), put = (k, r) => (g.get(k) || g.set(k, []).get(k)).push(r);
-  list.forEach(r => FL.grp === "topic" ? (topOf(r).length ? topOf(r) : ["(no topic)"]).forEach(t => put(t, r)) : FL.grp === "project" ? projOf(r).forEach(p => put(p, r)) : FL.grp === "stage" ? put(stageOf(r), r) : FL.grp === "type" ? put(typeOf(r), r) : put(folderOf(r), r));
+  list.forEach(r => FL.grp === "topic" ? (topOf(r).length ? topOf(r) : ["(no topic)"]).forEach(t => put(t, r)) : FL.grp === "project" ? projOf(r).forEach(p => put(p, r)) : FL.grp === "stage" ? put(stageOf(r), r) : FL.grp === "type" ? put(typeOf(r), r) : FL.grp === "job" ? put(jobOf(r) || "(no job)", r) : put(folderOf(r), r));
   return [...g].sort((a, b) => FL.grp === "stage" ? STAGES.indexOf(a[0]) - STAGES.indexOf(b[0]) : a[0].localeCompare(b[0], "en", { numeric: true })); }
 const fset = (k, v) => { FL[k] = v; saveFL(); draw(); };
 $("wTopic").onchange = e => fset("topic", e.target.value); $("wSubject").onchange = e => fset("subject", e.target.value);
@@ -1151,7 +1154,7 @@ $("lyNote").onclick = () => setLay("note"); $("lyCards").onclick = () => setLay(
 // rows and cards
 function cardRow(r) {
   return `<div class="row${cur === r.id ? " on" : ""}" data-id="${esc(r.id)}" tabindex="0"><input type="checkbox" aria-label="Tick ${esc(r.title)}" ${sel.has(r.id) ? "checked" : ""}>
-    <span><b>${cdot(r)}${ICONOF(r)} ${esc(r.title)}</b>${r.new ? '<span class="newb">New</span>' : ""}<span class="meta">${esc(typeOf(r))} · ${esc(projOf(r).join(", "))}${r.at ? " · " + esc(when(r.at)) : ""}${r.show ? " · 👁 visitors" : ""}</span>
+    <span><b>${cdot(r)}${ICONOF(r)} ${esc(r.title)}</b>${r.new ? '<span class="newb">New</span>' : ""}<span class="meta">${esc(typeOf(r))} · ${esc(projOf(r).join(", "))}${jobOf(r) ? " · " + esc(jobOf(r)) : ""}${verOf(r) ? " · v" + esc(verOf(r)) : ""}${r.at ? " · " + esc(when(r.at)) : ""}${r.show ? " · 👁 visitors" : ""}</span>
     ${pathLine(r)}</span></div>`;
 }
 function drawCards(list) {
