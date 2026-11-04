@@ -159,6 +159,7 @@ textarea{min-height:120px;resize:vertical}
 .oc button{font:inherit;border:0;background:none;color:var(--accent);cursor:pointer;padding:0;text-decoration:underline;text-underline-offset:2px}
 .oc button:disabled{color:var(--muted);text-decoration:none;cursor:default;opacity:.6}
 .ftools{display:inline-flex;gap:2px}
+.menus{display:inline-flex;align-items:center}
 .mgrid .ml{font-size:.74rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);align-self:center}
 .ph h2 .newi{font:inherit;font-size:.8rem;border:1px solid var(--line);background:var(--panel);color:var(--accent);border-radius:7px;padding:2px 9px;margin-right:8px;cursor:pointer;font-family:var(--f-body)}
 .ph h2 .newi:hover{background:var(--accent-soft)}
@@ -375,11 +376,17 @@ textarea{min-height:120px;resize:vertical}
 @media (max-width:1499.98px){.sortl .sl{display:none}}
 .nbar .fname{white-space:normal!important;overflow-wrap:anywhere}
 @media (max-width:999.98px){
+  /* phone and tablet (owner, 4 Nov): row 1 name · view · account; row 2 the menus; row 3 record, upload, layout, + Add; row 4 search */
   .mdiv{display:none}
-  .menubar .wfbar{flex-basis:100%;order:5;flex-wrap:wrap}
-  .menubar .wfbar input[type=search]{flex:1 1 150px}
-  .menubar .ops{order:4}
+  .menubar .brand{order:1;font-size:1rem;margin-right:2px}.menubar>.seg{order:2;margin-right:0}.menubar>.seg .segb{padding:3px 8px;font-size:.76rem}
+  .menubar .who{gap:4px}.menubar .acct,.menubar .owl{width:28px;height:28px}
   .who{margin-left:auto;order:3}
+  .menubar .menus{order:4;flex-basis:100%;display:flex;justify-content:space-between}
+  .menubar .ops{order:5}
+  .menubar .wfbar{display:contents}
+  .menubar .wfbar>.seg{order:6;margin-left:auto}
+  .menubar #wAdd{order:7}
+  .menubar .wfbar input[type=search]{order:8;flex:1 1 100%;min-width:0}
   .sortl select{max-width:120px!important}
 }
 /* banner header like MyDatabase (owner, 4 Nov): dark green bar, light controls; every function unchanged */
@@ -407,6 +414,7 @@ textarea{min-height:120px;resize:vertical}
   <nav class="menubar" aria-label="Menu" id="menubar">
     <span class="brand">🗄 BwN Database</span>
     <span class="seg" role="group" aria-label="View"><a class="segb" href="./" id="toPub">Visitor view</a><span class="segb on" aria-current="page">My view</span></span>
+    <span class="menus" id="menus"></span>
     <span class="mdiv" id="mdiv" aria-hidden="true"></span>
     <section class="ops" aria-label="Record and take in" id="ops">
       <select id="rlang" aria-label="Language of the recording" title="Language of the recording"><option value="en-AU">EN</option><option value="bn-BD">BN</option><option value="ar-SA">AR</option></select>
@@ -1550,7 +1558,7 @@ const MENUS = () => [
 ];
 let openMenu = null;
 function buildMenus() {
-  const bar = $("menubar"); bar.querySelectorAll(".menu").forEach(m => m.remove());
+  const bar = $("menubar"), host = $("menus"); bar.querySelectorAll(".menu").forEach(m => m.remove());
   const who = $("mdiv");
   MENUS().forEach(([name, items]) => {
     const m = document.createElement("div"); m.className = "menu";
@@ -1562,7 +1570,7 @@ function buildMenus() {
       x.onclick = () => { openMenu = null; buildMenus(); fn(); }; d.append(x); });
     b.onclick = e => { e.stopPropagation(); openMenu = openMenu === name ? null : name; buildMenus(); if (openMenu) bar.querySelector(".drop:not([hidden]) button:not(:disabled)")?.focus(); };
     b.onmouseenter = () => { if (openMenu && openMenu !== name) { openMenu = name; buildMenus(); } };
-    m.append(b, d); bar.insertBefore(m, who);
+    m.append(b, d); host.append(m);
   });
 }
 document.addEventListener("click", e => { if (openMenu && !e.target.closest(".menu")) { openMenu = null; buildMenus(); }
