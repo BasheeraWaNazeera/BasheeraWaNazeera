@@ -159,6 +159,8 @@ textarea{min-height:120px;resize:vertical}
 .oc button{font:inherit;border:0;background:none;color:var(--accent);cursor:pointer;padding:0;text-decoration:underline;text-underline-offset:2px}
 .oc button:disabled{color:var(--muted);text-decoration:none;cursor:default;opacity:.6}
 .ftools{display:inline-flex;gap:2px}
+.ph h2 .newi{font:inherit;font-size:.8rem;border:1px solid var(--line);background:var(--panel);color:var(--accent);border-radius:7px;padding:2px 9px;margin-right:8px;cursor:pointer;font-family:var(--f-body)}
+.ph h2 .newi:hover{background:var(--accent-soft)}
 .mmjst{font:inherit;font-size:.7rem;border:1px solid var(--line);border-radius:999px;padding:1px 8px;background:var(--panel);color:var(--muted);margin-left:6px;vertical-align:3px;cursor:pointer}
 .mmjst.ok{color:var(--accent);border-color:var(--accent)}
 .mmjst.warn{color:var(--warn);border-color:var(--warn)}
@@ -345,7 +347,14 @@ textarea{min-height:120px;resize:vertical}
 .owl{font-size:.8rem;color:var(--accent);white-space:nowrap}
 .opsmsg:empty{display:none}
 .opsmsg{flex-basis:100%;font-size:.8rem}
-.snip{display:block;font-size:.8rem;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.snip{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;font-size:.82rem;color:var(--muted);line-height:1.45;margin:2px 0}
+.rt{display:flex;align-items:baseline;gap:6px;min-width:0}.rt b{min-width:0;overflow-wrap:anywhere}
+.tg{display:inline-block;font-size:.66rem;font-weight:600;letter-spacing:.04em;text-transform:uppercase;border:1px solid var(--line);border-radius:4px;padding:0 5px;margin-left:5px;color:var(--muted);background:var(--bg);white-space:nowrap}
+.mt{display:flex;flex-wrap:wrap;align-items:center;gap:2px 0;font-size:.76rem;color:var(--muted)}
+.mt .cdot{margin-right:5px}
+.mt .dt{margin-left:7px}
+.sdot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:5px;background:var(--gold)}
+.sdot.working{background:var(--accent);opacity:.6}.sdot.done{background:var(--accent)}
 .rowpath{display:block;font-size:.76rem;color:var(--muted);white-space:normal;overflow-wrap:anywhere;min-width:0}
 .lr .fpop1{margin-left:auto;border:0;background:none;color:var(--accent);font-size:.78rem;padding:0 4px;border-radius:5px;opacity:0;flex-shrink:0}
 .lr:hover .fpop1,.lr:focus-within .fpop1,.lr.sel .fpop1{opacity:.9}
@@ -424,7 +433,7 @@ textarea{min-height:120px;resize:vertical}
 
     <section class="pane" id="pFiles" aria-label="Files">
       <div class="ph">
-        <h2><button class="tgm" id="tglMap" type="button" title="Hide or show the Map" aria-label="Hide or show the Map">☰</button> <span id="fTitle">All files</span> <span class="r"><small id="fCount"></small><button class="pop" data-pop="files" type="button" title="Pop out as a window">⧉</button></span></h2>
+        <h2><button class="tgm" id="tglMap" type="button" title="Hide or show the Map" aria-label="Hide or show the Map">☰</button> <span id="fTitle">All files</span> <span class="r"><button class="ob newi" id="fNew" type="button" title="New item in this folder">＋ New</button><small id="fCount"></small><button class="pop" data-pop="files" type="button" title="Pop out as a window">⧉</button></span></h2>
         <div class="bulk">
           <label class="chk"><input type="checkbox" id="selAll"> Select all</label>
           <span class="meta" id="selN"></span>
@@ -762,7 +771,7 @@ const titleFor = v => typeof v === "string" && v.startsWith("wf:") ? (v.length >
 const rowH = r => r.type === "mmjnote" ? `<div class="row${cur === r.id ? " on" : ""}" data-id="${esc(r.id)}" tabindex="0"><input type="checkbox" disabled title="MMJ notes are moved and deleted in Siyagah for now" aria-label="MMJ note">
       <span><b>📝 ${esc(r.title)}</b><span class="st ${r.vis ? "pub" : "priv"}">${r.vis ? "👁 visitors" : "🔒 private"}</span><span class="meta">MMJ note · from Siyagah${r.tags?.length ? " · " + esc(r.tags.slice(0, 4).join(", ")) : ""}${r.at ? " · " + esc(when(r.at)) : ""}</span>${pathLine(r)}</span></div>` : r.type === "card" ? cardRow(r) : `<div class="row${cur === r.id ? " on" : ""}" data-id="${r.id}" tabindex="0">
       <input type="checkbox" aria-label="Tick ${esc(r.title)}" ${sel.has(r.id) ? "checked" : ""}>
-      <span><b>${r.type === "post" ? "🎬 " : "🎙 "}${esc(r.title)}</b>${r.type === "post" ? `<span class="st ${esc(r.status)}">${STATUS[r.status] || ""}</span>` : ""}<span class="meta">${r.type === "post" ? `Video post · ${esc(r.lang)}${r.len && r.len !== "—" ? " · " + esc(r.len) : ""}${r.ytUrl ? " · on YouTube" : ""}` : `${esc(r.src)} · ${esc(r.lang)}${r.dur ? " · " + esc(r.dur) : ""}${r.post ? " · 🎬 has a video post" : ""}`}${r.at ? " · " + esc(when(r.at)) : ""}${r.shared ? " · 🔗" : ""}</span>
+      <span><span class="rt"><b>${r.type === "post" ? "🎬 " : "🎙 "}${esc(r.title)}</b>${r.type === "post" ? `<span class="st ${esc(r.status)}">${STATUS[r.status] || ""}</span>` : ""}</span>${r.type === "post" ? (r.lang || r.len ? `<span class="snip">${esc([r.lang, r.len && r.len !== "—" ? r.len : "", r.ytUrl ? "on YouTube" : ""].filter(Boolean).join(" · "))}</span>` : "") : `<span class="snip">${esc([r.src, r.lang, r.dur, r.post ? "🎬 has a video post" : ""].filter(Boolean).join(" · "))}${textOf(r) ? " — " + esc(textOf(r).slice(0, 200)) : ""}</span>`}${metaLine(r)}
       ${pathLine(r)}</span></div>`;
 function draw() {
   COUNTS = new Map(); let unf = 0;
@@ -1216,9 +1225,11 @@ function setLay(l) { FL.lay = l; saveFL(); const c = l === "cards"; $("lyNote").
 $("lyNote").onclick = () => setLay("note"); $("lyCards").onclick = () => setLay("cards");
 
 // rows and cards
+const STW = { todo: "To do", working: "Doing", done: "Done" };
+const metaLine = r => `<span class="mt">${r.type === "card" ? cdot(r) : `<span class="sdot ${stOf(r)}"></span>`}${STW[stOf(r)]}${projOf(r).map(p => `<span class="tg">${esc(p)}</span>`).join("")}<span class="tg">${esc(typeOf(r))}</span>${jobOf(r) ? `<span class="tg">${esc(jobOf(r))}</span>` : ""}${r.at ? `<span class="dt">${esc(when(r.at))}</span>` : ""}${r.show || r.vis || r.status === "pub" ? '<span class="dt">👁</span>' : ""}</span>`;
 function cardRow(r) {
   return `<div class="row${cur === r.id ? " on" : ""}" data-id="${esc(r.id)}" tabindex="0"><input type="checkbox" aria-label="Tick ${esc(r.title)}" ${sel.has(r.id) ? "checked" : ""}>
-    <span><b>${cdot(r)}${ICONOF(r)} ${esc(r.title)}</b>${r.new ? '<span class="newb">New</span>' : ""}<span class="meta">${esc(typeOf(r))} · ${esc(projOf(r).join(", "))}${jobOf(r) ? " · " + esc(jobOf(r)) : ""}${verOf(r) ? " · v" + esc(verOf(r)) : ""}${r.at ? " · " + esc(when(r.at)) : ""}${r.show ? " · 👁 visitors" : ""}</span>${r.what ? `<span class="snip">${esc(String(r.what).slice(0, 200))}</span>` : ""}
+    <span><span class="rt"><b>${ICONOF(r)} ${esc(r.title)}</b>${verOf(r) ? `<span class="tg">v${esc(verOf(r))}</span>` : ""}${r.new ? '<span class="newb">New</span>' : ""}</span>${r.what ? `<span class="snip">${esc(String(r.what).slice(0, 300))}</span>` : ""}${metaLine(r)}
     ${pathLine(r)}</span></div>`;
 }
 function drawCards(list) {
@@ -1288,6 +1299,7 @@ function drawCard(c) {
 // + Add item (a card; a file goes to your Drive folder “To BwN” and is linked on the card)
 function dlg(title, body, foot) { $("wfdlgT").textContent = title; $("wfdlgB").innerHTML = body; $("wfdlgF").innerHTML = foot; $("wfdlg").showModal(); }
 $("wfdlgX").onclick = () => $("wfdlg").close();
+$("fNew").onclick = () => $("wAdd").click();
 $("wAdd").onclick = () => { if (!ownerOk) return toast("Sign in first.");
   const at = typeof view === "number" ? { mmj: view, mmjName: BY.get(view)?.name || "", mmjPath: BY.get(view)?.path || "" } : typeof view === "string" && view.startsWith("wf:") && view.length > 3 ? { wf: view.slice(3) } : { wf: "bwn" };
   dlg("Add an item", `<div class="mgrid">
