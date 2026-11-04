@@ -814,15 +814,17 @@ function draw() {
   const sp = $("special"); sp.innerHTML = "";
   [["all", "All files", ITEMS.length], ["unfiled", "Not yet filed", unf]].forEach(([v, t, n]) => {
     const b = document.createElement("button"); b.type = "button"; b.className = "tl" + (view === v ? " on" : ""); b.innerHTML = `<span>${t}</span><span class="c">${n}</span>`;
-    b.onclick = () => { view = v; sel.clear(); draw(); tab("files"); }; sp.append(b); });
+    b.onclick = () => { view = v; sel.clear(); clearFilters(); draw(); tab("files"); }; sp.append(b); });
   drawLTree(); drawWfTools();
   try { localStorage.setItem("viView", JSON.stringify({ view, cur })); } catch { }
   let list = FL.q.trim() ? ITEMS : listFor(view); // a search looks in every folder
-  drawFilters(list); list = sortL(applyF(list)); LAST = list;
+  drawFilters(list); const all = list.length; list = sortL(applyF(list)); LAST = list; const hid = all - list.length;
   $("fTitle").textContent = FL.q.trim() ? `Search: “${FL.q.trim()}”` : titleFor(view);
-  $("fCount").textContent = list.length + (list.length === 1 ? " file" : " files");
+  $("fCount").textContent = list.length + (list.length === 1 ? " file" : " files") + (hid ? ` · ${hid} hidden` : "");
   $("rows").innerHTML = list.length ? groupsOf(list).map(([g, arr]) => (g === null ? "" : `<div class="grp">${esc(g)} · ${arr.length}</div>`) + arr.map(rowH).join("")).join("")
-    : `<p class="empty">${user ? (ITEMS.length ? "Nothing matches here. Tap Show all." : "No recordings here. Record or upload one with the buttons at the top.") : "Sign in to see your recordings."}</p>`;
+    : `<p class="empty">${!user && !DEMO ? "Sign in to see your recordings." : hid ? `This folder has ${hid} item${hid > 1 ? "s" : ""}, hidden by the filters. <button class="link" type="button" id="showHid">Show all</button>` : "Nothing in this folder yet. Tap <b>＋ New</b> to add an item here."}</p>`;
+  if (hid && list.length) $("rows").insertAdjacentHTML("beforeend", `<p class="empty">${hid} more item${hid > 1 ? "s" : ""} in this folder hidden by the filters. <button class="link" type="button" id="showHid">Show all</button></p>`);
+  if ($("showHid")) $("showHid").onclick = () => { clearFilters(); draw(); };
   $("rows").querySelectorAll(".row").forEach(el => {
     const id = el.dataset.id, cb = el.querySelector("input");
     cb.onclick = e => { e.stopPropagation(); cb.checked ? sel.add(id) : sel.delete(id); bulkState(list); };
@@ -892,6 +894,8 @@ function drawLTree() {
     if (r.classList.contains("sel")) { const u = document.createElement("span"); u.className = "updn";
       u.innerHTML = `<button type="button" data-shift="-1" title="Move this folder up (Alt+↑)" aria-label="Move folder up">↑</button><button type="button" data-shift="1" title="Move this folder down (Alt+↓)" aria-label="Move folder down">↓</button>`; r.insertBefore(u, r.querySelector(".fpop1")); } });
 }
+function clearFilters() { Object.assign(FL, { q: "", topic: "", subject: "", project: "", type: "", st: "" }); saveFL(); }
+$("ltree").addEventListener("click", e => { if (e.target.closest(".lr[data-f],.lr[data-lf],.lr[data-wf],.lr[data-wt]") && !e.target.closest(".fpop1,[data-shift],[data-dot],.ltw")) clearFilters(); }, true);
 $("ltree").addEventListener("click", e => { const pb = e.target.closest(".fpop1"); if (pb) { e.stopPropagation(); popFolder(pb.dataset.pop); return; }
   const r = e.target.closest(".lr"); if (!r) return;
   if (r.dataset.f) { const id = +r.dataset.f; if (OPEN.has(id) && view === id) OPEN.delete(id); else OPEN.add(id); saveOpen(); view = id; sel.clear(); draw(); }
@@ -1020,7 +1024,7 @@ const kindOf = r => ICONS[r.ckind] ? r.ckind : "Other";
 const typeOf = r => r.type === "mmjnote" ? "Note" : r.type === "rec" ? "Voice" : r.type === "post" ? "Video" : (TLAB[kindOf(r)] || kindOf(r));
 const ICONOF = r => ICONS[typeOf(r)] || "◇";
 const cdot = r => `<button type="button" class="cdot ${CSTAT.includes(r.status) ? r.status : "todo"}" data-dot="${esc(r.id)}" title="Status: ${esc(r.status || "todo")} (tap: todo → working → done)" aria-label="Status ${esc(r.status || "todo")}, tap to change"></button>`;
-const projOf = r => r.type === "card" && r.projects?.length ? r.projects : ["BwN"];
+const projOf = r => r.type === "card" && r.projects?.length ? [...new Set(r.projects.map(p => PNAME[String(p).toLowerCase()] || p))] : ["BwN"]; // "mmsa" and "MSA" are the same project
 const topOf = r => Array.isArray(r.topics) ? r.topics : [];
 const subjOf = r => r.wf ? "WorkFlow" : r.mmj && BY.has(r.mmj) ? BY.get(ancestors(r.mmj).at(-1)).name : "Not yet filed";
 const mmjPath = id => ancestors(id).reverse().map(x => BY.get(x)?.name || "").join(" › ");
