@@ -689,6 +689,8 @@ async function realApi() {
     async inboxDone(id) { await fs.deleteDoc(fs.doc(db, "inbox", id)); },
     async showPublic(id, doc) { if (doc) await fs.setDoc(fs.doc(db, "posts", id), { ...doc, updated: fs.serverTimestamp() }); else await fs.deleteDoc(fs.doc(db, "posts", id)); },
     async savePage(id, f) { await fs.setDoc(fs.doc(db, "pages", id), f, { merge: true }); },
+    async pageKeys() { const d = await fs.getDoc(fs.doc(db, "postPrivate", "pagelist")); return d.exists() ? d.data().keys || [] : []; },
+    async addPageKeys(keys) { await fs.setDoc(fs.doc(db, "postPrivate", "pagelist"), { kind: "pagelist", keys: fs.arrayUnion(...keys) }, { merge: true }); },
     async pagePub(id, pub) { await fs.updateDoc(fs.doc(db, "pages", id), { pub: !!pub }); },
   };
 }
@@ -717,7 +719,7 @@ function demoApi() {
     async wfFolders() { return structuredClone(wf); }, async saveWf(list) { wf = structuredClone(list); },
     async inbox(n = 8, after = "") { return structuredClone(box.filter(x => !after || x.id > after).sort((a, b) => a.id < b.id ? -1 : 1).slice(0, n)); }, async inboxDone(id) { box = box.filter(x => x.id !== id); },
     async showPublic(id, doc) { const i = posts.findIndex(p => p.id === id); if (i >= 0) posts.splice(i, 1); if (doc) posts.push({ id, ...doc }); },
-    async savePage() { }, async pagePub() { },
+    async savePage() { }, async pagePub() { }, async pageKeys() { return []; }, async addPageKeys() { },
   };
 }
 // Google Picker: ticked files become visible to this page (drive.file). A close button guards against Google error pages.
@@ -782,6 +784,7 @@ async function refresh() {
   ITEMS.sort((a, b) => (b.at || "").localeCompare(a.at || ""));
   [...sel].forEach(id => { if (!ITEMS.some(r => r.id === id)) sel.delete(id); });
   if (cur && !ITEMS.some(r => r.id === cur)) cur = null;
+  try { (await api.pageKeys()).forEach(k => PKEYS.add(k)); } catch { } ITEMS.forEach(r => r.pkey && PKEYS.add(r.pkey));
   draw(); if (!draft) showNote();
 }
 // the list for a view: "all", "unfiled", a Map folder (number), "lf:<id>" or "wf:<id>"
@@ -1033,12 +1036,15 @@ async function takeInbox() {
     for (let round = 0; round < 500; round++) {
       const box = await api.inbox(8, after).catch(() => []); if (!box.length) break; after = box[box.length - 1].id;
       for (const x of box) { try {
+        if (String(x.cid || "").startsWith("page-") && x.pkey && typeof x.page === "string" && x.page) { // a page sent on its own (no card)
+          await api.savePage(cleanId(x.pkey), { name: String(x.name || ""), html: x.page, at: String(x.at || new Date().toISOString()), by: String(x.by || "") }); await api.addPageKeys([cleanId(x.pkey)]).catch(() => { });
+          PKEYS.add(cleanId(x.pkey)); await api.inboxDone(x.id); n++; continue; }
         const id = "card-" + (cleanId(x.pid) || "x") + "-" + (cleanId(x.cid) || cleanId(x.id)), old = have.get(id);
         const c = { name: String(x.name || "Untitled").slice(0, 300), what: String(x.what || ""), url: String(x.url || ""), ckind: ICONS[x.kind] ? x.kind : "Other", ver: String(x.ver || ""), by: String(x.by || ""),
           at: String(x.at || new Date().toISOString()), pid: cleanId(x.pid), projects: Array.isArray(x.projects) && x.projects.length ? x.projects.map(String) : [PNAME[x.pid] || x.pid || "BwN"], topics: Array.isArray(x.topics) ? x.topics.map(String) : [] };
         if (Array.isArray(x.items)) c.items = x.items.slice(0, 200);
         if (x.pkey) { c.pkey = cleanId(x.pkey); c.orig = String(x.orig || ""); }
-        if (x.pkey && typeof x.page === "string" && x.page) await api.savePage(cleanId(x.pkey), { name: c.name, html: x.page, at: c.at, by: c.by });
+        if (x.pkey && typeof x.page === "string" && x.page) { await api.savePage(cleanId(x.pkey), { name: c.name, html: x.page, at: c.at, by: c.by }); await api.addPageKeys([cleanId(x.pkey)]).catch(() => { }); PKEYS.add(cleanId(x.pkey)); }
         if (!old) { Object.assign(c, { status: CSTAT.includes(x.status) ? x.status : "todo", new: x.new !== false });
           if (Number.isInteger(x.mmj)) Object.assign(c, { mmj: x.mmj, mmjName: BY.get(x.mmj)?.name || "", mmjPath: BY.get(x.mmj)?.path || "" });
           else c.wf = wfFor(x); }
@@ -1101,7 +1107,12 @@ function drawWfTools() {
 
 
 // ---------- Mapping My Journey from Siyagah (Stage 2 R1: read-only; BWN J27) ----------
-let MMJN = [], MMJSRC = "website", mmjApi = null, mmjBusy = false;
+let MMJN = [], MMJSRC = "website", mmjApi = null, mmjBusy = false, PKEYS = new Set();
+const ARTRE = /^https:\/\/claude\.ai\/artifact\/([A-Za-z0-9]{10,40})(#.*)?$/;
+const VIEWER = "https://basheerawanazeera.github.io/BasheeraWaNazeera/library/page.html?p=";
+// the link a card opens: its BwN copy when the Database holds one, else its own link (owner, 4 Nov: Claude links often do not open)
+const openUrl = c => { const m = ARTRE.exec(String(c.url || "").trim()); if (m && (PKEYS.has(m[1]) || c.pkey === m[1])) return VIEWER + m[1] + (m[2] || ""); return c.url || ""; };
+const onlyClaude = c => ARTRE.test(String(c.url || "").trim()) && openUrl(c) === c.url;
 const fnv = s => { let h = 2166136261; for (const ch of s) { h ^= ch.codePointAt(0); h = Math.imul(h, 16777619) >>> 0; } return h; };
 const mnum = sid => !sid ? 0 : /^mmj-c-\d+$/.test(sid) ? +sid.slice(6) : -(fnv(sid) % 1e9) - 1; // site folders keep their number; the owner's own folders get a stable stand-in
 function mmjState(st, msg) { const b = $("mmjst"); if (!b) return; b.hidden = false; b.className = "mmjst" + (st === "live" ? " ok" : st === "denied" || st === "error" ? " warn" : "");
@@ -1272,7 +1283,7 @@ function drawCards(list) {
     <article class="wcard" data-id="${esc(r.id)}"><div class="t">${r.type === "card" ? cdot(r) : ""}${ICONOF(r)} ${esc(r.title)}${r.new ? '<span class="newb">New</span>' : ""}</div>
       <div class="meta">${esc(typeOf(r))} · ${esc(projOf(r).join(", "))}${r.ver ? " · " + esc(r.ver) : ""} · ${esc(stageOf(r))}</div>${pathLine(r)}
       <p>${esc(r.what || textOf(r) || r.lang || "")}</p>
-      <div class="acts"><button type="button" data-open="${esc(r.id)}">Open note</button>${r.url ? `<a href="${esc(r.url)}" target="_blank" rel="noopener">↗ Own window</a>` : ""}</div></article>`).join("")}</div>`).join("")
+      <div class="acts"><button type="button" data-open="${esc(r.id)}">Open note</button>${r.url ? `<a href="${esc(openUrl(r))}" target="_blank" rel="noopener">↗ Own window</a>` : ""}</div></article>`).join("")}</div>`).join("")
     : `<p class="empty">Nothing matches. Tap Show all.</p>`;
   host.querySelectorAll("[data-dot]").forEach(b => b.onclick = () => cycleCard(b.dataset.dot));
   host.querySelectorAll("[data-open]").forEach(b => b.onclick = () => { cur = b.dataset.open; draft = null; setLay("note"); showNote(); tab("note"); });
@@ -1294,8 +1305,9 @@ function drawCard(c) {
     <div class="chips2">${cdot(c)}<span class="chip">${esc(c.status || "todo")}</span><span class="chip">${esc(typeOf(c))}</span><span class="chip">${esc(c.by || "")}${c.at ? " · " + esc(when(c.at)) : ""}</span>${c.show ? '<span class="chip pub">Visitors see its link</span>' : '<span class="chip draft">Only you see it</span>'}</div>
     <div class="nbar"><span class="fname">📁 <b>${esc(folderOf(c))}</b></span>
       <button class="btn ghost" id="nFolder" type="button">Map folder</button><button class="btn ghost" id="nWf" type="button">WorkFlow folder</button>
-      ${c.url ? `<a class="btn" href="${esc(c.url)}" target="_blank" rel="noopener">↗ Open in its own window</a><button class="btn ghost" id="nView" type="button">View here</button>` : ""}
+      ${c.url ? `<a class="btn" href="${esc(openUrl(c))}" target="_blank" rel="noopener">↗ Open in its own window</a><button class="btn ghost" id="nView" type="button">View here</button>` : ""}
       <button class="ib" id="nDel" type="button" title="Delete this card" aria-label="Delete this card">🗑</button></div>
+    ${onlyClaude(c) ? `<p class="pnote">This page is still only in Claude: it opens when you are signed in to claude.ai in this browser. The BwN Architect copies it into your Database so it opens anywhere.</p>` : ""}
     <div class="cview" id="cView" hidden></div>
     <div class="mgrid">
       <label for="cKind">Kind</label><select id="cKind">${kinds.map(k => `<option value="${k}"${kindOf(c) === k ? " selected" : ""}>${TLAB[k] || k}</option>`).join("")}</select>
@@ -1328,7 +1340,7 @@ function drawCard(c) {
   $("nWf").onclick = () => { const opts = WF.map(f => ({ id: f.id, name: wfPath(f.id).replace(/^WorkFlow › /, "") }));
     dlg("WorkFlow folder for “" + c.title + "”", opts.map((o, i) => `<button type="button" class="wfpick" data-k="${i}">${esc(o.name)}</button>`).join(""), "");
     $("wfdlgB").querySelectorAll(".wfpick").forEach(b => b.onclick = async () => { const o = opts[+b.dataset.k]; $("wfdlg").close(); await save({ wf: o.id, mmj: null, mmjName: "", mmjPath: "", new: false, show: false }, "Filed in " + o.name + "."); refresh(); }); };
-  if ($("nView")) $("nView").onclick = () => { const v = $("cView"); v.hidden = !v.hidden; v.innerHTML = v.hidden ? "" : viewerHTML(c.url); $("nView").textContent = v.hidden ? "View here" : "Close viewer"; };
+  if ($("nView")) $("nView").onclick = () => { const v = $("cView"); v.hidden = !v.hidden; v.innerHTML = v.hidden ? "" : viewerHTML(openUrl(c)); $("nView").textContent = v.hidden ? "View here" : "Close viewer"; };
   $("nDel").onclick = async () => { if (!confirm(`Delete the card “${c.title}”?\n\nOnly the card goes; the page or file it links to stays.`)) return;
     try { if (c.show) await api.showPublic(c.id, null); await api.remove(c.id); cur = null; toast("Card deleted."); refresh(); } catch (e) { setupNote(e); } };
   if (c.new) cardSave(c, { new: false }).then(draw).catch(() => { });
