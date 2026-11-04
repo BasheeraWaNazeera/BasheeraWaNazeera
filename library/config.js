@@ -16,4 +16,7 @@ export const firebaseConfig = {
 // Siyagah's shared Mapping My Journey copy (BWN J27 Stage 2, Siyagah R1). Public web identifiers from the
 // Firebase console of Siyagah's project, and the owner's Siyagah notebook id: given by the owner. Until then
 // the Map reads the folders from mappingmyjourney.com.
-export const siyagah = { config: null, notebook: "" };
+export const siyagah = {
+  config: { apiKey: "AIzaSyBxrQ5uNrerOAFiCmUbUkUM8tjMpjKygsA", authDomain: "aaas-notebook.firebaseapp.com", projectId: "aaas-notebook", storageBucket: "aaas-notebook.firebasestorage.app", messagingSenderId: "32292493079" },
+  notebook: "nb-mriuc27o-f44402",
+};
