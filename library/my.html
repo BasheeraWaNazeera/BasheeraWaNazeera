@@ -287,6 +287,16 @@ textarea{min-height:120px;resize:vertical}
 .cdot{width:14px;height:14px;border-radius:50%;border:2px solid var(--muted);background:transparent;padding:0;flex:none;vertical-align:-2px;margin-right:4px}
 .cdot.working{border-color:var(--gold);background:linear-gradient(90deg,var(--gold) 50%,transparent 50%)}
 .cdot.done{border-color:var(--accent);background:var(--accent)}
+.mks{display:inline-flex;gap:3px;margin-left:6px;flex-shrink:0;vertical-align:1px}
+.mk{font-size:.68rem;border-radius:999px;padding:0 6px;line-height:1.5;font-weight:600;white-space:nowrap;background:var(--accent-soft);color:var(--ink)}
+.lr .mk{padding:0 2px;background:none}
+.mk.urg{background:#fbe1dd;color:#9b1c10}.mk.imp{background:#fdf0cf;color:#7a5200}.mk.og{background:#dcecf9;color:#164e7e}
+.lr .mk.urg,.lr .mk.imp,.lr .mk.og{background:none}
+.mkdim{opacity:.45}.mkdim:hover,.mkdim.sel,.mkdim.on{opacity:.8}
+.nmk{display:inline-flex;gap:2px;margin-right:6px}
+.mkb{border:1px solid var(--line);background:var(--panel);border-radius:6px;font-size:.78rem;line-height:1;padding:3px 5px;cursor:pointer;opacity:.55}
+.mkb.on{opacity:1;background:var(--accent-soft);border-color:var(--accent)}
+.trow{display:flex;align-items:center;justify-content:space-between;gap:10px}
 .newb{font-size:.66rem;background:var(--warn);color:var(--panel);border-radius:999px;padding:0 6px;margin-left:6px;vertical-align:2px;font-weight:600}
 .grp{font-size:.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;padding:9px 12px 3px;border-bottom:1px solid var(--line);background:var(--panel);position:sticky;top:0;z-index:1}
 .fwin.drop{outline:3px dashed var(--gold)}
@@ -469,9 +479,10 @@ textarea{min-height:120px;resize:vertical}
           <span class="meta" id="selN"></span>
           <button class="btn ghost" id="bMove" disabled>Move to folder</button>
           <button class="btn ghost" id="bShare" disabled>Share link</button>
+          <select class="qf" id="bMark" disabled aria-label="Mark the ticked items"><option value="">Mark ▾</option><option value="urg">🚨 Urgent</option><option value="imp">❗ Important</option><option value="og">🔄 On-going</option><option value="dim">◐ Dim</option><option value="clear">Clear marks</option></select>
           <button class="btn warn" id="bDel" disabled>Delete</button>
           <span class="lbar" id="lbar">
-      <select class="qf" id="wProject" aria-label="Project"></select><select class="qf" id="wType" aria-label="Type of data"></select><select class="qf" id="wSt" aria-label="Status"><option value="">Any status</option><option value="todo">To do</option><option value="working">Doing</option><option value="done">Done</option></select><span class="fpw"><button class="tbtn" id="wTog" type="button" aria-expanded="false" aria-controls="fpop">Filters ▾</button>
+      <select class="qf" id="wProject" aria-label="Project"></select><select class="qf" id="wType" aria-label="Type of data"></select><select class="qf" id="wSt" aria-label="Status"><option value="">Any status</option><option value="todo">To do</option><option value="working">Doing</option><option value="done">Done</option><option value="mk:urg">🚨 Urgent</option><option value="mk:imp">❗ Important</option><option value="mk:og">🔄 On-going</option><option value="mk:dim">◐ Dimmed</option></select><span class="fpw"><button class="tbtn" id="wTog" type="button" aria-expanded="false" aria-controls="fpop">Filters ▾</button>
         <span class="fpop" id="fpop" hidden>
           <select id="wTopic" aria-label="Topic"></select>
           <select id="wSubject" aria-label="Subject"></select>
@@ -487,7 +498,7 @@ textarea{min-height:120px;resize:vertical}
     </section>
 
     <section class="pane" id="pNote" aria-label="Note">
-      <div class="ph"><h2><span id="nHead">Note</span><span class="r"><button class="ob newi" id="nDelH" type="button" hidden title="Delete this item">Delete</button><button class="pop" data-pop="note" type="button" title="Pop out as a window">⧉</button></span></h2></div>
+      <div class="ph"><h2><span id="nHead">Note</span><span class="r"><span class="nmk" id="nMk" hidden></span><button class="ob newi" id="nDelH" type="button" hidden title="Delete this item">Delete</button><button class="pop" data-pop="note" type="button" title="Pop out as a window">⧉</button></span></h2></div>
       <div class="note" id="note"></div>
     </section>
   </main>
@@ -686,6 +697,9 @@ async function realApi() {
     async saveCard(id, f) { await fs.setDoc(fs.doc(db, "postPrivate", id), { ...f, kind: "card" }, { merge: true }); },
     async wfFolders() { const d = await fs.getDoc(fs.doc(db, "postPrivate", "wf-folders")); return d.exists() ? d.data().list || [] : []; },
     async saveWf(list) { await fs.setDoc(fs.doc(db, "postPrivate", "wf-folders"), { kind: "wf", list }); },
+    async marks() { const d = await fs.getDoc(fs.doc(db, "postPrivate", "marks")); return d.exists() ? d.data().m || {} : {}; },
+    async saveMarks(m) { await fs.setDoc(fs.doc(db, "postPrivate", "marks"), { kind: "marks", m }, { merge: true }); },
+    async delPost(id) { await fs.deleteDoc(fs.doc(db, "posts", id)); },
     async saveLF(id, f) { await fs.setDoc(fs.doc(db, "folders", id), f, { merge: true }); },
     async delLF(id) { await fs.deleteDoc(fs.doc(db, "folders", id)); },
     async inbox(n = 8, after = "") { const q = after ? fs.query(fs.collection(db, "inbox"), fs.orderBy(fs.documentId()), fs.startAfter(after), fs.limit(n)) : fs.query(fs.collection(db, "inbox"), fs.orderBy(fs.documentId()), fs.limit(n));
@@ -698,7 +712,7 @@ async function realApi() {
     async pagePub(id, pub) { await fs.updateDoc(fs.doc(db, "pages", id), { pub: !!pub }); },
   };
 }
-let lfd = null, idTok = null;
+let lfd = null, idTok = null, mkd;
 function demoApi() {
   const recs = [], blobs = new Map(), privs = {}; let n = 0;
   const posts = [{ id: "pdemo1", title: "The Need for Quranic Revival", no: "002", folder: "f12", kind: "VIDEO", lang: "English", len: "6:25", status: "draft", date: "25 Oct 2026", ytUrl: "", audioUrl: "", articleUrl: "", text: [{ t: "0:00", s: "Example talk text." }] }];
@@ -712,7 +726,9 @@ function demoApi() {
     async saveRec(id, rec) { const i = recs.findIndex(r => r.id === id); const v = { id, kind: "voice", ...(i >= 0 ? recs[i] : {}), ...rec }; i >= 0 ? recs[i] = v : recs.push(v); },
     async remove(id) { const i = recs.findIndex(r => r.id === id); if (i >= 0) recs.splice(i, 1); },
     async posts() { return structuredClone(posts); }, async folders() { return structuredClone(lfd ??= [{ id: "s1", range: "(000)", name: "Section 01 · Quran Revival", parent: null, order: 0 }, { id: "f12", range: "(021–040)", name: "Short clips (1 minute)", parent: "s1", order: 1 }]); }, async saveLF(id, f) { lfd ??= []; const x = lfd.find(o => o.id === id); x ? Object.assign(x, f) : lfd.push({ id, ...f }); }, async delLF(id) { lfd = (lfd || []).filter(o => o.id !== id); }, async privOf(id) { return privs[id] || { raw: [], versions: [] }; },
-    async savePost(id, f) { Object.assign(posts.find(x => x.id === id), f); },
+    async savePost(id, f) { const x = posts.find(o => o.id === id); x ? Object.assign(x, f) : posts.push({ id, ...f }); },
+    async marks() { return structuredClone(mkd ??= {}); }, async saveMarks(m) { mkd ??= {}; for (const k in m) mkd[k] = { ...(mkd[k] || {}), ...m[k] }; },
+    async delPost(id) { const i = posts.findIndex(o => o.id === id); if (i >= 0) posts.splice(i, 1); },
     async addPost(id, post, priv) { posts.push({ id, ...post }); privs[id] = priv; },
     async upload(blob, name) { const id = "demo" + (++n); blobs.set(id, blob); return { id, name, mimeType: blob.type, size: blob.size, webViewLink: "#" }; },
     async adopt() { throw new Error("Not in demo mode."); }, async tag() { },
@@ -781,9 +797,9 @@ const STATUS = { pub: "Published", draft: "Draft", priv: "Private" };
 async function refresh() {
   if (!api) return setTimeout(refresh, 100);
   try { await takeInbox();
-    const [recs, ps, lf, cs, wf] = await Promise.all([api.list(), api.posts(), api.folders().catch(() => []), api.cards().catch(() => []), api.wfFolders().catch(() => [])]); LF = lf; setWF(wf);
+    const [recs, ps, lf, cs, wf, mk] = await Promise.all([api.list(), api.posts(), api.folders().catch(() => []), api.cards().catch(() => []), api.wfFolders().catch(() => []), api.marks().catch(() => ({}))]); LF = lf; setWF(wf); MK = mk || {};
     if (await autoFile(ps)) return refresh();
-    ITEMS = MMJN.concat(recs.map(r => ({ ...r, type: "rec" }))).concat(ps.filter(p => p.kind !== "LINK").map(p => ({ ...p, type: "post", at: p.at || postAt(p) })), cs.map(c => ({ ...c, type: "card", title: c.name || "Untitled" })));
+    ITEMS = MMJV().concat(recs.map(r => ({ ...r, type: "rec" }))).concat(ps.filter(p => p.kind !== "LINK").map(p => ({ ...p, type: "post", at: p.at || postAt(p) })), cs.map(c => ({ ...c, type: "card", title: c.name || "Untitled" })));
   } catch (e) { $("rows").innerHTML = `<p class="empty">Could not load: ${esc(e.message)}</p>`; return; }
   ITEMS.sort((a, b) => (b.at || "").localeCompare(a.at || ""));
   [...sel].forEach(id => { if (!ITEMS.some(r => r.id === id)) sel.delete(id); });
@@ -801,9 +817,9 @@ function listFor(v) {
   return v === "all" ? ITEMS : v === "unfiled" ? ITEMS.filter(r => !r.wf && (!r.mmj || !BY.has(r.mmj))) : ITEMS.filter(r => r.mmj && ancestors(r.mmj).includes(v));
 }
 const titleFor = v => typeof v === "string" && v.startsWith("wt:") ? wfName(v.slice(3).split("|")[0]) + " › " + TPL(v.slice(3).split("|")[1]) : titleFor0(v);
-const titleFor0 = v => typeof v === "string" && v.startsWith("wf:") ? (v.length > 3 ? wfName(v.slice(3)) : "WorkFlow · all cards") : v === "all" ? "All files" : v === "unfiled" ? "Not yet filed"
+const titleFor0 = v => v === "trash" ? "🗑 Trash" : typeof v === "string" && v.startsWith("wf:") ? (v.length > 3 ? wfName(v.slice(3)) : "WorkFlow · all cards") : v === "all" ? "All files" : v === "unfiled" ? "Not yet filed"
   : typeof v === "string" && v.startsWith("lf:") ? (LF.find(f => f.id === v.slice(3))?.name || "Library folder") : BY.get(v)?.name || "Folder";
-const rowH = r => r.type === "mmjnote" ? `<div class="row${cur === r.id ? " on" : ""}" data-id="${esc(r.id)}" tabindex="0"><input type="checkbox" disabled title="MMJ notes are moved and deleted in Siyagah for now" aria-label="MMJ note">
+const rowH = r => r.type === "mmjnote" ? `<div class="row${cur === r.id ? " on" : ""}" data-id="${esc(r.id)}" tabindex="0"><input type="checkbox" aria-label="Tick ${esc(r.title)}" ${sel.has(r.id) ? "checked" : ""}>
       <span><b>📝 ${esc(r.title)}</b><span class="st ${r.vis ? "pub" : "priv"}">${r.vis ? "👁 visitors" : "🔒 private"}</span><span class="meta">MMJ note · from Siyagah${r.tags?.length ? " · " + esc(r.tags.slice(0, 4).join(", ")) : ""}${r.at ? " · " + esc(when(r.at)) : ""}</span>${pathLine(r)}</span></div>` : r.type === "card" ? cardRow(r) : `<div class="row${cur === r.id ? " on" : ""}" data-id="${r.id}" tabindex="0">
       <input type="checkbox" aria-label="Tick ${esc(r.title)}" ${sel.has(r.id) ? "checked" : ""}>
       <span><span class="rt"><b>${r.type === "post" ? "🎬 " : "🎙 "}${esc(r.title)}</b>${r.type === "post" ? `<span class="st ${esc(r.status)}">${STATUS[r.status] || ""}</span>` : ""}</span>${r.type === "post" ? (r.lang || r.len ? `<span class="snip">${esc([r.lang, r.len && r.len !== "—" ? r.len : "", r.ytUrl ? "on YouTube" : ""].filter(Boolean).join(" · "))}</span>` : "") : `<span class="snip">${esc([r.src, r.lang, r.dur, r.post ? "🎬 has a video post" : ""].filter(Boolean).join(" · "))}${textOf(r) ? " — " + esc(textOf(r).slice(0, 200)) : ""}</span>`}${metaLine(r)}
@@ -812,11 +828,13 @@ function draw() {
   COUNTS = new Map(); let unf = 0;
   ITEMS.forEach(r => { if (r.mmj && BY.has(r.mmj)) ancestors(r.mmj).forEach(a => COUNTS.set(a, (COUNTS.get(a) || 0) + 1)); else if (!r.wf) unf++; });
   const sp = $("special"); sp.innerHTML = "";
-  [["all", "All files", ITEMS.length], ["unfiled", "Not yet filed", unf]].forEach(([v, t, n]) => {
+  const tl = trashList(); if (view === "trash" && !tl.length) view = "all";
+  [["all", "All files", ITEMS.length], ["unfiled", "Not yet filed", unf]].concat(tl.length ? [["trash", "🗑 Trash", tl.length]] : []).forEach(([v, t, n]) => {
     const b = document.createElement("button"); b.type = "button"; b.className = "tl" + (view === v ? " on" : ""); b.innerHTML = `<span>${t}</span><span class="c">${n}</span>`;
     b.onclick = () => { view = v; sel.clear(); clearFilters(); draw(); tab("files"); }; sp.append(b); });
   drawLTree(); drawWfTools();
   try { localStorage.setItem("viView", JSON.stringify({ view, cur })); } catch { }
+  if (view === "trash") return drawTrash(tl);
   let list = FL.q.trim() ? ITEMS : listFor(view); // a search looks in every folder
   drawFilters(list); const all = list.length; list = sortL(applyF(list)); LAST = list; const hid = all - list.length;
   $("fTitle").textContent = FL.q.trim() ? `Search: “${FL.q.trim()}”` : titleFor(view);
@@ -833,13 +851,16 @@ function draw() {
     el.draggable = true; el.ondragstart = e => { e.dataTransfer.setData("text/bwn", id); e.dataTransfer.effectAllowed = "move"; };
   });
   $("rows").querySelectorAll("[data-dot]").forEach(b => b.onclick = e => { e.stopPropagation(); cycleCard(b.dataset.dot); });
-  drawCards(list); drawFwins();
+  drawCards(list); drawFwins(); paintMarks(document.body);
   $("selAll").onchange = () => { list.forEach(r => $("selAll").checked ? sel.add(r.id) : sel.delete(r.id)); draw(); };
   bulkState(list);
 }
+function drawTrash(tl) { $("fTitle").textContent = "🗑 Trash · deleted from BwN"; $("fCount").textContent = tl.length + (tl.length === 1 ? " item" : " items");
+  $("rows").innerHTML = `<p class="empty">Mapping My Journey items deleted here are only hidden in BwN; Siyagah still holds them. Restore brings them back.</p>` + tl.map(t => `<div class="row trow"><span><b>${esc(t.kind.split(" ")[0])} ${esc(t.name)}</b><span class="meta">${esc(t.kind.slice(3))}${MK[t.k].at ? " · deleted " + esc(when(MK[t.k].at)) : ""}</span></span><button class="btn ghost" type="button" data-rest="${esc(t.k)}">Restore</button></div>`).join("");
+  $("rows").querySelectorAll("[data-rest]").forEach(b => b.onclick = () => setMark([b.dataset.rest], "trash", false)); bulkState([]); }
 function bulkState(list) {
   const n = sel.size; $("selN").textContent = n ? n + " ticked" : "";
-  ["bMove", "bShare", "bDel"].forEach(id => $(id).disabled = !n);
+  ["bMove", "bShare", "bDel", "bMark"].forEach(id => $(id).disabled = !n);
   $("selAll").checked = !!list.length && list.every(r => sel.has(r.id)); $("selAll").indeterminate = n > 0 && !$("selAll").checked;
   buildMenus();
 }
@@ -881,8 +902,8 @@ function drawLTree() {
   if (q.length >= 2) return drawTree(host, { counts: COUNTS, only: onlyWith, sel: typeof view === "number" ? view : null, q, onPick: f => { view = f.id; ancestors(f.id).forEach(a => OPEN.add(a)); saveOpen(); $("fq").value = ""; sel.clear(); draw(); tab("files"); } });
   const items = id => ITEMS.filter(r => r.mmj === id);
   const itemRow = r => `<li><div class="lr${cur === r.id ? " sel" : ""}" data-i="${esc(r.id)}" tabindex="0"><span class="ltw"></span>${r.type === "post" && r.no ? `<span class="rng">${esc(r.no)}</span>` : ""}<span class="nm">${r.type === "card" ? cdot(r) + ICONOF(r) : r.type === "post" ? "🎬" : r.type === "mmjnote" ? "📝" : "🎙"} ${esc(r.title)}</span><span class="kind">${r.type === "post" ? (r.kind === "AUDIO" ? "AUDIO" : "VIDEO") : r.type === "card" ? esc((r.ckind || "CARD").toUpperCase()) : r.type === "mmjnote" ? "NOTE" : "REC"}</span>${r.type === "post" && r.status !== "pub" ? `<span class="lock">${r.status === "draft" ? "draft" : "private"}</span>` : ""}</div></li>`;
-  const build = pid => (KIDS.get(pid) || []).filter(f => !onlyWith || COUNTS.get(f.id)).map(f => {
-    const kids = (KIDS.get(f.id) || []).filter(k => !onlyWith || COUNTS.get(k.id)), its = items(f.id), has = kids.length || its.length, open = has && OPEN.has(f.id), [rng, nm] = splitName(f.name), n = COUNTS.get(f.id);
+  const build = pid => (KIDS.get(pid) || []).filter(f => (!onlyWith || COUNTS.get(f.id)) && !mkOf("m:" + f.id).trash).map(f => {
+    const kids = (KIDS.get(f.id) || []).filter(k => (!onlyWith || COUNTS.get(k.id)) && !mkOf("m:" + k.id).trash), its = items(f.id), has = kids.length || its.length, open = has && OPEN.has(f.id), [rng, nm] = splitName(f.name), n = COUNTS.get(f.id);
     return `<li><div class="lr${view === f.id ? " sel" : ""}" data-f="${f.id}" tabindex="0"${has ? ` aria-expanded="${open}"` : ""}><span class="ltw">${has ? (open ? "−" : "+") : ""}</span>${rng ? `<span class="rng">${esc(rng)}</span>` : ""}<span class="nm">${esc(nm)}</span>${n ? `<span class="cnt">(${n})</span>` : ""}</div>${open ? `<ul>${build(f.id)}${its.map(itemRow).join("")}</ul>` : ""}</li>`;
   }).join("");
   const wfh = wfTreeHTML(), lfh = lfTreeHTML(), mm = build(0);
@@ -893,6 +914,7 @@ function drawLTree() {
   host.querySelectorAll(".lr[data-wf]:not([data-wf='']):not([data-wf='inbox']),.lr[data-lf]:not([data-lf=''])").forEach(r => { r.draggable = true;
     if (r.classList.contains("sel")) { const u = document.createElement("span"); u.className = "updn";
       u.innerHTML = `<button type="button" data-shift="-1" title="Move this folder up (Alt+↑)" aria-label="Move folder up">↑</button><button type="button" data-shift="1" title="Move this folder down (Alt+↓)" aria-label="Move folder down">↓</button>`; r.insertBefore(u, r.querySelector(".fpop1")); } });
+  paintMarks(host);
 }
 function clearFilters() { Object.assign(FL, { q: "", topic: "", subject: "", project: "", type: "", st: "" }); saveFL(); }
 $("ltree").addEventListener("click", e => { if (e.target.closest(".lr[data-f],.lr[data-lf],.lr[data-wf],.lr[data-wt]") && !e.target.closest(".fpop1,[data-shift],[data-dot],.ltw")) clearFilters(); }, true);
@@ -934,7 +956,7 @@ const moveTo = (rs, f) => Promise.all(rs.map(async r => { const m = { mmj: f.id,
   if (r.type === "post") return api.savePost(r.id, m);
   if (r.type === "card") return cardSave(r, { ...m, wf: null, new: false });
   await api.saveRec(r.id, m); for (const x of r.files || []) await api.tag(x.id, { mmj: String(f.id) }).catch(() => { }); }));
-function bulkMove() { const rs = picked(); if (!rs.length) return;
+function bulkMove() { const rs0 = picked(), rs = rs0.filter(r => r.type !== "mmjnote"); if (rs.length < rs0.length) toast("MMJ notes move in Siyagah for now; they were left out.", 5000); if (!rs.length) return;
   // choose where: a WorkFlow folder or Section (cards; any file into a Section), or a Mapping My Journey folder
   const opts = WF.filter(f => rs.every(r => r.type === "card") || secRoot(f.id)).map(f => ({ id: f.id, name: wfPath(f.id).replace(/^WorkFlow › /, secRoot(f.id) ? "Section › " : "WorkFlow › ") }));
   dlg(`Move ${rs.length} item${rs.length > 1 ? "s" : ""} to…`, `<button type="button" class="wfpick" data-k="mmj">📚 A Mapping My Journey folder…</button>` + opts.map((o, i) => `<button type="button" class="wfpick" data-k="${i}">${esc(o.name)}</button>`).join(""), "");
@@ -942,13 +964,10 @@ function bulkMove() { const rs = picked(); if (!rs.length) return;
     try { await fileWf(rs, opts[+b.dataset.k].id); } catch (e) { setupNote(e); } sel.clear(); refresh(); }); }
 function bulkMoveMMJ(rs) {
   openMap(`Move ${rs.length} file${rs.length > 1 ? "s" : ""} to…`, rs.map(r => r.title + " " + (r.text || "")).join(" "), rs[0].mmj, async f => { try { await moveTo(rs, f); toast("Moved to " + f.name + "."); } catch (e) { setupNote(e); } sel.clear(); refresh(); }); }
-function bulkDel() { const nPost = picked().filter(r => r.type === "post").length;
-  if (nPost) { picked().filter(r => r.type === "post").forEach(r => sel.delete(r.id)); toast(`${nPost} video post${nPost > 1 ? "s were" : " was"} left out: video posts are not deleted here (set them to Draft or Private instead).`, 6000); draw(); }
-  const n = sel.size; if (!n || !confirm(`Delete ${n} recording${n > 1 ? "s" : ""}?\n\nTheir files go to your Google Drive Bin (restorable there for 30 days) and they leave this Inbox.`)) return;
-  bulk("Deleting", async r => { if (r.type === "card" && r.show) await api.showPublic(r.id, null); await api.remove(r.id, r.files); }).then(() => { if (sel.has(cur)) cur = null; }); }
-const bulkShare = on => bulk(on ? "Sharing" : "Unsharing", async r => { if (r.type === "post" || r.type === "card") return; for (const x of r.files || []) await api.share(x.id, on); await api.saveRec(r.id, { shared: on }); })
+function bulkDel() { delItems(picked()); }
+const bulkShare = on => bulk(on ? "Sharing" : "Unsharing", async r => { if (r.type === "post" || r.type === "card" || r.type === "mmjnote") return; for (const x of r.files || []) await api.share(x.id, on); await api.saveRec(r.id, { shared: on }); })
   .then(() => { if (on) toast("Links are open to anyone who has them. Copy one from a file’s note.", 5000); });
-$("bMove").onclick = bulkMove; $("bDel").onclick = bulkDel; $("bShare").onclick = () => bulkShare(true);
+$("bMove").onclick = bulkMove; $("bDel").onclick = bulkDel; $("bMark").onchange = e => { const f = e.target.value; e.target.value = ""; if (f) setMark([...sel].map(id => "i:" + id), f); }; $("bShare").onclick = () => bulkShare(true);
 
 
 // a small menu that floats above every section (never cut off by a section's edge)
@@ -1146,7 +1165,7 @@ async function mmjStart() { if (mmjBusy || (DEMO && !new URLSearchParams(locatio
       try { localStorage.setItem("mmjTreeSiy", JSON.stringify({ at: Date.now(), t: TREE })); } catch { } index(); draw(); if (!mapwin.hidden) drawMap(); },
     onNotes: list => { MMJN = list.map(n => ({ id: "mmj:" + n.id, nid: n.id, type: "mmjnote", title: n.title || "Untitled note", at: n.updatedAt || n.createdAt || "", mmj: mnum((n.folderIds || [])[0]),
       mmjAll: (n.folderIds || []).map(mnum), html: n.content || "", tags: Array.isArray(n.tags) ? n.tags : [], vis: n.vis === 1 }));
-      ITEMS = ITEMS.filter(r => r.type !== "mmjnote").concat(MMJN); draw(); if (cur?.startsWith?.("mmj:")) showNote(); } });
+      ITEMS = ITEMS.filter(r => r.type !== "mmjnote").concat(MMJV()); draw(); if (cur?.startsWith?.("mmj:")) showNote(); } });
   } catch (e) { mmjState("error", e.message); } }
 async function drawMMJNote(r) {
   const N = $("note");
@@ -1164,6 +1183,62 @@ async function drawMMJNote(r) {
     html = html.replace(new RegExp(`data-pic="${sha}"`, "g"), `data-pic="${sha}" src="${data}"`); } catch { } }
   if (shas.length && $("mmjview") && cur === r.id) $("mmjview").srcdoc = frame();
 }
+// ---------- marks on every file and folder: On-going, Important, Urgent, Dim; Trash for MMJ items (owner, 5 Nov) ----------
+let MK = {};
+const MKS = [["urg", "🚨", "Urgent"], ["imp", "❗", "Important"], ["og", "🔄", "On-going"], ["dim", "◐", "Dim"]];
+const mkOf = k => MK[k] || {};
+const keyOfEl = el => el.dataset.id !== undefined ? "i:" + el.dataset.id : el.dataset.i !== undefined ? "i:" + el.dataset.i : el.dataset.f ? "m:" + el.dataset.f : el.dataset.lf ? "lf:" + el.dataset.lf : el.dataset.wf !== undefined ? "wf:" + el.dataset.wf : el.dataset.wt ? "wt:" + el.dataset.wt : null;
+const keyOfView = v => typeof v === "number" ? "m:" + v : typeof v === "string" && /^(wf|lf|wt):/.test(v) ? v : null;
+const trashed = r => r.type === "mmjnote" && (mkOf("i:" + r.id).trash || (r.mmj && ancestors(r.mmj).some(a => mkOf("m:" + a).trash)));
+const MMJV = () => MMJN.filter(r => !trashed(r));
+function paintMarks(host) { if (!host) return;
+  host.querySelectorAll(".row[data-id],.lr[data-i],.lr[data-f],.lr[data-lf],.lr[data-wf],.lr[data-wt]").forEach(el => { const k = keyOfEl(el); if (!k) return; const m = mkOf(k);
+    el.classList.toggle("mkdim", !!m.dim); el.querySelectorAll(".mks").forEach(x => x.remove());
+    const on = MKS.filter(([f]) => f !== "dim" && m[f]); if (!on.length) return;
+    const b = document.createElement("span"); b.className = "mks";
+    b.innerHTML = on.map(([f, ic, t]) => el.classList.contains("row") ? `<span class="mk ${f}" title="${t}">${ic} ${t}</span>` : `<span class="mk ${f}" title="${t}">${ic}</span>`).join("");
+    const rt = el.classList.contains("row") && el.querySelector(".rt"); if (rt) return rt.append(b);
+    const at = el.classList.contains("row") ? el.querySelector("b") : el.querySelector(".nm"); at ? at.after(b) : el.append(b); }); }
+async function setMark(keys, f, val) { if (!ownerOk && !DEMO) return; const at = new Date().toISOString(), patch = {};
+  if (val === undefined) val = !keys.every(k => mkOf(k)[f]);
+  keys.forEach(k => { const v = f === "clear" ? { og: false, imp: false, urg: false, dim: false } : { [f]: val }; MK[k] = { ...mkOf(k), ...v, at }; patch[k] = { ...v, at }; });
+  try { await api.saveMarks(patch); } catch (e) { setupNote(e); }
+  if (f === "trash") { ITEMS = ITEMS.filter(r => r.type !== "mmjnote").concat(MMJV()); if (cur && !ITEMS.some(r => r.id === cur)) cur = null; }
+  const T = { urg: "Urgent", imp: "Important", og: "On-going", dim: "Dim" }[f];
+  if (T) toast(`${T} ${val ? "on" : "off"}${keys.length > 1 ? " for " + keys.length : ""}.`); else if (f === "clear") toast("Marks cleared.");
+  draw(); showNote(); }
+const mkMenuItems = keys => MKS.map(([f, ic, t]) => [(keys.every(k => mkOf(k)[f]) ? "✓ " : "") + ic + " " + t, () => setMark(keys, f)]).concat([["Clear marks", () => setMark(keys, "clear"), !keys.some(k => MKS.some(([f]) => mkOf(k)[f]))]]);
+// delete any file: cards and recordings as before; video posts with Undo; MMJ notes go to BwN's Trash (Siyagah keeps them until its R2)
+async function delItems(rs) { rs = rs.filter(Boolean); if (!rs.length) return;
+  const nm = rs.filter(r => r.type === "mmjnote"), np = rs.filter(r => r.type === "post"), nr = rs.filter(r => r.type !== "mmjnote" && r.type !== "post");
+  const lines = [nr.length ? `${nr.length} card(s)/recording(s): deleted (recording files go to your Google Drive Bin for 30 days).` : "",
+    np.length ? `${np.length} video post(s): deleted${np.some(r => r.status === "pub") ? " (visitors stop seeing the published ones)" : ""}; Undo for 9 seconds.` : "",
+    nm.length ? `${nm.length} MMJ note(s): moved to BwN’s Trash (hidden here; Siyagah keeps them). Restore from 🗑 Trash.` : ""].filter(Boolean);
+  if (!confirm(`Delete ${rs.length === 1 ? "“" + rs[0].title + "”" : rs.length + " items"}?\n\n${lines.join("\n")}`)) return;
+  let i = 0; const keepP = np.map(r => { const { type, id, ...rest } = r; return [id, rest]; });
+  try { for (const r of nr) { $("opsmsg").textContent = `Deleting ${++i} of ${rs.length}…`; if (r.type === "card" && r.show) await api.showPublic(r.id, null); await api.remove(r.id, r.files); }
+    for (const r of np) { $("opsmsg").textContent = `Deleting ${++i} of ${rs.length}…`; await api.delPost(r.id); } } catch (e) { setupNote(e); }
+  $("opsmsg").textContent = ""; rs.forEach(r => sel.delete(r.id)); if (rs.some(r => r.id === cur)) cur = null;
+  if (nm.length) await setMark(nm.map(r => "i:" + r.id), "trash", true);
+  toast(`Deleted: ${rs.length}.`); refresh();
+  if (np.length || nm.length) undoT(`Deleted ${rs.length === 1 ? "“" + rs[0].title.slice(0, 40) + "”" : rs.length + " items"}`, async () => { for (const [id, rest] of keepP) await api.savePost(id, rest); if (nm.length) await setMark(nm.map(r => "i:" + r.id), "trash", false); }); }
+async function mmjTrash(c) { const n = MMJN.filter(r => r.mmj && ancestors(r.mmj).includes(c.id)).length;
+  if (!confirm(`Delete the MMJ folder “${c.name}”${n ? ` and its ${n} note(s)` : ""} from BwN?\n\nIt moves to BwN’s 🗑 Trash (hidden here). Siyagah keeps it until its shared folders (R2) arrive. Restore any time from 🗑 Trash.`)) return;
+  await setMark(["m:" + c.id], "trash", true); if (typeof view === "number" && ancestors(view).includes(c.id)) view = "all"; draw();
+  undoT(`Deleted “${c.name.slice(0, 40)}”`, () => setMark(["m:" + c.id], "trash", false)); }
+const trashList = () => { const fs0 = Object.keys(MK).filter(k => k.startsWith("m:") && MK[k].trash && BY.has(+k.slice(2))).map(k => ({ k, name: BY.get(+k.slice(2)).name, kind: "📁 MMJ folder" }));
+  const ns = MMJN.filter(r => mkOf("i:" + r.id).trash).map(r => ({ k: "i:" + r.id, name: r.title, kind: "📝 MMJ note" })); return fs0.concat(ns); };
+function itemMenu(x, y, id) { const r = ITEMS.find(o => o.id === id), m = $("ctx"); if (!r || (!ownerOk && !DEMO)) return; const k = ["i:" + id], mm = r.type === "mmjnote";
+  const it = [["Open", () => { draft = null; cur = id; draw(); showNote(); tab("note"); }], ...(r.url ? [["↗ Open in its own window", () => window.open(openUrl(r), "_blank", "noopener")]] : []), "-", ...mkMenuItems(k), "-",
+    ["Move to folder…", () => { sel.clear(); sel.add(id); bulkMove(); }, mm], ["🗑 Delete…", () => delItems([r])]];
+  m.innerHTML = `<div class="ch">${esc(r.title)}</div>` + it.map((t, i) => t === "-" ? "<hr>" : `<button type="button" role="menuitem" data-i="${i}"${t[2] ? " disabled" : ""}>${esc(t[0])}</button>`).join("") + (mm ? `<div class="ch">MMJ notes move in Siyagah for now; Delete puts them in BwN’s Trash.</div>` : "");
+  m.hidden = false; const b = m.getBoundingClientRect(); m.style.left = Math.max(6, Math.min(x, innerWidth - b.width - 6)) + "px"; m.style.top = Math.max(6, Math.min(y, innerHeight - b.height - 6)) + "px";
+  m.querySelectorAll("button[data-i]").forEach(b => b.onclick = () => { m.hidden = true; it[+b.dataset.i][1](); }); m.querySelector("button:not(:disabled)")?.focus(); }
+const fileEl = t => t.closest(".row[data-id],.lr[data-i]"), fileId = el => el.dataset.id ?? el.dataset.i;
+document.addEventListener("contextmenu", e => { const el = fileEl(e.target); if (!el) return; e.preventDefault(); itemMenu(e.clientX, e.clientY, fileId(el)); });
+let lpI; document.addEventListener("pointerdown", e => { if (e.pointerType !== "touch") return; const el = fileEl(e.target); if (!el) return; clearTimeout(lpI); lpI = setTimeout(() => { el.dataset.lp = "1"; itemMenu(e.clientX, e.clientY, fileId(el)); }, 550); });
+["pointerup", "pointermove", "pointercancel"].forEach(t => document.addEventListener(t, () => clearTimeout(lpI)));
+document.addEventListener("click", e => { const el = e.target.closest("[data-lp]"); if (el) { delete el.dataset.lp; e.stopPropagation(); e.preventDefault(); } }, true);
 // ---------- folder tools: one row on the Map + right-click menu (owner, 4 Nov) ----------
 const MMJWAIT = "Mapping My Journey folders are added, renamed, moved and deleted through Siyagah’s shared folders (Stage 2, BWN J27). That link is being built; until then use Siyagah or the website for MMJ folders.";
 function fctx(v) {
@@ -1174,7 +1249,7 @@ function fctx(v) {
 }
 function drawFolderTools() {
   const c = ownerOk ? fctx(view) : null, mm = c?.k === "mmj";
-  $("fAdd").disabled = !c; ["fRen", "fMov", "fDel"].forEach(id => $(id).disabled = !c || c.fixed);
+  $("fAdd").disabled = !c; ["fRen", "fMov", "fDel"].forEach(id => $(id).disabled = !c || c.fixed); if (c?.k === "mmj") $("fDel").title = "Delete from BwN (to 🗑 Trash; Siyagah keeps it)";
   $("ftools").title = !c ? "Tap a folder first (or right-click it)" : mm ? MMJWAIT : "For “" + c.name + "”";
 }
 // file items in a WorkFlow folder or a Section: cards anywhere; recordings and video posts only in a Section (they keep their MMJ folder too)
@@ -1203,7 +1278,7 @@ function fMov(c) { if (!c || c.fixed) return; if (c.k === "mmj") return toast(MM
   $("wfdlgB").querySelectorAll(".wfpick").forEach(b => b.onclick = async () => { const o = opts[+b.dataset.k]; $("wfdlg").close();
     if (c.k === "wf") return wfSaveOwn(putOwn(WFOWN, { ...WF.find(f => f.id === c.id), parent: o.id }), "Moved into " + o.name + ".");
     try { await api.saveLF(c.id, { parent: o.id }); toast("Moved into " + o.name + "."); } catch (e) { setupNote(e); } refresh(); }); }
-async function fDel(c) { if (!c || c.fixed) return; if (c.k === "mmj") return toast(MMJWAIT, 7000);
+async function fDel(c) { if (!c || c.fixed) return; if (c.k === "mmj") return mmjTrash(c);
   if (c.k === "wf") { const ids = wfIn(c.id), cs = ITEMS.filter(r => r.type === "card" && ids.has(r.wf)), os = ITEMS.filter(r => r.type !== "card" && ids.has(r.wf));
     if (!confirm(`Delete the WorkFlow folder “${c.name}”${ids.size > 1 ? ` and the ${ids.size - 1} folder(s) inside` : ""}?${cs.length ? ` Its ${cs.length} card(s) move to the Inbox.` : ""} You can undo.`)) return;
     const before = JSON.parse(JSON.stringify(WFOWN)), old = cs.map(r => [r, r.wf]); let list = WFOWN.slice();
@@ -1244,7 +1319,7 @@ $("fAdd").onclick = () => fAdd(fctx(view)); $("fRen").onclick = () => fRen(fctx(
 const vOfRow = r => r.dataset.f ? +r.dataset.f : r.dataset.lf !== undefined ? (r.dataset.lf ? "lf:" + r.dataset.lf : null) : r.dataset.wf !== undefined ? "wf:" + r.dataset.wf : null;
 function ctxMenu(x, y, v) { const c = fctx(v), m = $("ctx"); if (!c || !ownerOk) return; const mm = c.k === "mmj", dis = mm || c.fixed;
   const it = [["Open", () => { view = v; sel.clear(); draw(); tab("files"); }], ["＋ New Section (top of the Map)…", () => $("fSec").click()], ["⧉ Open as its own window", () => popFolder(typeof v === "number" ? "m" + v : v)], "-",
-    ["+ New folder inside…", () => fAdd(c), mm], ["Rename…", () => fRen(c), dis], ["Move to…", () => fMov(c), dis], ["↑ Move up", () => fShift(c, -1), dis], ["↓ Move down", () => fShift(c, 1), dis], ["Delete…", () => fDel(c), dis]];
+    ["+ New folder inside…", () => fAdd(c), mm], ["Rename…", () => fRen(c), dis], ["Move to…", () => fMov(c), dis], ["↑ Move up", () => fShift(c, -1), dis], ["↓ Move down", () => fShift(c, 1), dis], "-", ...mkMenuItems([keyOfView(v)]), "-", ["🗑 Delete…", () => fDel(c), c.fixed]];
   if (mm) it.push("-", ["+ New post here", () => { view = v; $("newpost").click(); }]);
   m.innerHTML = `<div class="ch">${esc(c.name)}</div>` + it.map((t, i) => t === "-" ? "<hr>" : `<button type="button" role="menuitem" data-i="${i}"${t[2] ? " disabled" : ""}>${esc(t[0])}</button>`).join("") + (mm ? `<div class="ch">${esc(MMJWAIT)}</div>` : "");
   m.hidden = false; const r = m.getBoundingClientRect(); m.style.left = Math.max(6, Math.min(x, innerWidth - r.width - 6)) + "px"; m.style.top = Math.max(6, Math.min(y, innerHeight - r.height - 6)) + "px";
@@ -1264,7 +1339,7 @@ const saveFL = () => { try { localStorage.setItem("viFilt", JSON.stringify(FL));
 function applyF(list, ignore) { const q = FL.q.trim().toLowerCase();
   return list.filter(r => (ignore === "topic" || !FL.topic || (FL.topic === "(no topic)" ? !topOf(r).length : topOf(r).includes(FL.topic)))
     && (ignore === "subject" || !FL.subject || subjOf(r) === FL.subject) && (ignore === "project" || !FL.project || projOf(r).includes(FL.project))
-    && (ignore === "type" || !FL.type || typeOf(r) === FL.type) && (ignore === "st" || !FL.st || stOf(r) === FL.st)
+    && (ignore === "type" || !FL.type || typeOf(r) === FL.type) && (ignore === "st" || !FL.st || (FL.st.startsWith("mk:") ? !!mkOf("i:" + r.id)[FL.st.slice(3)] : stOf(r) === FL.st))
     && (!q || [r.title, r.what, textOf(r), r.lang, r.ver, r.url, topOf(r).join(" "), projOf(r).join(" "), folderOf(r)].join(" ").toLowerCase().includes(q))); }
 function drawFilters(base) {
   const fill = (id, key, label, vals) => { const b = applyF(base, key), m = new Map(); b.forEach(r => vals(r).forEach(v => m.set(v, (m.get(v) || 0) + 1))); if (FL[key] && !m.has(FL[key])) m.set(FL[key], 0);
@@ -1418,7 +1493,9 @@ $("wAdd").onclick = () => { if (!ownerOk) return toast("Sign in first.");
 // ---------- note pane ----------
 function showNote() { showNote0(); noteHead(); }
 function noteHead() { const r = !draft && ITEMS.find(x => x.id === cur); $("nHead").textContent = r ? `${projOf(r)[0]} · ${typeOf(r)}` : draft ? "New recording" : "Note";
-  const d = document.getElementById("nDel"); $("nDelH").hidden = !d; $("nDelH").onclick = () => document.getElementById("nDel")?.click(); }
+  const d = document.getElementById("nDel"); $("nDelH").hidden = !r; $("nDelH").onclick = () => d ? document.getElementById("nDel")?.click() : delItems([r]);
+  const k = r ? "i:" + r.id : null; $("nMk").hidden = !r; $("nMk").innerHTML = r ? MKS.map(([f, ic, t]) => `<button type="button" class="mkb${mkOf(k)[f] ? " on" : ""}" data-mk="${f}" title="${t}" aria-pressed="${!!mkOf(k)[f]}">${ic}</button>`).join("") : "";
+  $("nMk").querySelectorAll("[data-mk]").forEach(b => b.onclick = () => setMark([k], b.dataset.mk)); }
 function showNote0() {
   const N = $("note"); flushAll();
   if (draft) return drawDraft();
