@@ -158,6 +158,10 @@ textarea{min-height:120px;resize:vertical}
 .oc button{font:inherit;border:0;background:none;color:var(--accent);cursor:pointer;padding:0;text-decoration:underline;text-underline-offset:2px}
 .oc button:disabled{color:var(--muted);text-decoration:none;cursor:default;opacity:.6}
 .ftools{display:inline-flex;gap:2px}
+.mmjst{font:inherit;font-size:.7rem;border:1px solid var(--line);border-radius:999px;padding:1px 8px;background:var(--panel);color:var(--muted);margin-left:6px;vertical-align:3px;cursor:pointer}
+.mmjst.ok{color:var(--accent);border-color:var(--accent)}
+.mmjst.warn{color:var(--warn);border-color:var(--warn)}
+.mmjview{width:100%;height:62vh;border:1px solid var(--line);border-radius:10px;background:#fff}
 .oc{flex-wrap:nowrap!important;gap:2px!important;min-width:0;overflow:hidden}
 .oc .chk{white-space:nowrap}
 .oc .ob{text-decoration:none!important;border-radius:6px!important;padding:2px 5px!important;font-size:.86rem;line-height:1.3;white-space:nowrap}
@@ -407,7 +411,7 @@ textarea{min-height:120px;resize:vertical}
   <main class="panes" id="panes" data-tab="files">
     <aside class="pane" id="pFolders" aria-label="The Map: Mapping My Journey folders">
       <div class="ph">
-        <h2>The Map <span class="r"><button class="link" id="openMap" type="button">⤢ Full window</button><button class="pop" data-pop="folders" type="button" title="Pop out as a window">⧉</button></span></h2>
+        <h2>The Map <button class="mmjst" id="mmjst" type="button" hidden></button><span class="r"><button class="link" id="openMap" type="button">⤢ Full window</button><button class="pop" data-pop="folders" type="button" title="Pop out as a window">⧉</button></span></h2>
         <input type="search" id="fq" placeholder="Find a folder…" aria-label="Find a folder">
         <div class="oc"><label class="chk" title="Show only folders with files"><input type="checkbox" id="onlyWith" aria-label="Show only folders with files"> 📂</label><span style="flex:1"></span><span class="ftools" id="ftools"><button class="ob" id="fSec" type="button" title="New Section: its own group at the top of the Map, for any files" aria-label="New section">＋▤</button><button class="ob" id="fAdd" type="button" title="New folder inside the chosen folder" aria-label="New folder">＋📁</button><button class="ob" id="fRen" type="button" title="Rename the chosen folder" aria-label="Rename folder">✎</button><button class="ob" id="fMov" type="button" title="Move the chosen folder" aria-label="Move folder">⇄</button><button class="ob" id="fDel" type="button" title="Delete the chosen folder (you can undo)" aria-label="Delete folder">🗑</button></span><span class="osep"></span><button class="ob" id="openall" type="button" title="Open all folders (tap again to close all)" aria-label="Open or close all">⊞</button><button class="ob" id="closeall" type="button" hidden>⊟</button><button class="ob" id="newpost" type="button" title="New video post in the chosen folder" aria-label="New video post">＋🎬</button></div>
       </div>
@@ -469,7 +473,8 @@ textarea{min-height:120px;resize:vertical}
 <div class="undot" id="undoT" hidden><span id="undoTt"></span><button type="button" id="undoTb">Undo</button></div>
 
 <script type="module">
-import { firebaseConfig } from "./config.js";
+import { firebaseConfig, siyagah } from "./config.js";
+import { startMMJ } from "./mmj.js";
 import { makePopup, setPopups, editorHTML, wireEditor, flushAll } from "./notepane.js";
 const FB = "https://www.gstatic.com/firebasejs/10.12.2/";
 const DEMO = new URLSearchParams(location.search).has("demo") || !firebaseConfig.apiKey;
@@ -487,13 +492,16 @@ const LANGS = { "en-AU": "English", "bn-BD": "Bangla", "ar-SA": "Arabic" };
 // ---------- the Map: Mapping My Journey folders (id = MMJ folder number) ----------
 let TREE = [], BY = new Map(), KIDS = new Map();
 async function loadTree(force) {
+  try { const c = JSON.parse(localStorage.getItem("mmjTreeSiy") || "null"); if (!force && c?.t?.length) { TREE = c.t; MMJSRC = "siyagah"; return index(); } } catch { }
   const KEY = "mmjTree2";
+  if (MMJSRC === "siyagah" && TREE.length) return index();
   try { const c = JSON.parse(localStorage.getItem(KEY) || "null"); if (!force && c && Date.now() - c.at < 7 * 864e5) { TREE = c.t; return index(); } } catch { }
   const url = p => `https://mappingmyjourney.com/wp-json/wp/v2/categories?per_page=100&page=${p}&_fields=id,name,parent`;
   try {
     const r1 = await fetch(url(1)); const pages = +r1.headers.get("X-WP-TotalPages") || 1;
     const rest = await Promise.all(Array.from({ length: pages - 1 }, (_, i) => fetch(url(i + 2)).then(r => r.json())));
     const tx = document.createElement("textarea");
+    if (MMJSRC === "siyagah") return; // Siyagah's live tree arrived first: it wins
     TREE = [await r1.json(), ...rest].flat().map(c => { tx.innerHTML = c.name; return { id: c.id, name: tx.value, parent: c.parent || 0 }; });
     try { localStorage.setItem(KEY, JSON.stringify({ at: Date.now(), t: TREE })); } catch { }
   } catch {
@@ -505,7 +513,7 @@ async function loadTree(force) {
 function index() {
   BY = new Map(TREE.map(f => [f.id, f])); KIDS = new Map();
   TREE.forEach(f => { const p = BY.has(f.parent) ? f.parent : 0; (KIDS.get(p) || KIDS.set(p, []).get(p)).push(f); });
-  KIDS.forEach(a => a.sort((x, y) => x.name.localeCompare(y.name, "en", { numeric: true })));
+  KIDS.forEach(a => a.sort((x, y) => ((x.order ?? 1e9) - (y.order ?? 1e9)) || x.name.localeCompare(y.name, "en", { numeric: true })));
   TREE.forEach(f => { const p = []; let x = f, n = 0; while (x && n++ < 9) { p.unshift(x.name); x = BY.get(x.parent); } f.path = p.join(" › "); });
 }
 const ancestors = id => { const a = []; let x = BY.get(id), n = 0; while (x && n++ < 9) { a.push(x.id); x = BY.get(x.parent); } return a; };
@@ -584,7 +592,7 @@ async function realApi() {
   const provider = new au.GoogleAuthProvider(); provider.addScope(SCOPE);
   try { const t = JSON.parse(sessionStorage.getItem("bwnDrive") || "null"); if (t && Date.now() - t.at < 50 * 6e4) { token = t.v; tokenAt = t.at; } } catch { }
   const connect = async () => { const r = await au.signInWithPopup(auth, provider); const c = au.GoogleAuthProvider.credentialFromResult(r);
-    token = c?.accessToken || null; tokenAt = Date.now(); try { sessionStorage.setItem("bwnDrive", JSON.stringify({ v: token, at: tokenAt })); } catch { } showAuth(); };
+    token = c?.accessToken || null; tokenAt = Date.now(); idTok = c?.idToken || null; try { sessionStorage.setItem("bwnDrive", JSON.stringify({ v: token, at: tokenAt })); } catch { } showAuth(); };
   const signout = () => { sessionStorage.removeItem("bwnDrive"); token = null; au.signOut(auth); };
   au.onAuthStateChanged(auth, async u => { ownerOk = false; user = u;
     if (u) { try { await fs.getDoc(fs.doc(db, "owner", "check")); ownerOk = true; } catch { } }
@@ -646,7 +654,7 @@ async function realApi() {
     async pagePub(id, pub) { await fs.updateDoc(fs.doc(db, "pages", id), { pub: !!pub }); },
   };
 }
-let lfd = null;
+let lfd = null, idTok = null;
 function demoApi() {
   const recs = [], blobs = new Map(), privs = {}; let n = 0;
   const posts = [{ id: "pdemo1", title: "The Need for Quranic Revival", no: "002", folder: "f12", kind: "VIDEO", lang: "English", len: "6:25", status: "draft", date: "25 Oct 2026", ytUrl: "", audioUrl: "", articleUrl: "", text: [{ t: "0:00", s: "Example talk text." }] }];
@@ -711,7 +719,7 @@ function showAuth() {
   ac.title = $("who").textContent;
   $("ops").querySelectorAll("button,select,label").forEach(b => { if (b.tagName === "LABEL") b.style.pointerEvents = live ? "" : "none"; else b.disabled = !live; });
   $("ops").style.opacity = live ? "" : ".55";
-  if (live) refresh(); else { ITEMS = []; draw(); showNote(); }
+  if (live) { refresh(); mmjStart(); } else { ITEMS = []; draw(); showNote(); }
 }
 function setupNote(e) {
   if (e.code === "token") { $("reconnect").hidden = false; $("acct").classList.add("warn"); toast(e.message, 6000); return; }
@@ -730,7 +738,7 @@ async function refresh() {
   try { await takeInbox();
     const [recs, ps, lf, cs, wf] = await Promise.all([api.list(), api.posts(), api.folders().catch(() => []), api.cards().catch(() => []), api.wfFolders().catch(() => [])]); LF = lf; setWF(wf);
     if (await autoFile(ps)) return refresh();
-    ITEMS = recs.map(r => ({ ...r, type: "rec" })).concat(ps.filter(p => p.kind !== "LINK").map(p => ({ ...p, type: "post", at: p.at || postAt(p) })), cs.map(c => ({ ...c, type: "card", title: c.name || "Untitled" })));
+    ITEMS = MMJN.concat(recs.map(r => ({ ...r, type: "rec" }))).concat(ps.filter(p => p.kind !== "LINK").map(p => ({ ...p, type: "post", at: p.at || postAt(p) })), cs.map(c => ({ ...c, type: "card", title: c.name || "Untitled" })));
   } catch (e) { $("rows").innerHTML = `<p class="empty">Could not load: ${esc(e.message)}</p>`; return; }
   ITEMS.sort((a, b) => (b.at || "").localeCompare(a.at || ""));
   [...sel].forEach(id => { if (!ITEMS.some(r => r.id === id)) sel.delete(id); });
@@ -747,7 +755,8 @@ function listFor(v) {
 }
 const titleFor = v => typeof v === "string" && v.startsWith("wf:") ? (v.length > 3 ? wfName(v.slice(3)) : "WorkFlow · all cards") : v === "all" ? "All files" : v === "unfiled" ? "Not yet filed"
   : typeof v === "string" && v.startsWith("lf:") ? (LF.find(f => f.id === v.slice(3))?.name || "Library folder") : BY.get(v)?.name || "Folder";
-const rowH = r => r.type === "card" ? cardRow(r) : `<div class="row${cur === r.id ? " on" : ""}" data-id="${r.id}" tabindex="0">
+const rowH = r => r.type === "mmjnote" ? `<div class="row${cur === r.id ? " on" : ""}" data-id="${esc(r.id)}" tabindex="0"><input type="checkbox" disabled title="MMJ notes are moved and deleted in Siyagah for now" aria-label="MMJ note">
+      <span><b>📝 ${esc(r.title)}</b><span class="st ${r.vis ? "pub" : "priv"}">${r.vis ? "👁 visitors" : "🔒 private"}</span><span class="meta">MMJ note · from Siyagah${r.tags?.length ? " · " + esc(r.tags.slice(0, 4).join(", ")) : ""}${r.at ? " · " + esc(when(r.at)) : ""}</span>${pathLine(r)}</span></div>` : r.type === "card" ? cardRow(r) : `<div class="row${cur === r.id ? " on" : ""}" data-id="${r.id}" tabindex="0">
       <input type="checkbox" aria-label="Tick ${esc(r.title)}" ${sel.has(r.id) ? "checked" : ""}>
       <span><b>${r.type === "post" ? "🎬 " : "🎙 "}${esc(r.title)}</b>${r.type === "post" ? `<span class="st ${esc(r.status)}">${STATUS[r.status] || ""}</span>` : ""}<span class="meta">${r.type === "post" ? `Video post · ${esc(r.lang)}${r.len && r.len !== "—" ? " · " + esc(r.len) : ""}${r.ytUrl ? " · on YouTube" : ""}` : `${esc(r.src)} · ${esc(r.lang)}${r.dur ? " · " + esc(r.dur) : ""}${r.post ? " · 🎬 has a video post" : ""}`}${r.at ? " · " + esc(when(r.at)) : ""}${r.shared ? " · 🔗" : ""}</span>
       ${pathLine(r)}</span></div>`;
@@ -820,7 +829,7 @@ function drawLTree() {
   if (cur !== drawLTree.last) { drawLTree.last = cur; const c = cur && ITEMS.find(x => x.id === cur); if (c?.mmj && BY.has(c.mmj)) ancestors(c.mmj).forEach(a => OPEN.add(a)); } // show where a newly opened file sits
   if (q.length >= 2) return drawTree(host, { counts: COUNTS, only: onlyWith, sel: typeof view === "number" ? view : null, q, onPick: f => { view = f.id; ancestors(f.id).forEach(a => OPEN.add(a)); saveOpen(); $("fq").value = ""; sel.clear(); draw(); tab("files"); } });
   const items = id => ITEMS.filter(r => r.mmj === id);
-  const itemRow = r => `<li><div class="lr${cur === r.id ? " sel" : ""}" data-i="${esc(r.id)}" tabindex="0"><span class="ltw"></span>${r.type === "post" && r.no ? `<span class="rng">${esc(r.no)}</span>` : ""}<span class="nm">${r.type === "card" ? cdot(r) + ICONOF(r) : r.type === "post" ? "🎬" : "🎙"} ${esc(r.title)}</span><span class="kind">${r.type === "post" ? (r.kind === "AUDIO" ? "AUDIO" : "VIDEO") : r.type === "card" ? esc((r.ckind || "CARD").toUpperCase()) : "REC"}</span>${r.type === "post" && r.status !== "pub" ? `<span class="lock">${r.status === "draft" ? "draft" : "private"}</span>` : ""}</div></li>`;
+  const itemRow = r => `<li><div class="lr${cur === r.id ? " sel" : ""}" data-i="${esc(r.id)}" tabindex="0"><span class="ltw"></span>${r.type === "post" && r.no ? `<span class="rng">${esc(r.no)}</span>` : ""}<span class="nm">${r.type === "card" ? cdot(r) + ICONOF(r) : r.type === "post" ? "🎬" : r.type === "mmjnote" ? "📝" : "🎙"} ${esc(r.title)}</span><span class="kind">${r.type === "post" ? (r.kind === "AUDIO" ? "AUDIO" : "VIDEO") : r.type === "card" ? esc((r.ckind || "CARD").toUpperCase()) : r.type === "mmjnote" ? "NOTE" : "REC"}</span>${r.type === "post" && r.status !== "pub" ? `<span class="lock">${r.status === "draft" ? "draft" : "private"}</span>` : ""}</div></li>`;
   const build = pid => (KIDS.get(pid) || []).filter(f => !onlyWith || COUNTS.get(f.id)).map(f => {
     const kids = (KIDS.get(f.id) || []).filter(k => !onlyWith || COUNTS.get(k.id)), its = items(f.id), has = kids.length || its.length, open = has && OPEN.has(f.id), [rng, nm] = splitName(f.name), n = COUNTS.get(f.id);
     return `<li><div class="lr${view === f.id ? " sel" : ""}" data-f="${f.id}" tabindex="0"${has ? ` aria-expanded="${open}"` : ""}><span class="ltw">${has ? (open ? "−" : "+") : ""}</span>${rng ? `<span class="rng">${esc(rng)}</span>` : ""}<span class="nm">${esc(nm)}</span>${n ? `<span class="cnt">(${n})</span>` : ""}</div>${open ? `<ul>${build(f.id)}${its.map(itemRow).join("")}</ul>` : ""}</li>`;
@@ -843,6 +852,7 @@ $("ltree").addEventListener("dragover", e => { const r = e.target.closest(".lr[d
 $("ltree").addEventListener("dragleave", e => { const r = e.target.closest(".lr"); if (r && !r.contains(e.relatedTarget)) r.classList.remove("drop"); });
 $("ltree").addEventListener("drop", async e => { const r = e.target.closest(".lr[data-f],.lr[data-wf]"); if (!r) return; e.preventDefault(); r.classList.remove("drop");
   const id = e.dataTransfer.getData("text/bwn"), it = ITEMS.find(x => x.id === id); if (!it || !ownerOk) return;
+  if (it.type === "mmjnote") return toast("MMJ notes are moved in Siyagah for now; moving them from here comes with Siyagah’s next step (R2).", 6000);
   const rs = sel.has(id) ? picked() : [it];
   try { if (r.dataset.f) { const f = BY.get(+r.dataset.f); await moveTo(rs, f); toast("Moved to " + f.name + "."); }
     else { const w = r.dataset.wf || "inbox"; await fileWf(rs, w); }
@@ -937,13 +947,13 @@ const PNAME = { bwn: "BwN", mmsa: "MSA", siy: "Siyagah", web: "Web", khutbah: "M
 const WF0 = [{ id: "inbox", name: "🆕 Inbox from the Architects", parent: null, order: 0 }].concat(["bwn", "mmsa", "siy", "web", "khutbah", "pl"].map((id, i) => ({ id, name: PNAME[id], parent: null, order: i + 1 })));
 let WF = WF0.slice(), WFOWN = [], LAST = [];
 const CSTAT = ["todo", "working", "done"];
-const ICONS = { Voice: "🎙", Video: "🎬", Demo: "◧", MyData: "🗄", Database: "🗄", List: "☰", Report: "📄", Other: "◇" };
+const ICONS = { Note: "📝", Voice: "🎙", Video: "🎬", Demo: "◧", MyData: "🗄", Database: "🗄", List: "☰", Report: "📄", Other: "◇" };
 const TLAB = { Database: "MyData" }; // shown names (owner, 4 Nov): Video · Voice · Demo · MyData (databases like the Scholars Database) · List · Report · Other
 const jobOf = r => { const m = String((r.title || "") + " " + (r.ver || "") + " " + (r.cid || "")).match(/\bJ(\d{1,3})\b/i) || String(r.cid || r.id || "").match(/j(\d{2,3})/i); return m ? "J" + m[1].padStart(2, "0") : ""; };
 const verOf = r => { const m = String((r.ver || "") + " " + (r.title || "")).match(/\bv(\d+(?:\.\d+)?)/i); return m ? m[1] : ""; };
 const verNum = r => { const v = verOf(r); return v ? parseFloat(v) : -1; };
 const kindOf = r => ICONS[r.ckind] ? r.ckind : "Other";
-const typeOf = r => r.type === "rec" ? "Voice" : r.type === "post" ? "Video" : (TLAB[kindOf(r)] || kindOf(r));
+const typeOf = r => r.type === "mmjnote" ? "Note" : r.type === "rec" ? "Voice" : r.type === "post" ? "Video" : (TLAB[kindOf(r)] || kindOf(r));
 const ICONOF = r => ICONS[typeOf(r)] || "◇";
 const cdot = r => `<button type="button" class="cdot ${CSTAT.includes(r.status) ? r.status : "todo"}" data-dot="${esc(r.id)}" title="Status: ${esc(r.status || "todo")} (tap: todo → working → done)" aria-label="Status ${esc(r.status || "todo")}, tap to change"></button>`;
 const projOf = r => r.type === "card" && r.projects?.length ? r.projects : ["BwN"];
@@ -1032,6 +1042,43 @@ function drawWfTools() {
 }
 
 
+
+// ---------- Mapping My Journey from Siyagah (Stage 2 R1: read-only; BWN J27) ----------
+let MMJN = [], MMJSRC = "website", mmjApi = null, mmjBusy = false;
+const fnv = s => { let h = 2166136261; for (const ch of s) { h ^= ch.codePointAt(0); h = Math.imul(h, 16777619) >>> 0; } return h; };
+const mnum = sid => !sid ? 0 : /^mmj-c-\d+$/.test(sid) ? +sid.slice(6) : -(fnv(sid) % 1e9) - 1; // site folders keep their number; the owner's own folders get a stable stand-in
+function mmjState(st, msg) { const b = $("mmjst"); if (!b) return; b.hidden = false; b.className = "mmjst" + (st === "live" ? " ok" : st === "denied" || st === "error" ? " warn" : "");
+  b.textContent = st === "live" ? "MMJ · Siyagah ✓" : st === "signin" ? "Connect Siyagah" : st === "denied" ? "Ask the owner to allow this app" : st === "error" ? "MMJ · Siyagah error" : "MMJ · website";
+  b.title = st === "live" ? "Folders and notes read live from Siyagah (read-only for now)" : st === "denied" ? "Siyagah's Firebase must list basheerawanazeera.github.io (Authentication → Settings → Authorised domains). Tries again in 1 minute." : st === "unset" ? "Folders come from mappingmyjourney.com until Siyagah's settings are added (BWN J27)." : (msg || "Tap to sign in to Siyagah with your Google account");
+  b.onclick = st === "signin" ? () => mmjApi?.connect().catch(e => toast(e.message)) : null; }
+const mmjFake = async ({ onTree, onNotes, onState }) => { // demo only (my.html?demo=1&mmj): sample Siyagah data in the documented shape
+  onTree([{ id: "mmj-c-20", n: "(751 - 800) Study Deen - Get the CERTAIN KNOWLEDGE:", p: null, o: 1 }, { id: "mmj-c-241", n: "(1301) Al-Quran - The SOURCE of the CERTAIN knowledge", p: "mmj-c-20", o: 1, vis: 1 }, { id: "u-k3x9", n: "My own new folder (made in Siyagah)", p: "mmj-c-20", o: 2 }], { id: "mmj-sec", n: "Mapping My Journey" });
+  onNotes([{ id: "n1", title: "Ayat on revival (Siyagah note)", content: "<h2>Revival</h2><p>Sample note from Siyagah, with <b>bold</b> text.</p>", tags: ["Quran", "Revival"], folderIds: ["mmj-c-241"], updatedAt: "2026-11-04T03:00:00Z", vis: 1 },
+    { id: "n2", title: "Private reflection", content: "<p>Only the owner sees this.</p>", tags: [], folderIds: ["u-k3x9"], updatedAt: "2026-11-04T02:00:00Z" }]); onState("live"); return { connect: async () => { }, pic: async () => null }; };
+async function mmjStart() { if (mmjBusy || (DEMO && !new URLSearchParams(location.search).has("mmj"))) return; mmjBusy = true;
+  try { mmjApi = await (DEMO ? mmjFake : startMMJ)({ cfg: siyagah?.config, nb: siyagah?.notebook, idToken: idTok, onState: mmjState,
+    onTree: folders => { if (!folders.length) return; TREE = folders.map(f => ({ id: mnum(f.id), sid: f.id, name: String(f.n || ""), parent: mnum(f.p), order: f.o, vis: f.vis === 1 })); MMJSRC = "siyagah";
+      try { localStorage.setItem("mmjTreeSiy", JSON.stringify({ at: Date.now(), t: TREE })); } catch { } index(); draw(); if (!mapwin.hidden) drawMap(); },
+    onNotes: list => { MMJN = list.map(n => ({ id: "mmj:" + n.id, nid: n.id, type: "mmjnote", title: n.title || "Untitled note", at: n.updatedAt || n.createdAt || "", mmj: mnum((n.folderIds || [])[0]),
+      mmjAll: (n.folderIds || []).map(mnum), html: n.content || "", tags: Array.isArray(n.tags) ? n.tags : [], vis: n.vis === 1 }));
+      ITEMS = ITEMS.filter(r => r.type !== "mmjnote").concat(MMJN); draw(); if (cur?.startsWith?.("mmj:")) showNote(); } });
+  } catch (e) { mmjState("error", e.message); } }
+async function drawMMJNote(r) {
+  const N = $("note");
+  N.innerHTML = `<div class="crumb">${pathHTML(placeOf(r))}</div><h2 class="ptitle">${esc(r.title)}</h2>
+    <div class="chips2"><span class="chip">📝 MMJ note · from Siyagah</span><span class="chip ${r.vis ? "pub" : "draft"}">${r.vis ? "👁 Visitors may see it" : "🔒 Private"}</span>${r.at ? `<span class="chip">${esc(when(r.at))}</span>` : ""}${r.tags.map(t => `<span class="chip">${esc(t)}</span>`).join("")}</div>
+    <div class="nbar"><span class="fname">📁 <b>${esc(folderOf(r))}</b>${r.mmjAll.length > 1 ? ` <span class="pnote">+ ${r.mmjAll.length - 1} more folder(s)</span>` : ""}</span><a class="btn ghost" href="https://siyagah.github.io/" target="_blank" rel="noopener">↗ Edit in Siyagah</a></div>
+    <p class="pnote">Read here from Siyagah’s shared copy. Editing, moving and deleting MMJ notes from BwN comes with Siyagah’s next step (R2).</p>
+    <iframe class="mmjview" id="mmjview" title="${esc(r.title)}" sandbox="allow-popups allow-popups-to-escape-sandbox"></iframe>`;
+  let html = r.html || "<p></p>";
+  const shas = [...new Set([...html.matchAll(/data-pic="([0-9a-f]{64})"/g)].map(m => m[1]))];
+  const frame = () => `<!doctype html><meta charset="utf-8"><base target="_blank"><style>body{font:16px/1.6 system-ui,sans-serif;margin:16px;color:#1d2420;overflow-wrap:anywhere}img{max-width:100%;height:auto}</style>${html}`;
+  $("mmjview").srcdoc = frame();
+  for (const sha of shas) { try { const u = await mmjApi?.pic(sha); if (!u) continue; const blob = await (await fetch(u)).blob(); URL.revokeObjectURL(u);
+    const data = await new Promise(ok => { const fr = new FileReader(); fr.onload = () => ok(fr.result); fr.readAsDataURL(blob); });
+    html = html.replace(new RegExp(`data-pic="${sha}"`, "g"), `data-pic="${sha}" src="${data}"`); } catch { } }
+  if (shas.length && $("mmjview") && cur === r.id) $("mmjview").srcdoc = frame();
+}
 // ---------- folder tools: one row on the Map + right-click menu (owner, 4 Nov) ----------
 const MMJWAIT = "Mapping My Journey folders are added, renamed, moved and deleted through Siyagah’s shared folders (Stage 2, BWN J27). That link is being built; until then use Siyagah or the website for MMJ folders.";
 function fctx(v) {
@@ -1257,6 +1304,7 @@ function showNote() {
   if (draft) return drawDraft();
   const r = ITEMS.find(x => x.id === cur);
   if (!r) { N.innerHTML = helpHTML(); return; }
+  if (r.type === "mmjnote") return drawMMJNote(r);
   if (r.type === "post") return drawPost(r);
   if (r.type === "card") return drawCard(r);
   const au = r.files?.find(f => f.audio), f = r.mmj && BY.get(r.mmj);
@@ -1311,7 +1359,7 @@ function helpHTML() {
     <li><b>🗂 WorkFlow · private</b> (top of the Map): your work cards (lists, demos, reports, databases) from MyDatabase, one folder per project. New cards from the Architects arrive in <b>🆕 Inbox</b> with a New mark. Drag a card onto any folder to file it; + Folder, Rename and Move are under “All files” when a WorkFlow folder is open. Tap a card’s dot to go todo → working → done.</li>
     <li><b>Find bar</b> (in the top bar): search, filters by Topic · Subject · Project · Type with counts, Show all, Group and Sort; this device remembers them. <b>▦ Cards</b> shows everything as cards; <b>▥ Notebook</b> brings back the three sections. <b>+ Add item</b> adds a card (a file goes to your Drive folder “To BwN”).</li>
     <li><b>Note</b> (right): ▶ Play, the folder and Choose folder, 🔗 Links (Drive files, share link) and 🗑 on one bar; below it the notes and transcript, which save by itself.</li>
-    <li><b>Sizes:</b> drag the thin bars between the sections to make one wider. <b>⧉</b> on a section’s header pops it out as its own window: drag it by its header, resize it from any side or corner; <b>⇲</b> docks it back (View → Dock all sections). <b>⧉</b> beside any folder opens that folder as its own window; open as many as you like, drag each by its title, resize it from any side or corner, and drop a file or card on it to file it there (View → Close all folder windows). Sizes are remembered on this device.</li><li><b>Sections:</b> <b>＋▤</b> makes a new Section, its own group at the top of the Map (private); drop any file, card or recording in it. <b>Folders:</b> tap a folder, then <b>＋📁 new · ✎ rename · ⇄ move · 🗑 delete</b> on the Map’s top row (⊞ / ⊟ open or close all, ＋🎬 new post, 📂 only folders with files), or right-click a folder (long-press on a phone) for the same menu. WorkFlow and Library folders change at once (delete can be undone); Mapping My Journey folders change through Siyagah’s shared folders (Stage 2).</li><li><b>📄 Pages outside Claude:</b> a card’s page (demo, list, report) is kept in your Library and opens on its own at <code>…/library/page.html</code>, private to you; tick <b>Show to visitors</b> on the card to make that page public (anyone with the link).</li><li><b>Find and sort</b>: search in the top bar; <b>Filters</b> and <b>Sort</b> sit on the Files bar: search, <b>Filters</b> (Topic, Subject, Project, Type, Group) and <b>Sort</b> by date, type, project, size or stage (Draft · Under process · Finished · Published). Every row and note shows 📁 where it belongs; Filters → Folder paths (or View) shows it in one line or as a tree.</li></ul>
+    <li><b>Sizes:</b> drag the thin bars between the sections to make one wider. <b>⧉</b> on a section’s header pops it out as its own window: drag it by its header, resize it from any side or corner; <b>⇲</b> docks it back (View → Dock all sections). <b>⧉</b> beside any folder opens that folder as its own window; open as many as you like, drag each by its title, resize it from any side or corner, and drop a file or card on it to file it there (View → Close all folder windows). Sizes are remembered on this device.</li><li><b>MMJ from Siyagah:</b> once Siyagah is connected (the badge beside “The Map”), your Mapping My Journey folders and 📝 notes come live from Siyagah; open a note to read it here. Editing MMJ notes and folders from BwN comes with Siyagah’s next step. <b>Sections:</b> <b>＋▤</b> makes a new Section, its own group at the top of the Map (private); drop any file, card or recording in it. <b>Folders:</b> tap a folder, then <b>＋📁 new · ✎ rename · ⇄ move · 🗑 delete</b> on the Map’s top row (⊞ / ⊟ open or close all, ＋🎬 new post, 📂 only folders with files), or right-click a folder (long-press on a phone) for the same menu. WorkFlow and Library folders change at once (delete can be undone); Mapping My Journey folders change through Siyagah’s shared folders (Stage 2).</li><li><b>📄 Pages outside Claude:</b> a card’s page (demo, list, report) is kept in your Library and opens on its own at <code>…/library/page.html</code>, private to you; tick <b>Show to visitors</b> on the card to make that page public (anyone with the link).</li><li><b>Find and sort</b>: search in the top bar; <b>Filters</b> and <b>Sort</b> sit on the Files bar: search, <b>Filters</b> (Topic, Subject, Project, Type, Group) and <b>Sort</b> by date, type, project, size or stage (Draft · Under process · Finished · Published). Every row and note shows 📁 where it belongs; Filters → Folder paths (or View) shows it in one line or as a tree.</li></ul>
     <h3>Where your files are kept</h3><ul>
     <li><b>Recordings and Otter files:</b> in your own Google Drive (BasheeraWaNazeera@gmail.com) → My Drive → folder <b>“To BwN”</b>. Nobody else can open them unless you press “Share link”.</li>
     <li><b>Title, folder, transcript and notes:</b> in the BWN Firebase database (project basheera-wa-nazeera), readable only by your Google account.</li>

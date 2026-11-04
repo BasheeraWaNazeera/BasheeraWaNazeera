@@ -12,3 +12,8 @@ export const firebaseConfig = {
 
 // Who may open My view is set only in the database rules (firestore.rules,
 // kept in the BWN repo, not on the public site).
+
+// Siyagah's shared Mapping My Journey copy (BWN J27 Stage 2, Siyagah R1). Public web identifiers from the
+// Firebase console of Siyagah's project, and the owner's Siyagah notebook id: given by the owner. Until then
+// the Map reads the folders from mappingmyjourney.com.
+export const siyagah = { config: null, notebook: "" };
