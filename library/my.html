@@ -647,7 +647,8 @@ async function realApi() {
     async saveWf(list) { await fs.setDoc(fs.doc(db, "postPrivate", "wf-folders"), { kind: "wf", list }); },
     async saveLF(id, f) { await fs.setDoc(fs.doc(db, "folders", id), f, { merge: true }); },
     async delLF(id) { await fs.deleteDoc(fs.doc(db, "folders", id)); },
-    async inbox() { const s = await fs.getDocs(fs.collection(db, "inbox")); return s.docs.map(d => ({ id: d.id, ...d.data() })); },
+    async inbox(n = 8, after = "") { const q = after ? fs.query(fs.collection(db, "inbox"), fs.orderBy(fs.documentId()), fs.startAfter(after), fs.limit(n)) : fs.query(fs.collection(db, "inbox"), fs.orderBy(fs.documentId()), fs.limit(n));
+      const s = await fs.getDocs(q); return s.docs.map(d => ({ id: d.id, ...d.data() })); },
     async inboxDone(id) { await fs.deleteDoc(fs.doc(db, "inbox", id)); },
     async showPublic(id, doc) { if (doc) await fs.setDoc(fs.doc(db, "posts", id), { ...doc, updated: fs.serverTimestamp() }); else await fs.deleteDoc(fs.doc(db, "posts", id)); },
     async savePage(id, f) { await fs.setDoc(fs.doc(db, "pages", id), f, { merge: true }); },
@@ -677,7 +678,7 @@ function demoApi() {
     async cards() { return structuredClone(cards); },
     async saveCard(id, f) { const i = cards.findIndex(c => c.id === id); const v = { id, ...(i >= 0 ? cards[i] : {}), ...f, kind: "card" }; i >= 0 ? cards[i] = v : cards.push(v); },
     async wfFolders() { return structuredClone(wf); }, async saveWf(list) { wf = structuredClone(list); },
-    async inbox() { return structuredClone(box); }, async inboxDone(id) { box = box.filter(x => x.id !== id); },
+    async inbox(n = 8, after = "") { return structuredClone(box.filter(x => !after || x.id > after).sort((a, b) => a.id < b.id ? -1 : 1).slice(0, n)); }, async inboxDone(id) { box = box.filter(x => x.id !== id); },
     async showPublic(id, doc) { const i = posts.findIndex(p => p.id === id); if (i >= 0) posts.splice(i, 1); if (doc) posts.push({ id, ...doc }); },
     async savePage() { }, async pagePub() { },
   };
@@ -944,7 +945,11 @@ async function drawPost(p) {
 // Cards: postPrivate/card-* {kind:"card", name, what, url, ckind, status todo|working|done, ver, projects[], topics[], by, at, wf|mmj, html, new, show, items[]}
 // WorkFlow folders: postPrivate/wf-folders {list:[{id,name,parent,order}]}. Inbox: inbox/{pid-cid}, written by the Architects, read only by the owner.
 const PNAME = { bwn: "BwN", mmsa: "MSA", siy: "Siyagah", web: "Web", khutbah: "MyJumu'a Khutbah", pl: "PCA", qr: "QR" };
-const WF0 = [{ id: "inbox", name: "🆕 Inbox from the Architects", parent: null, order: 0 }].concat(["bwn", "mmsa", "siy", "web", "khutbah", "pl"].map((id, i) => ({ id, name: PNAME[id], parent: null, order: i + 1 })));
+// one folder per Architect, and per Lead inside its project (owner, 4 Nov); Inbox only for cards that name no known folder
+const WF0 = [{ id: "inbox", name: "🆕 Inbox from the Architects", parent: null, order: 0 }].concat(["bwn", "mmsa", "siy", "web", "khutbah", "pl"].map((id, i) => ({ id, name: PNAME[id], parent: null, order: i + 1 })),
+  [["qr", "QuranRevival · QR Lead"], ["mmsa-hadith", "Hadith Lead"], ["mmsa-dua", "Dua Lead"], ["mmsa-health", "Health Lead"]].map(([id, name], i) => ({ id, name, parent: "mmsa", order: i + 1 })),
+  [{ id: "other", name: "Other (no project)", parent: null, order: 20 }]);
+const wfFor = x => WF0.some(f => f.id === x.wf) ? x.wf : WF0.some(f => f.id === x.pid) ? x.pid : "inbox";
 let WF = WF0.slice(), WFOWN = [], LAST = [];
 const CSTAT = ["todo", "working", "done"];
 const ICONS = { Note: "📝", Voice: "🎙", Video: "🎬", Demo: "◧", MyData: "🗄", Database: "🗄", List: "☰", Report: "📄", Other: "◇" };
@@ -980,24 +985,30 @@ const cleanId = v => String(v || "").replace(/[^A-Za-z0-9_-]/g, "").slice(0, 80)
 // Inbox: each Architect's card comes in once; a newer version updates the same card (your status, notes and folder are kept)
 let inboxBusy = false;
 async function takeInbox() {
-  if (inboxBusy || !ownerOk) return 0; inboxBusy = true;
-  try { const box = await api.inbox().catch(() => []); if (!box.length) return 0;
-    const have = new Map((await api.cards().catch(() => [])).map(c => [c.id, c]));
-    for (const x of box) {
-      const id = "card-" + (cleanId(x.pid) || "x") + "-" + (cleanId(x.cid) || cleanId(x.id)), old = have.get(id);
-      const c = { name: String(x.name || "Untitled").slice(0, 300), what: String(x.what || ""), url: String(x.url || ""), ckind: ICONS[x.kind] ? x.kind : "Other", ver: String(x.ver || ""), by: String(x.by || ""),
-        at: String(x.at || new Date().toISOString()), pid: cleanId(x.pid), projects: Array.isArray(x.projects) && x.projects.length ? x.projects.map(String) : [PNAME[x.pid] || x.pid || "BwN"], topics: Array.isArray(x.topics) ? x.topics.map(String) : [] };
-      if (Array.isArray(x.items)) c.items = x.items.slice(0, 200);
-      if (x.pkey) { c.pkey = cleanId(x.pkey); c.orig = String(x.orig || ""); }
-      if (x.pkey && typeof x.page === "string" && x.page) await api.savePage(cleanId(x.pkey), { name: c.name, html: x.page, at: c.at, by: c.by });
-      if (!old) { Object.assign(c, { status: CSTAT.includes(x.status) ? x.status : "todo", new: x.new !== false });
-        if (Number.isInteger(x.mmj)) Object.assign(c, { mmj: x.mmj, mmjName: BY.get(x.mmj)?.name || "", mmjPath: BY.get(x.mmj)?.path || "" });
-        else c.wf = WF0.some(f => f.id === x.wf) ? x.wf : "inbox"; }
-      else c.new = x.new !== false;
-      await api.saveCard(id, c); await api.inboxDone(x.id);
+  if (inboxBusy || !ownerOk) return 0; inboxBusy = true; let n = 0, bad = 0, after = "";
+  try { const have = new Map((await api.cards().catch(() => [])).map(c => [c.id, c]));
+    for (let round = 0; round < 500; round++) {
+      const box = await api.inbox(8, after).catch(() => []); if (!box.length) break; after = box[box.length - 1].id;
+      for (const x of box) { try {
+        const id = "card-" + (cleanId(x.pid) || "x") + "-" + (cleanId(x.cid) || cleanId(x.id)), old = have.get(id);
+        const c = { name: String(x.name || "Untitled").slice(0, 300), what: String(x.what || ""), url: String(x.url || ""), ckind: ICONS[x.kind] ? x.kind : "Other", ver: String(x.ver || ""), by: String(x.by || ""),
+          at: String(x.at || new Date().toISOString()), pid: cleanId(x.pid), projects: Array.isArray(x.projects) && x.projects.length ? x.projects.map(String) : [PNAME[x.pid] || x.pid || "BwN"], topics: Array.isArray(x.topics) ? x.topics.map(String) : [] };
+        if (Array.isArray(x.items)) c.items = x.items.slice(0, 200);
+        if (x.pkey) { c.pkey = cleanId(x.pkey); c.orig = String(x.orig || ""); }
+        if (x.pkey && typeof x.page === "string" && x.page) await api.savePage(cleanId(x.pkey), { name: c.name, html: x.page, at: c.at, by: c.by });
+        if (!old) { Object.assign(c, { status: CSTAT.includes(x.status) ? x.status : "todo", new: x.new !== false });
+          if (Number.isInteger(x.mmj)) Object.assign(c, { mmj: x.mmj, mmjName: BY.get(x.mmj)?.name || "", mmjPath: BY.get(x.mmj)?.path || "" });
+          else c.wf = wfFor(x); }
+        else { c.new = x.new !== false; const w = wfFor(x); // a newer version moves the card only while it still sits where it first landed (your own filing is kept)
+          if (old.wf && w !== old.wf && (old.wf === "inbox" || old.wf === old.pid || WF0.find(f => f.id === w)?.parent === old.wf)) c.wf = w; }
+        await api.saveCard(id, c); await api.inboxDone(x.id); n++;
+      } catch (e) { bad++; console.warn("card not taken in", x.id, e); } }
+      $("opsmsg").textContent = `Taking in cards from the Architects: ${n}…`;
     }
-    toast(`${box.length} card${box.length > 1 ? "s" : ""} came in from the Architects (WorkFlow › Inbox).`, 5000); return box.length;
-  } finally { inboxBusy = false; }
+  } finally { inboxBusy = false; $("opsmsg").textContent = ""; }
+  if (n) toast(`${n} card${n > 1 ? "s" : ""} came in from the Architects, each in its own folder (WorkFlow).`, 5000);
+  if (bad) toast(`${bad} card${bad > 1 ? "s" : ""} could not be taken in yet; they stay in the Inbox and are tried again next time.`, 7000);
+  return n;
 }
 async function cardSave(c, patch, msg) {
   await api.saveCard(c.id, patch); Object.assign(c, patch);
@@ -1356,7 +1367,7 @@ function helpHTML() {
     <li><b>The Map</b> (left): your Mapping My Journey folders; numbers show how many recordings each holds. <b>⤢ Full window</b> opens it large; drag its title bar, resize from any side or corner.</li>
     <li><b>Files</b> (middle): 🎙 recordings and 🎬 video posts. Tick several, then Move to folder, Share link or Delete in one go (video posts are never deleted here).</li>
     <li><b>🎬 Make video post</b> (on a recording): makes the post visitors will see, as a Draft, in the same folder, with the transcript as its note. Add the YouTube link, then set it to Published.</li>
-    <li><b>🗂 WorkFlow · private</b> (top of the Map): your work cards (lists, demos, reports, databases) from MyDatabase, one folder per project. New cards from the Architects arrive in <b>🆕 Inbox</b> with a New mark. Drag a card onto any folder to file it; + Folder, Rename and Move are under “All files” when a WorkFlow folder is open. Tap a card’s dot to go todo → working → done.</li>
+    <li><b>🗂 WorkFlow · private</b> (top of the Map): your work cards (lists, demos, reports, databases), one folder per Architect and, inside MSA, one per Lead (QuranRevival, Hadith, Dua, Health). Each Architect’s cards land straight in its own folder; only a card that names no known folder waits in <b>🆕 Inbox</b> with a New mark. Drag a card onto any folder to file it; + Folder, Rename and Move are under “All files” when a WorkFlow folder is open. Tap a card’s dot to go todo → working → done.</li>
     <li><b>Find bar</b> (in the top bar): search, filters by Topic · Subject · Project · Type with counts, Show all, Group and Sort; this device remembers them. <b>▦ Cards</b> shows everything as cards; <b>▥ Notebook</b> brings back the three sections. <b>+ Add item</b> adds a card (a file goes to your Drive folder “To BwN”).</li>
     <li><b>Note</b> (right): ▶ Play, the folder and Choose folder, 🔗 Links (Drive files, share link) and 🗑 on one bar; below it the notes and transcript, which save by itself.</li>
     <li><b>Sizes:</b> drag the thin bars between the sections to make one wider. <b>⧉</b> on a section’s header pops it out as its own window: drag it by its header, resize it from any side or corner; <b>⇲</b> docks it back (View → Dock all sections). <b>⧉</b> beside any folder opens that folder as its own window; open as many as you like, drag each by its title, resize it from any side or corner, and drop a file or card on it to file it there (View → Close all folder windows). Sizes are remembered on this device.</li><li><b>MMJ from Siyagah:</b> once Siyagah is connected (the badge beside “The Map”), your Mapping My Journey folders and 📝 notes come live from Siyagah; open a note to read it here. Editing MMJ notes and folders from BwN comes with Siyagah’s next step. <b>Sections:</b> <b>＋▤</b> makes a new Section, its own group at the top of the Map (private); drop any file, card or recording in it. <b>Folders:</b> tap a folder, then <b>＋📁 new · ✎ rename · ⇄ move · 🗑 delete</b> on the Map’s top row (⊞ / ⊟ open or close all, ＋🎬 new post, 📂 only folders with files), or right-click a folder (long-press on a phone) for the same menu. WorkFlow and Library folders change at once (delete can be undone); Mapping My Journey folders change through Siyagah’s shared folders (Stage 2).</li><li><b>📄 Pages outside Claude:</b> a card’s page (demo, list, report) is kept in your Library and opens on its own at <code>…/library/page.html</code>, private to you; tick <b>Show to visitors</b> on the card to make that page public (anyone with the link).</li><li><b>Find and sort</b>: search in the top bar; <b>Filters</b> and <b>Sort</b> sit on the Files bar: search, <b>Filters</b> (Topic, Subject, Project, Type, Group) and <b>Sort</b> by date, type, project, size or stage (Draft · Under process · Finished · Published). Every row and note shows 📁 where it belongs; Filters → Folder paths (or View) shows it in one line or as a tree.</li></ul>

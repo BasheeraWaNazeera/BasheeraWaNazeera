@@ -11,7 +11,9 @@ pid + cid again updates the same card (no duplicates). Free; no keys or sign-in.
 Card fields: pid (bwn|mmsa|siy|web|khutbah|pl|qr), cid (your card id), name (required),
 what, url, kind (Demo|List|Report|Database|Other), status (todo|working|done), ver, by,
 at (UTC ISO), projects [..], topics [..]; optional mmj (Mapping My Journey folder number)
-or wf (bwn|mmsa|siy|web|khutbah|pl) to file it straight away, items [{n,topic,q,a,note}].
+or wf to file it in its own folder: bwn | mmsa | siy | web | khutbah | pl, and for MSA Leads
+qr (QuranRevival) | mmsa-hadith | mmsa-dua | mmsa-health; other = no project. Without wf a card goes to
+its pid's folder; only a card naming no known folder waits in the Inbox. items [{n,topic,q,a,note}].
 Page outside Claude (owner's C): page (the full HTML, up to 1 MB), pkey (page id, e.g. the artifact id),
 orig (the old claude.ai link). Set url to
 https://basheerawanazeera.github.io/BasheeraWaNazeera/library/page.html?p=<pkey>  (add #anchor if needed).
