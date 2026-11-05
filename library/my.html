@@ -296,6 +296,7 @@ textarea{min-height:120px;resize:vertical}
 .nmk{display:inline-flex;gap:2px;margin-right:6px}
 .mkb{border:1px solid var(--line);background:var(--panel);border-radius:6px;font-size:.78rem;line-height:1;padding:3px 5px;cursor:pointer;opacity:.55}
 .mkb.on{opacity:1;background:var(--accent-soft);border-color:var(--accent)}
+.mmjpend{font-size:.7rem;font-weight:600;margin-left:6px;padding:1px 7px;border-radius:999px;background:#fdf0cf;color:#7a5200;vertical-align:2px;cursor:help}
 .trow{display:flex;align-items:center;justify-content:space-between;gap:10px}
 .newb{font-size:.66rem;background:var(--warn);color:var(--panel);border-radius:999px;padding:0 6px;margin-left:6px;vertical-align:2px;font-weight:600}
 .grp{font-size:.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;padding:9px 12px 3px;border-bottom:1px solid var(--line);background:var(--panel);position:sticky;top:0;z-index:1}
@@ -911,6 +912,8 @@ function drawLTree() {
   host.innerHTML = html ? `<ul class="ltree">${html}</ul>` : `<p class="empty">${TREE.length ? "No folder has files yet." : "Loading the Map…"}</p>`;
   host.querySelectorAll(".lr[data-f],.lr[data-lf]:not([data-lf='']),.lr[data-wf]").forEach(r => { const b = document.createElement("button"); b.type = "button"; b.className = "fpop1";
     b.dataset.pop = r.dataset.f ? "m" + r.dataset.f : r.dataset.lf ? "lf:" + r.dataset.lf : "wf:" + r.dataset.wf; b.title = "Open this folder as its own window"; b.setAttribute("aria-label", b.title); b.textContent = "⧉"; r.append(b); });
+  if (mmjCan()) host.querySelectorAll(".lr[data-f]").forEach(r => { r.draggable = true; if (r.classList.contains("sel")) { const u = document.createElement("span"); u.className = "updn";
+      u.innerHTML = `<button type="button" data-shift="-1" title="Move this folder up (Alt+↑)" aria-label="Move folder up">↑</button><button type="button" data-shift="1" title="Move this folder down (Alt+↓)" aria-label="Move folder down">↓</button>`; r.insertBefore(u, r.querySelector(".fpop1")); } });
   host.querySelectorAll(".lr[data-wf]:not([data-wf='']):not([data-wf='inbox']),.lr[data-lf]:not([data-lf=''])").forEach(r => { r.draggable = true;
     if (r.classList.contains("sel")) { const u = document.createElement("span"); u.className = "updn";
       u.innerHTML = `<button type="button" data-shift="-1" title="Move this folder up (Alt+↑)" aria-label="Move folder up">↑</button><button type="button" data-shift="1" title="Move this folder down (Alt+↓)" aria-label="Move folder down">↓</button>`; r.insertBefore(u, r.querySelector(".fpop1")); } });
@@ -932,7 +935,7 @@ $("ltree").addEventListener("dragover", e => { const r = e.target.closest(".lr[d
 $("ltree").addEventListener("dragleave", e => { const r = e.target.closest(".lr"); if (r && !r.contains(e.relatedTarget)) r.classList.remove("drop"); });
 $("ltree").addEventListener("drop", async e => { const r = e.target.closest(".lr[data-f],.lr[data-wf]"); if (!r) return; e.preventDefault(); r.classList.remove("drop");
   const id = e.dataTransfer.getData("text/bwn"), it = ITEMS.find(x => x.id === id); if (!it || !ownerOk) return;
-  if (it.type === "mmjnote") return toast("MMJ notes are moved in Siyagah for now; moving them from here comes with Siyagah’s next step (R2).", 6000);
+  if (it.type === "mmjnote") { if (!r.dataset.f || !mmjCan()) return toast(r.dataset.f ? MMJWAIT : "MMJ notes go in Mapping My Journey folders.", 6000); return mmjNotesMove(sel.has(id) ? picked().filter(x => x.type === "mmjnote") : [it], BY.get(+r.dataset.f)); }
   const rs = sel.has(id) ? picked() : [it];
   try { if (r.dataset.f) { const f = BY.get(+r.dataset.f); await moveTo(rs, f); toast("Moved to " + f.name + "."); }
     else { const w = r.dataset.wf || "inbox"; await fileWf(rs, w); }
@@ -953,17 +956,20 @@ async function bulk(label, fn) { const rs = picked(); if (!rs.length) return; le
   try { for (const r of rs) { $("opsmsg").textContent = `${label} ${++i} of ${rs.length}…`; await fn(r); } toast(`${label} done: ${rs.length}.`); }
   catch (e) { setupNote(e); } $("opsmsg").textContent = ""; sel.clear(); refresh(); }
 const moveTo = (rs, f) => Promise.all(rs.map(async r => { const m = { mmj: f.id, mmjName: f.name, mmjPath: f.path };
+  if (r.type === "mmjnote") return mmjNotesMove([r], f);
   if (r.type === "post") return api.savePost(r.id, m);
   if (r.type === "card") return cardSave(r, { ...m, wf: null, new: false });
   await api.saveRec(r.id, m); for (const x of r.files || []) await api.tag(x.id, { mmj: String(f.id) }).catch(() => { }); }));
-function bulkMove() { const rs0 = picked(), rs = rs0.filter(r => r.type !== "mmjnote"); if (rs.length < rs0.length) toast("MMJ notes move in Siyagah for now; they were left out.", 5000); if (!rs.length) return;
+function bulkMove() { const rs0 = picked(), rs = mmjCan() ? rs0 : rs0.filter(r => r.type !== "mmjnote"); if (rs.length < rs0.length) toast(MMJWAIT, 6000); if (!rs.length) return;
+  if (rs.every(r => r.type === "mmjnote")) return bulkMoveMMJ(rs);
   // choose where: a WorkFlow folder or Section (cards; any file into a Section), or a Mapping My Journey folder
   const opts = WF.filter(f => rs.every(r => r.type === "card") || secRoot(f.id)).map(f => ({ id: f.id, name: wfPath(f.id).replace(/^WorkFlow › /, secRoot(f.id) ? "Section › " : "WorkFlow › ") }));
   dlg(`Move ${rs.length} item${rs.length > 1 ? "s" : ""} to…`, `<button type="button" class="wfpick" data-k="mmj">📚 A Mapping My Journey folder…</button>` + opts.map((o, i) => `<button type="button" class="wfpick" data-k="${i}">${esc(o.name)}</button>`).join(""), "");
   $("wfdlgB").querySelectorAll(".wfpick").forEach(b => b.onclick = async () => { $("wfdlg").close(); if (b.dataset.k === "mmj") return bulkMoveMMJ(rs);
     try { await fileWf(rs, opts[+b.dataset.k].id); } catch (e) { setupNote(e); } sel.clear(); refresh(); }); }
 function bulkMoveMMJ(rs) {
-  openMap(`Move ${rs.length} file${rs.length > 1 ? "s" : ""} to…`, rs.map(r => r.title + " " + (r.text || "")).join(" "), rs[0].mmj, async f => { try { await moveTo(rs, f); toast("Moved to " + f.name + "."); } catch (e) { setupNote(e); } sel.clear(); refresh(); }); }
+  openMap(`Move ${rs.length} file${rs.length > 1 ? "s" : ""} to…`, rs.map(r => r.title + " " + (r.text || "")).join(" "), rs[0].mmj, async f => { const ns = rs.filter(r => r.type === "mmjnote"), os = rs.filter(r => r.type !== "mmjnote");
+    if (ns.length) mmjNotesMove(ns, f); try { if (os.length) { await moveTo(os, f); toast("Moved to " + f.name + "."); } } catch (e) { setupNote(e); } sel.clear(); if (os.length) refresh(); else draw(); }); }
 function bulkDel() { delItems(picked()); }
 const bulkShare = on => bulk(on ? "Sharing" : "Unsharing", async r => { if (r.type === "post" || r.type === "card" || r.type === "mmjnote") return; for (const x of r.files || []) await api.share(x.id, on); await api.saveRec(r.id, { shared: on }); })
   .then(() => { if (on) toast("Links are open to anyone who has them. Copy one from a file’s note.", 5000); });
@@ -1153,27 +1159,118 @@ const fnv = s => { let h = 2166136261; for (const ch of s) { h ^= ch.codePointAt
 const mnum = sid => !sid ? 0 : /^mmj-c-\d+$/.test(sid) ? +sid.slice(6) : -(fnv(sid) % 1e9) - 1; // site folders keep their number; the owner's own folders get a stable stand-in
 function mmjState(st, msg) { const b = $("mmjst"); if (!b) return; b.hidden = false; b.className = "mmjst" + (st === "live" ? " ok" : st === "denied" || st === "error" ? " warn" : "");
   b.textContent = st === "live" ? "MMJ · Siyagah ✓" : st === "signin" ? "Connect Siyagah" : st === "denied" ? "Ask the owner to allow this app" : st === "error" ? "MMJ · Siyagah error" : "MMJ · website";
-  b.title = st === "live" ? "Folders and notes read live from Siyagah (read-only for now)" : st === "denied" ? "Siyagah's Firebase must list basheerawanazeera.github.io (Authentication → Settings → Authorised domains). Tries again in 1 minute." : st === "unset" ? "Folders come from mappingmyjourney.com until Siyagah's settings are added (BWN J27)." : (msg || "Tap to sign in to Siyagah with your Google account");
+  b.title = st === "live" ? "Folders and notes live from Siyagah; your changes go through Siyagah (⏳ shows how many are waiting)" : st === "denied" ? "Siyagah's Firebase must list basheerawanazeera.github.io (Authentication → Settings → Authorised domains). Tries again in 1 minute." : st === "unset" ? "Folders come from mappingmyjourney.com until Siyagah's settings are added (BWN J27)." : (msg || "Tap to sign in to Siyagah with your Google account");
   b.onclick = st === "signin" ? () => mmjApi?.connect().catch(e => toast(e.message)) : null; }
+// ---------- Siyagah R2: BwN changes MMJ folders and notes by leaving requests (MMJ-SHARE.md "Writing (R2)") ----------
+const SRV = { f: [], n: [] }, PEND = new Map(), NSENT = {}, EDQ = {};
+const treeFrom = folders => folders.map(f => ({ id: mnum(f.id), sid: f.id, name: String(f.n || ""), parent: mnum(f.p), order: f.o, vis: f.vis === 1 }));
+const notesFrom = list => list.map(n => ({ id: "mmj:" + n.id, nid: n.id, type: "mmjnote", title: n.title || "Untitled note", at: n.updatedAt || n.createdAt || "", base: n.updatedAt || "", mmj: mnum((n.folderIds || [])[0]),
+  mmjAll: (n.folderIds || []).map(mnum), sids: n.folderIds || [], html: n.content || "", tags: Array.isArray(n.tags) ? n.tags : [], vis: n.vis === 1 }));
+const mmjCan = () => MMJSRC === "siyagah" && !!mmjApi?.request && (ownerOk || DEMO);
+const sidOf = num => BY.get(num)?.sid;
+const newSid = () => "x-bwn-" + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+const mmjRedraw = () => { index(); ITEMS = ITEMS.filter(r => r.type !== "mmjnote").concat(MMJV()); if (cur && !ITEMS.some(r => r.id === cur)) cur = null; draw(); };
+function mmjRollback() { if (SRV.f.length) TREE = treeFrom(SRV.f); MMJN = notesFrom(SRV.n); mmjRedraw(); showNote(); }
+function mmjPendShow() { let b = $("mmjpend"); if (!b) { b = document.createElement("span"); b.id = "mmjpend"; b.className = "mmjpend"; $("mmjst").after(b); }
+  b.hidden = !PEND.size; b.textContent = "⏳ " + PEND.size; b.title = "Waiting for Siyagah (applied when a Siyagah window is open on any device):\n" + [...PEND.values()].map(x => "• " + x.label).join("\n");
+  try { localStorage.setItem("mmjPend", JSON.stringify([...PEND].map(([id, x]) => [id, { label: x.label }]))); } catch { } }
+function mmjWatch(id, label, done) { PEND.set(id, { label }); mmjPendShow();
+  mmjApi.watch(id, x => { if (x.st !== "done" && x.st !== "refused" && x.st !== "error") return; PEND.delete(id); mmjPendShow();
+    if (x.st === "done") toast("✓ Done in Siyagah: " + label + ".");
+    else { toast(`Siyagah did not do it: ${label}. ${x.why === "open in Siyagah — try again" ? "The note is open in Siyagah; try again in a minute." : x.why === "changed in Siyagah since" ? "It changed in Siyagah meanwhile; open it again to see the newest version." : "Reason: " + (x.why || "unknown") + "."}`, 9000); mmjRollback(); }
+    done?.(x); }); }
+function mmjPendLoad() { if (!mmjApi?.watch || mmjPendLoad.on) return; mmjPendLoad.on = true; try { for (const [id, x] of JSON.parse(localStorage.getItem("mmjPend") || "[]")) mmjWatch(id, x.label); } catch { } }
+// send one request; apply the change here at once (shown as waiting); resolves with Siyagah's outcome
+function mmjReq(op, fields, label, local) { if (!mmjCan()) { toast(MMJWAIT, 7000); return Promise.resolve({ st: "refused", why: "not connected" }); }
+  try { local?.(); mmjRedraw(); if (op !== "note.edit" && !$("note").contains(document.activeElement)) showNote(); } catch (e) { console.warn(e); }
+  return new Promise(ok => mmjApi.request(op, fields).then(id => mmjWatch(id, label, ok)).catch(e => { toast("Could not reach Siyagah: " + e.message, 8000); mmjRollback(); ok({ st: "error", why: e.message }); })); }
+const mmjDescend = id => { const s = new Set([id]); let grew = true; while (grew) { grew = false; TREE.forEach(f => { if (s.has(f.parent) && !s.has(f.id)) { s.add(f.id); grew = true; } }); } return s; };
+const mmjNotesIn = id => { const s = mmjDescend(id); return { gone: MMJN.filter(r => r.mmjAll.length && r.mmjAll.every(x => s.has(x))), stay: MMJN.filter(r => r.mmjAll.some(x => s.has(x)) && !r.mmjAll.every(x => s.has(x))) }; };
+async function mmjFolderAdd(c) { const n = (prompt(`Name of the new folder inside “${c.name}”:`) || "").trim(); if (!n) return; const id = newSid(), num = mnum(id);
+  OPEN.add(c.id); saveOpen();
+  mmjReq("folder.add", { id, name: n.slice(0, 200), parent: sidOf(c.id) ?? null }, `new folder “${n.slice(0, 40)}”`, () => { TREE.push({ id: num, sid: id, name: n.slice(0, 200), parent: c.id, order: 1e8, vis: false }); view = num; }); }
+async function mmjFolderRename(c) { const n = (prompt("New name:", c.name) || "").trim(); if (!n || n === c.name) return;
+  mmjReq("folder.rename", { id: sidOf(c.id), name: n.slice(0, 200) }, `rename to “${n.slice(0, 40)}”`, () => { BY.get(c.id).name = n.slice(0, 200); }); }
+function mmjFolderMoveTo(c, t) { if (!t || t.id === c.id) return; if (ancestors(t.id).includes(c.id)) return toast("A folder cannot go inside itself or one of its own folders.");
+  OPEN.add(t.id); saveOpen(); mmjReq("folder.move", { id: sidOf(c.id), parent: t.sid }, `move “${c.name.slice(0, 30)}” into “${t.name.slice(0, 30)}”`, () => { const f = BY.get(c.id); f.parent = t.id; f.order = 1e8; }); }
+function mmjFolderMove(c) { openMap(`Move “${c.name.slice(0, 40)}” into…`, "", BY.get(c.id)?.parent || null, t => mmjFolderMoveTo(c, t)); }
+function mmjFolderShift(c, dir) { const f = BY.get(c.id); if (!f) return; const sib = KIDS.get(BY.has(f.parent) ? f.parent : 0) || [], i = sib.indexOf(f), j = i + dir;
+  if (i < 0 || j < 0 || j >= sib.length) return toast(dir < 0 ? "Already at the top." : "Already at the bottom.");
+  const before = dir < 0 ? sib[i - 1] : sib[i + 2];
+  mmjReq("folder.move", { id: f.sid, parent: BY.get(f.parent)?.sid ?? null, ...(before ? { before: before.sid } : {}) }, `move “${f.name.slice(0, 30)}” ${dir < 0 ? "up" : "down"}`,
+    () => { const o = sib.map(x => x.order ?? 1e9); f.order = before ? (before.order ?? 1e9) - 0.5 : Math.max(...o) + 1; }); }
+async function mmjFolderDel(c) { const s = mmjDescend(c.id), { gone, stay } = mmjNotesIn(c.id);
+  if (!confirm(`Delete the MMJ folder “${c.name}”${s.size > 1 ? `, its ${s.size - 1} folder(s) inside` : ""}${gone.length ? ` and ${gone.length} note(s)` : ""}?${stay.length ? `\n\n${stay.length} note(s) also filed in other folders stay there.` : ""}\n\nEverything goes to Siyagah’s Trash as one group; Restore it there (Undo / Trash in Siyagah) if you change your mind.`)) return;
+  if (typeof view === "number" && s.has(view)) view = "all";
+  mmjReq("folder.delete", { id: sidOf(c.id) }, `delete “${c.name.slice(0, 40)}”${gone.length ? " with " + gone.length + " note(s)" : ""}`, () => {
+    TREE = TREE.filter(f => !s.has(f.id)); MMJN = MMJN.filter(r => !gone.includes(r)); stay.forEach(r => { const k = r.mmjAll.map((x, i) => [x, r.sids[i]]).filter(([x]) => !s.has(x)); r.mmjAll = k.map(x => x[0]); r.sids = k.map(x => x[1]); r.mmj = r.mmjAll[0]; }); }); }
+function mmjFolderVis(c, on) { mmjReq("folder.vis", { id: sidOf(c.id), vis: on ? 1 : 0 }, `${on ? "👁 show" : "🔒 hide"} “${c.name.slice(0, 40)}” ${on ? "to" : "from"} visitors`, () => { BY.get(c.id).vis = on; }); }
+async function mmjNoteNew(fnum) { const f = BY.get(fnum); if (!f) return; const t = (prompt(`Title of the new MMJ note in “${f.name}”:`) || "").trim(); if (!t) return; const id = newSid();
+  await mmjReq("note.add", { id, title: t.slice(0, 300), content: "<p></p>", tags: [], folderIds: [f.sid] }, `new note “${t.slice(0, 40)}”`, () => {
+    MMJN.push({ id: "mmj:" + id, nid: id, type: "mmjnote", title: t.slice(0, 300), at: new Date().toISOString(), base: "", mmj: fnum, mmjAll: [fnum], sids: [f.sid], html: "<p></p>", tags: [], vis: false }); cur = "mmj:" + id; view = fnum; }); }
+// note edits go one at a time per note, each on the newest version Siyagah has sent back (base)
+function mmjNoteEdit(r, fields, label) { const nid = r.nid;
+  EDQ[nid] = (EDQ[nid] || Promise.resolve()).then(async () => {
+    for (let t = 0; t < 50 && NSENT[nid] && (MMJN.find(x => x.nid === nid)?.base || "") === NSENT[nid]; t++) await new Promise(ok => setTimeout(ok, 500)); // wait for our last edit to come back
+    const n = MMJN.find(x => x.nid === nid); if (!n) return; if (!n.base) return toast("This note is still on its way to Siyagah; edit it again in a moment.");
+    NSENT[nid] = n.base; const x = await mmjReq("note.edit", { id: nid, base: n.base, ...fields }, label, () => { const m = MMJN.find(y => y.nid === nid); if (m) { if (fields.title !== undefined) m.title = fields.title; if (fields.content !== undefined) m.html = fields.content; } });
+    if (x.st !== "done") delete NSENT[nid]; });
+  return EDQ[nid]; }
+function mmjNotesMove(rs, f) { rs.forEach(r => mmjReq("note.move", { id: r.nid, base: r.base, folderIds: [f.sid] }, `move “${r.title.slice(0, 30)}” to “${f.name.slice(0, 30)}”`, () => { const m = MMJN.find(y => y.nid === r.nid); if (m) { m.mmj = f.id; m.mmjAll = [f.id]; m.sids = [f.sid]; } })); }
+function mmjNotesDel(rs) { rs.forEach(r => mmjReq("note.delete", { id: r.nid, base: r.base }, `delete “${r.title.slice(0, 40)}”`, () => { MMJN = MMJN.filter(y => y.nid !== r.nid); })); }
+function mmjNoteVis(r, on) { mmjReq("note.vis", { id: r.nid, vis: on ? 1 : 0 }, `${on ? "👁 show" : "🔒 hide"} “${r.title.slice(0, 40)}”`, () => { const m = MMJN.find(y => y.nid === r.nid); if (m) m.vis = on; }); }
+// Siyagah's HTML shown in an editable box: cleaned first (no scripts, frames, handlers or javascript: links)
+function cleanHTML(h) { const d = new DOMParser().parseFromString(`<body>${h || ""}</body>`, "text/html");
+  d.body.querySelectorAll("script,iframe,object,embed,style,form,link,meta,base").forEach(x => x.remove());
+  d.body.querySelectorAll("*").forEach(el => [...el.attributes].forEach(a => { const n = a.name.toLowerCase(), v = a.value.trim().toLowerCase(); if (n.startsWith("on") || ((n === "href" || n === "src" || n === "xlink:href") && /^(javascript|data|vbscript):/.test(v))) el.removeAttribute(a.name); }));
+  return d.body.innerHTML; }
+const noPicSrc = h => { const d = new DOMParser().parseFromString(`<body>${h || ""}</body>`, "text/html"); d.body.querySelectorAll("img[data-pic]").forEach(i => i.removeAttribute("src")); return d.body.innerHTML; };
 const mmjFake = async ({ onTree, onNotes, onState }) => { // demo only (my.html?demo=1&mmj): sample Siyagah data in the documented shape
   onTree([{ id: "mmj-c-20", n: "(751 - 800) Study Deen - Get the CERTAIN KNOWLEDGE:", p: null, o: 1 }, { id: "mmj-c-241", n: "(1301) Al-Quran - The SOURCE of the CERTAIN knowledge", p: "mmj-c-20", o: 1, vis: 1 }, { id: "u-k3x9", n: "My own new folder (made in Siyagah)", p: "mmj-c-20", o: 2 }], { id: "mmj-sec", n: "Mapping My Journey" });
   onNotes([{ id: "n1", title: "Ayat on revival (Siyagah note)", content: "<h2>Revival</h2><p>Sample note from Siyagah, with <b>bold</b> text.</p>", tags: ["Quran", "Revival"], folderIds: ["mmj-c-241"], updatedAt: "2026-11-04T03:00:00Z", vis: 1 },
-    { id: "n2", title: "Private reflection", content: "<p>Only the owner sees this.</p>", tags: [], folderIds: ["u-k3x9"], updatedAt: "2026-11-04T02:00:00Z" }]); onState("live"); return { connect: async () => { }, pic: async () => null }; };
+    { id: "n2", title: "Private reflection", content: "<p>Only the owner sees this.</p>", tags: [], folderIds: ["u-k3x9"], updatedAt: "2026-11-04T02:00:00Z" }]); onState("live");
+  const F = SRV.f.map(f => ({ ...f })), N = SRV.n.map(n => ({ ...n })), reqs = {}, cbs = {}; window.__mmjReqs = reqs; window.__mmjFakeN = N;
+  const under = id => { const s = new Set([id]); let g = true; while (g) { g = false; F.forEach(f => { if (s.has(f.p) && !s.has(f.id)) { s.add(f.id); g = true; } }); } return s; };
+  const apply = q => { const f = F.find(x => x.id === q.id), n = N.find(x => x.id === q.id), now = new Date().toISOString();
+    if (q.op === "folder.add") F.push({ id: q.id, n: q.name, p: q.parent, o: 99 });
+    else if (q.op === "folder.rename") f.n = q.name;
+    else if (q.op === "folder.move") { if (under(q.id).has(q.parent)) return "cannot move a folder into itself or one of its own subfolders"; f.p = q.parent; const sib = F.filter(x => x.p === q.parent && x !== f).sort((a, b) => a.o - b.o); const k = q.before ? sib.findIndex(x => x.id === q.before) : sib.length; sib.splice(k < 0 ? sib.length : k, 0, f); sib.forEach((x, i) => x.o = i + 1); }
+    else if (q.op === "folder.delete") { const s = under(q.id); for (let i = F.length - 1; i >= 0; i--) if (s.has(F[i].id)) F.splice(i, 1); for (let i = N.length - 1; i >= 0; i--) { N[i].folderIds = N[i].folderIds.filter(x => !s.has(x)); if (!N[i].folderIds.length) N.splice(i, 1); } }
+    else if (q.op === "folder.vis") q.vis ? f.vis = 1 : delete f.vis;
+    else if (q.op === "note.add") N.push({ id: q.id, title: q.title, content: q.content, tags: q.tags, folderIds: q.folderIds, updatedAt: now, createdAt: now });
+    else if (n && q.base !== undefined && n.updatedAt !== q.base) return "changed in Siyagah since";
+    else if (q.op === "note.edit") { ["title", "content", "tags"].forEach(k => q[k] !== undefined && (n[k] = q[k])); n.updatedAt = now; }
+    else if (q.op === "note.move") { n.folderIds = q.folderIds; n.updatedAt = now; }
+    else if (q.op === "note.delete") N.splice(N.indexOf(n), 1);
+    else if (q.op === "note.vis") { q.vis ? n.vis = 1 : delete n.vis; n.updatedAt = now; }
+    return null; };
+  return { connect: async () => { }, pic: async () => null,
+    async request(op, f) { const id = "r" + Object.keys(reqs).length; reqs[id] = { op, ...f, st: "new" };
+      setTimeout(() => { const why = apply(reqs[id]); Object.assign(reqs[id], why ? { st: "refused", why } : { st: "done", res: { id: f.id } }); cbs[id]?.(reqs[id]);
+        if (!why) setTimeout(() => { onTree(F.map(x => ({ ...x }))); onNotes(N.map(x => ({ ...x }))); }, 150); }, 400); return id; },
+    watch(id, cb) { cbs[id] = cb; if (reqs[id] && reqs[id].st !== "new") cb(reqs[id]); return () => { }; } }; };
 async function mmjStart() { if (mmjBusy || (DEMO && !new URLSearchParams(location.search).has("mmj"))) return; mmjBusy = true;
   try { mmjApi = await (DEMO ? mmjFake : startMMJ)({ cfg: siyagah?.config, nb: siyagah?.notebook, idToken: idTok, onState: mmjState,
-    onTree: folders => { if (!folders.length) return; TREE = folders.map(f => ({ id: mnum(f.id), sid: f.id, name: String(f.n || ""), parent: mnum(f.p), order: f.o, vis: f.vis === 1 })); MMJSRC = "siyagah";
+    onTree: folders => { if (!folders.length) return; SRV.f = folders; TREE = treeFrom(folders); MMJSRC = "siyagah";
       try { localStorage.setItem("mmjTreeSiy", JSON.stringify({ at: Date.now(), t: TREE })); } catch { } index(); draw(); if (!mapwin.hidden) drawMap(); },
-    onNotes: list => { MMJN = list.map(n => ({ id: "mmj:" + n.id, nid: n.id, type: "mmjnote", title: n.title || "Untitled note", at: n.updatedAt || n.createdAt || "", mmj: mnum((n.folderIds || [])[0]),
-      mmjAll: (n.folderIds || []).map(mnum), html: n.content || "", tags: Array.isArray(n.tags) ? n.tags : [], vis: n.vis === 1 }));
-      ITEMS = ITEMS.filter(r => r.type !== "mmjnote").concat(MMJV()); draw(); if (cur?.startsWith?.("mmj:")) showNote(); } });
+    onNotes: list => { SRV.n = list; MMJN = notesFrom(list);
+      ITEMS = ITEMS.filter(r => r.type !== "mmjnote").concat(MMJV()); draw(); if (cur?.startsWith?.("mmj:") && !$("note").contains(document.activeElement)) showNote(); } });
+    mmjPendLoad();
   } catch (e) { mmjState("error", e.message); } }
 async function drawMMJNote(r) {
   const N = $("note");
   N.innerHTML = `<div class="crumb">${pathHTML(placeOf(r))}</div><h2 class="ptitle">${esc(r.title)}</h2>
     <div class="chips2"><span class="chip">📝 MMJ note · from Siyagah</span><span class="chip ${r.vis ? "pub" : "draft"}">${r.vis ? "👁 Visitors may see it" : "🔒 Private"}</span>${r.at ? `<span class="chip">${esc(when(r.at))}</span>` : ""}${r.tags.map(t => `<span class="chip">${esc(t)}</span>`).join("")}</div>
-    <div class="nbar"><span class="fname">📁 <b>${esc(folderOf(r))}</b>${r.mmjAll.length > 1 ? ` <span class="pnote">+ ${r.mmjAll.length - 1} more folder(s)</span>` : ""}</span><a class="btn ghost" href="https://siyagah.github.io/" target="_blank" rel="noopener">↗ Edit in Siyagah</a></div>
-    <p class="pnote">Read here from Siyagah’s shared copy. Editing, moving and deleting MMJ notes from BwN comes with Siyagah’s next step (R2).</p>
-    <iframe class="mmjview" id="mmjview" title="${esc(r.title)}" sandbox="allow-popups allow-popups-to-escape-sandbox"></iframe>`;
+    <div class="nbar"><span class="fname">📁 <b>${esc(folderOf(r))}</b>${r.mmjAll.length > 1 ? ` <span class="pnote">+ ${r.mmjAll.length - 1} more folder(s)</span>` : ""}</span>${mmjCan() ? `<button class="btn ghost" id="mnMove" type="button">Move to folder…</button><button class="btn ghost" id="mnVis" type="button">${r.vis ? "🔒 Make private" : "👁 Show to visitors"}</button><button class="ib" id="mnDel" type="button" title="Delete (to Siyagah’s Trash)" aria-label="Delete">🗑</button>` : ""}<a class="btn ghost" href="https://siyagah.github.io/" target="_blank" rel="noopener">↗ Siyagah</a></div>
+    ${mmjCan() ? `<section class="np" id="nEd"><input class="np-ti" id="nTitle" value="${esc(r.title)}" aria-label="Title">${editorHTML("m" + fnv(r.nid), "")}</section><p class="pnote">Saved through Siyagah: each change shows ⏳ until a Siyagah window (any device) applies it, usually within seconds.</p>`
+      : `<p class="pnote">Read here from Siyagah’s shared copy. Connect Siyagah (badge beside “The Map”) to edit, move and delete it from here.</p><iframe class="mmjview" id="mmjview" title="${esc(r.title)}" sandbox="allow-popups allow-popups-to-escape-sandbox"></iframe>`}`;
+  if (mmjCan()) { const eid = "m" + fnv(r.nid), ed = $("fw-ed-" + eid); ed.innerHTML = cleanHTML(r.html || "<p></p>"); const orig = noPicSrc(ed.innerHTML);
+    wireEditor($("nEd"), eid, async html => { const h = noPicSrc(html); if (h === orig || h === noPicSrc(cleanHTML(MMJN.find(x => x.nid === r.nid)?.html))) return; await mmjNoteEdit(r, { content: h }, `edit “${r.title.slice(0, 40)}”`); });
+    $("nTitle").onchange = e => { const t = e.target.value.trim(); if (t && t !== r.title) mmjNoteEdit(r, { title: t.slice(0, 300) }, `rename note to “${t.slice(0, 40)}”`); };
+    $("mnMove").onclick = () => openMap(`Move “${r.title.slice(0, 40)}” to…`, r.title, r.mmj, f => mmjNotesMove([r], f));
+    $("mnVis").onclick = () => mmjNoteVis(r, !r.vis); $("mnDel").onclick = () => delItems([r]);
+    for (const img of ed.querySelectorAll("img[data-pic]")) { const sha = img.dataset.pic; if (!/^[0-9a-f]{64}$/.test(sha)) continue; mmjApi?.pic(sha).then(u => { if (u && img.isConnected) img.src = u; }).catch(() => { }); }
+    return; }
   let html = r.html || "<p></p>";
   const shas = [...new Set([...html.matchAll(/data-pic="([0-9a-f]{64})"/g)].map(m => m[1]))];
   const frame = () => `<!doctype html><meta charset="utf-8"><base target="_blank"><style>body{font:16px/1.6 system-ui,sans-serif;margin:16px;color:#1d2420;overflow-wrap:anywhere}img{max-width:100%;height:auto}</style>${html}`;
@@ -1210,18 +1307,19 @@ async function setMark(keys, f, val) { if (!ownerOk && !DEMO) return; const at =
 const mkMenuItems = keys => MKS.map(([f, ic, t]) => [(keys.every(k => mkOf(k)[f]) ? "✓ " : "") + ic + " " + t, () => setMark(keys, f)]).concat([["Clear marks", () => setMark(keys, "clear"), !keys.some(k => MKS.some(([f]) => mkOf(k)[f]))]]);
 // delete any file: cards and recordings as before; video posts with Undo; MMJ notes go to BwN's Trash (Siyagah keeps them until its R2)
 async function delItems(rs) { rs = rs.filter(Boolean); if (!rs.length) return;
-  const nm = rs.filter(r => r.type === "mmjnote"), np = rs.filter(r => r.type === "post"), nr = rs.filter(r => r.type !== "mmjnote" && r.type !== "post");
+  const nm = rs.filter(r => r.type === "mmjnote"), np = rs.filter(r => r.type === "post"), nr = rs.filter(r => r.type !== "mmjnote" && r.type !== "post"), viaS = mmjCan();
   const lines = [nr.length ? `${nr.length} card(s)/recording(s): deleted (recording files go to your Google Drive Bin for 30 days).` : "",
     np.length ? `${np.length} video post(s): deleted${np.some(r => r.status === "pub") ? " (visitors stop seeing the published ones)" : ""}; Undo for 9 seconds.` : "",
-    nm.length ? `${nm.length} MMJ note(s): moved to BwN’s Trash (hidden here; Siyagah keeps them). Restore from 🗑 Trash.` : ""].filter(Boolean);
+    nm.length ? (viaS ? `${nm.length} MMJ note(s): to Siyagah’s Trash (Restore there).` : `${nm.length} MMJ note(s): moved to BwN’s Trash (hidden here; Siyagah keeps them). Restore from 🗑 Trash.`) : ""].filter(Boolean);
   if (!confirm(`Delete ${rs.length === 1 ? "“" + rs[0].title + "”" : rs.length + " items"}?\n\n${lines.join("\n")}`)) return;
   let i = 0; const keepP = np.map(r => { const { type, id, ...rest } = r; return [id, rest]; });
   try { for (const r of nr) { $("opsmsg").textContent = `Deleting ${++i} of ${rs.length}…`; if (r.type === "card" && r.show) await api.showPublic(r.id, null); await api.remove(r.id, r.files); }
     for (const r of np) { $("opsmsg").textContent = `Deleting ${++i} of ${rs.length}…`; await api.delPost(r.id); } } catch (e) { setupNote(e); }
   $("opsmsg").textContent = ""; rs.forEach(r => sel.delete(r.id)); if (rs.some(r => r.id === cur)) cur = null;
-  if (nm.length) await setMark(nm.map(r => "i:" + r.id), "trash", true);
+  if (nm.length && viaS) { mmjNotesDel(nm); if (!np.length && !nr.length) return; }
+  else if (nm.length) await setMark(nm.map(r => "i:" + r.id), "trash", true);
   toast(`Deleted: ${rs.length}.`); refresh();
-  if (np.length || nm.length) undoT(`Deleted ${rs.length === 1 ? "“" + rs[0].title.slice(0, 40) + "”" : rs.length + " items"}`, async () => { for (const [id, rest] of keepP) await api.savePost(id, rest); if (nm.length) await setMark(nm.map(r => "i:" + r.id), "trash", false); }); }
+  if (np.length || (nm.length && !viaS)) undoT(`Deleted ${rs.length === 1 ? "“" + rs[0].title.slice(0, 40) + "”" : rs.length + " items"}`, async () => { for (const [id, rest] of keepP) await api.savePost(id, rest); if (nm.length) await setMark(nm.map(r => "i:" + r.id), "trash", false); }); }
 async function mmjTrash(c) { const n = MMJN.filter(r => r.mmj && ancestors(r.mmj).includes(c.id)).length;
   if (!confirm(`Delete the MMJ folder “${c.name}”${n ? ` and its ${n} note(s)` : ""} from BwN?\n\nIt moves to BwN’s 🗑 Trash (hidden here). Siyagah keeps it until its shared folders (R2) arrive. Restore any time from 🗑 Trash.`)) return;
   await setMark(["m:" + c.id], "trash", true); if (typeof view === "number" && ancestors(view).includes(c.id)) view = "all"; draw();
@@ -1230,8 +1328,8 @@ const trashList = () => { const fs0 = Object.keys(MK).filter(k => k.startsWith("
   const ns = MMJN.filter(r => mkOf("i:" + r.id).trash).map(r => ({ k: "i:" + r.id, name: r.title, kind: "📝 MMJ note" })); return fs0.concat(ns); };
 function itemMenu(x, y, id) { const r = ITEMS.find(o => o.id === id), m = $("ctx"); if (!r || (!ownerOk && !DEMO)) return; const k = ["i:" + id], mm = r.type === "mmjnote";
   const it = [["Open", () => { draft = null; cur = id; draw(); showNote(); tab("note"); }], ...(r.url ? [["↗ Open in its own window", () => window.open(openUrl(r), "_blank", "noopener")]] : []), "-", ...mkMenuItems(k), "-",
-    ["Move to folder…", () => { sel.clear(); sel.add(id); bulkMove(); }, mm], ["🗑 Delete…", () => delItems([r])]];
-  m.innerHTML = `<div class="ch">${esc(r.title)}</div>` + it.map((t, i) => t === "-" ? "<hr>" : `<button type="button" role="menuitem" data-i="${i}"${t[2] ? " disabled" : ""}>${esc(t[0])}</button>`).join("") + (mm ? `<div class="ch">MMJ notes move in Siyagah for now; Delete puts them in BwN’s Trash.</div>` : "");
+    ["Move to folder…", () => { sel.clear(); sel.add(id); bulkMove(); }, mm && !mmjCan()], ...(mm && mmjCan() ? [[r.vis ? "🔒 Make private" : "👁 Show to visitors", () => mmjNoteVis(r, !r.vis)]] : []), ["🗑 Delete…", () => delItems([r])]];
+  m.innerHTML = `<div class="ch">${esc(r.title)}</div>` + it.map((t, i) => t === "-" ? "<hr>" : `<button type="button" role="menuitem" data-i="${i}"${t[2] ? " disabled" : ""}>${esc(t[0])}</button>`).join("") + (mm ? `<div class="ch">${mmjCan() ? "Changes go through Siyagah (⏳ until a Siyagah window applies them)." : esc(MMJWAIT)}</div>` : "");
   m.hidden = false; const b = m.getBoundingClientRect(); m.style.left = Math.max(6, Math.min(x, innerWidth - b.width - 6)) + "px"; m.style.top = Math.max(6, Math.min(y, innerHeight - b.height - 6)) + "px";
   m.querySelectorAll("button[data-i]").forEach(b => b.onclick = () => { m.hidden = true; it[+b.dataset.i][1](); }); m.querySelector("button:not(:disabled)")?.focus(); }
 const fileEl = t => t.closest(".row[data-id],.lr[data-i]"), fileId = el => el.dataset.id ?? el.dataset.i;
@@ -1240,7 +1338,7 @@ let lpI; document.addEventListener("pointerdown", e => { if (e.pointerType !== "
 ["pointerup", "pointermove", "pointercancel"].forEach(t => document.addEventListener(t, () => clearTimeout(lpI)));
 document.addEventListener("click", e => { const el = e.target.closest("[data-lp]"); if (el) { delete el.dataset.lp; e.stopPropagation(); e.preventDefault(); } }, true);
 // ---------- folder tools: one row on the Map + right-click menu (owner, 4 Nov) ----------
-const MMJWAIT = "Mapping My Journey folders are added, renamed, moved and deleted through Siyagah’s shared folders (Stage 2, BWN J27). That link is being built; until then use Siyagah or the website for MMJ folders.";
+const MMJWAIT = "Mapping My Journey folders and notes change through Siyagah. Connect Siyagah first: tap the badge beside “The Map” (it should read “MMJ · Siyagah ✓”).";
 function fctx(v) {
   if (typeof v === "number") return BY.has(v) ? { k: "mmj", id: v, name: BY.get(v).name } : null;
   if (typeof v === "string" && v.startsWith("wf:")) { const id = v.slice(3); return { k: "wf", id, name: id ? wfName(id) : "WorkFlow", fixed: !id || id === "inbox" }; }
@@ -1250,7 +1348,7 @@ function fctx(v) {
 function drawFolderTools() {
   const c = ownerOk ? fctx(view) : null, mm = c?.k === "mmj";
   $("fAdd").disabled = !c; ["fRen", "fMov", "fDel"].forEach(id => $(id).disabled = !c || c.fixed); if (c?.k === "mmj") $("fDel").title = "Delete from BwN (to 🗑 Trash; Siyagah keeps it)";
-  $("ftools").title = !c ? "Tap a folder first (or right-click it)" : mm ? MMJWAIT : "For “" + c.name + "”";
+  $("ftools").title = !c ? "Tap a folder first (or right-click it)" : mm && !mmjCan() ? MMJWAIT : "For “" + c.name + "”" + (mm ? " (through Siyagah)" : "");
 }
 // file items in a WorkFlow folder or a Section: cards anywhere; recordings and video posts only in a Section (they keep their MMJ folder too)
 async function fileWf(rs, w) { const sec = !!secRoot(w), ok = rs.filter(x => x.type === "card" || sec);
@@ -1263,22 +1361,22 @@ const putOwn = (list, f) => { const l = list.slice(), i = l.findIndex(o => o.id 
 function undoT(msg, fn) { $("undoTt").textContent = msg; $("undoT").hidden = false; clearTimeout(undoT.h); undoT.h = setTimeout(() => $("undoT").hidden = true, 9000);
   $("undoTb").onclick = async () => { $("undoT").hidden = true; try { await fn(); toast("Undone."); } catch (e) { setupNote(e); } refresh(); }; }
 const lfSub = id => [...lfIn(id)];
-async function fAdd(c) { if (!c) return toast("Tap a folder first, or right-click it."); if (c.k === "mmj") return toast(MMJWAIT, 7000);
+async function fAdd(c) { if (!c) return toast("Tap a folder first, or right-click it."); if (c.k === "mmj") return mmjCan() ? mmjFolderAdd(c) : toast(MMJWAIT, 7000);
   const n = (prompt(`Name of the new folder inside “${c.name}”:`) || "").trim(); if (!n) return;
   if (c.k === "wf") { const f = { id: "f" + Date.now().toString(36), name: n.slice(0, 120), parent: c.id || null, order: 50 }; OPEN.add("WF"); if (c.id) OPEN.add("W" + c.id); saveOpen(); view = "wf:" + f.id; return wfSaveOwn(putOwn(WFOWN, f), "Folder added: " + f.name + "."); }
   const id = "lf" + Date.now().toString(36); try { await api.saveLF(id, { name: n.slice(0, 120), range: "", parent: c.id || null, order: 50, private: true }); OPEN.add("LF"); OPEN.add("L" + c.id); saveOpen(); view = "lf:" + id; toast("Folder added (private: visitors do not see it)."); } catch (e) { setupNote(e); } refresh(); }
-async function fRen(c) { if (!c || c.fixed) return; if (c.k === "mmj") return toast(MMJWAIT, 7000);
+async function fRen(c) { if (!c || c.fixed) return; if (c.k === "mmj") return mmjCan() ? mmjFolderRename(c) : toast(MMJWAIT, 7000);
   const n = (prompt("New name:", c.name) || "").trim(); if (!n || n === c.name) return;
   if (c.k === "wf") return wfSaveOwn(putOwn(WFOWN, { ...WF.find(f => f.id === c.id), name: n.slice(0, 120) }), "Renamed.");
   try { await api.saveLF(c.id, { name: n.slice(0, 120) }); toast("Renamed."); } catch (e) { setupNote(e); } refresh(); }
-function fMov(c) { if (!c || c.fixed) return; if (c.k === "mmj") return toast(MMJWAIT, 7000);
+function fMov(c) { if (!c || c.fixed) return; if (c.k === "mmj") return mmjCan() ? mmjFolderMove(c) : toast(MMJWAIT, 7000);
   const opts = c.k === "wf" ? [{ id: null, name: "WorkFlow (top level)" }].concat(WF.filter(f => !wfIn(c.id).has(f.id) && f.id !== "inbox").map(f => ({ id: f.id, name: wfPath(f.id).replace(/^WorkFlow › /, "") })))
     : [{ id: null, name: "First Library folders (top level)" }].concat(LF.filter(f => !lfIn(c.id).has(f.id)).map(f => ({ id: f.id, name: f.name })));
   dlg("Move “" + c.name + "” into…", opts.map((o, i) => `<button type="button" class="wfpick" data-k="${i}">${esc(o.name)}</button>`).join(""), "");
   $("wfdlgB").querySelectorAll(".wfpick").forEach(b => b.onclick = async () => { const o = opts[+b.dataset.k]; $("wfdlg").close();
     if (c.k === "wf") return wfSaveOwn(putOwn(WFOWN, { ...WF.find(f => f.id === c.id), parent: o.id }), "Moved into " + o.name + ".");
     try { await api.saveLF(c.id, { parent: o.id }); toast("Moved into " + o.name + "."); } catch (e) { setupNote(e); } refresh(); }); }
-async function fDel(c) { if (!c || c.fixed) return; if (c.k === "mmj") return mmjTrash(c);
+async function fDel(c) { if (!c || c.fixed) return; if (c.k === "mmj") return mmjCan() ? mmjFolderDel(c) : mmjTrash(c);
   if (c.k === "wf") { const ids = wfIn(c.id), cs = ITEMS.filter(r => r.type === "card" && ids.has(r.wf)), os = ITEMS.filter(r => r.type !== "card" && ids.has(r.wf));
     if (!confirm(`Delete the WorkFlow folder “${c.name}”${ids.size > 1 ? ` and the ${ids.size - 1} folder(s) inside` : ""}?${cs.length ? ` Its ${cs.length} card(s) move to the Inbox.` : ""} You can undo.`)) return;
     const before = JSON.parse(JSON.stringify(WFOWN)), old = cs.map(r => [r, r.wf]); let list = WFOWN.slice();
@@ -1292,7 +1390,7 @@ async function fDel(c) { if (!c || c.fixed) return; if (c.k === "mmj") return mm
   view = "all"; refresh();
   undoT(`Deleted “${c.name.slice(0, 40)}”`, async () => { for (const f of keep) { const { id, ...rest } = f; await api.saveLF(id, rest); } for (const r of ps) await api.savePost(r.id, { folder: r.folder }); }); }
 // move a folder up or down among its neighbours (owner, 5 Nov); MMJ folders wait for Siyagah's R2
-async function fShift(c, dir) { if (!c || c.fixed) return; if (c.k === "mmj") return toast(MMJWAIT, 7000);
+async function fShift(c, dir) { if (!c || c.fixed) return; if (c.k === "mmj") return mmjCan() ? mmjFolderShift(c, dir) : toast(MMJWAIT, 7000);
   if (c.k === "wf") { const f = WF.find(x => x.id === c.id), sib = (f.parent ? wfKids(f.parent) : WF.filter(x => !x.parent && !!x.sec === !!f.sec).sort((a, b) => (a.order ?? 50) - (b.order ?? 50) || a.name.localeCompare(b.name, "en", { numeric: true })));
     const i = sib.findIndex(x => x.id === f.id), j = i + dir; if (j < 0 || j >= sib.length) return toast(dir < 0 ? "Already at the top." : "Already at the bottom.");
     [sib[i], sib[j]] = [sib[j], sib[i]]; let list = WFOWN.slice(); sib.forEach((x, k) => { list = putOwn(list, { ...(list.find(o => o.id === x.id) || WF.find(o => o.id === x.id)), order: (k + 1) * 10 }); });
@@ -1306,21 +1404,22 @@ async function fInto(kind, id, target) { // drag a folder onto another folder of
   if (lfIn(id).has(target)) return toast("A folder cannot go inside itself."); try { await api.saveLF(id, { parent: target || null }); OPEN.add("L" + target); saveOpen(); toast("Moved into " + (LF.find(x => x.id === target)?.name || "First Library folders") + "."); } catch (e) { setupNote(e); } refresh(); }
 $("ltree").addEventListener("click", e => { const b = e.target.closest("[data-shift]"); if (!b) return; e.stopPropagation(); fShift(fctx(view), +b.dataset.shift); }, true);
 document.addEventListener("keydown", e => { if (!e.altKey || (e.key !== "ArrowUp" && e.key !== "ArrowDown") || e.target.closest("input,textarea,select,[contenteditable]")) return; const c = fctx(view); if (!c) return; e.preventDefault(); fShift(c, e.key === "ArrowUp" ? -1 : 1); });
-$("ltree").addEventListener("dragstart", e => { const r = e.target.closest(".lr[data-wf],.lr[data-lf]"); if (!r || r.dataset.i) return; e.dataTransfer.setData("text/bwnf", r.dataset.wf !== undefined ? "wf:" + r.dataset.wf : "lf:" + r.dataset.lf); e.dataTransfer.effectAllowed = "move"; });
-$("ltree").addEventListener("dragover", e => { if (!e.dataTransfer.types.includes("text/bwnf")) return; const r = e.target.closest(".lr[data-wf],.lr[data-lf]"); if (!r) return; e.preventDefault(); $("ltree").querySelectorAll(".drop").forEach(x => x !== r && x.classList.remove("drop")); r.classList.add("drop"); });
-$("ltree").addEventListener("drop", e => { const src = e.dataTransfer.getData("text/bwnf"); if (!src) return; const r = e.target.closest(".lr[data-wf],.lr[data-lf]"); if (!r) return; e.preventDefault(); e.stopImmediatePropagation(); r.classList.remove("drop");
-  const [kind, id] = [src.slice(0, 2), src.slice(3)], tk = r.dataset.wf !== undefined ? "wf" : "lf", tid = tk === "wf" ? r.dataset.wf : r.dataset.lf;
-  if (kind !== tk) return toast(kind === "wf" ? "WorkFlow folders and Sections move among WorkFlow folders and Sections." : "Library folders move among Library folders."); if (tid === id) return;
+$("ltree").addEventListener("dragstart", e => { const r = e.target.closest(".lr[data-wf],.lr[data-lf],.lr[data-f]"); if (!r || r.dataset.i) return; e.dataTransfer.setData("text/bwnf", r.dataset.f ? "mf:" + r.dataset.f : r.dataset.wf !== undefined ? "wf:" + r.dataset.wf : "lf:" + r.dataset.lf); e.dataTransfer.effectAllowed = "move"; });
+$("ltree").addEventListener("dragover", e => { if (!e.dataTransfer.types.includes("text/bwnf")) return; const r = e.target.closest(".lr[data-wf],.lr[data-lf],.lr[data-f]"); if (!r) return; e.preventDefault(); $("ltree").querySelectorAll(".drop").forEach(x => x !== r && x.classList.remove("drop")); r.classList.add("drop"); });
+$("ltree").addEventListener("drop", e => { const src = e.dataTransfer.getData("text/bwnf"); if (!src) return; const r = e.target.closest(".lr[data-wf],.lr[data-lf],.lr[data-f]"); if (!r) return; e.preventDefault(); e.stopImmediatePropagation(); r.classList.remove("drop");
+  const [kind, id] = [src.slice(0, 2), src.slice(3)], tk = r.dataset.f ? "mf" : r.dataset.wf !== undefined ? "wf" : "lf", tid = tk === "mf" ? r.dataset.f : tk === "wf" ? r.dataset.wf : r.dataset.lf;
+  if (kind !== tk) return toast(kind === "mf" ? "Mapping My Journey folders move among Mapping My Journey folders." : kind === "wf" ? "WorkFlow folders and Sections move among WorkFlow folders and Sections." : "Library folders move among Library folders."); if (tid === id) return;
+  if (kind === "mf") { const c = fctx(+id); return c && mmjFolderMoveTo(c, BY.get(+tid)); }
   fInto(kind, id, tid === "inbox" ? null : tid); }, true);
 $("fSec").onclick = async () => { if (!ownerOk) return; const n = (prompt("Name of the new Section (its own group at the top of the Map; private):") || "").trim(); if (!n) return;
   const f = { id: "s" + Date.now().toString(36), name: n.slice(0, 120), parent: null, order: 50, sec: true }; OPEN.add("W" + f.id); saveOpen(); view = "wf:" + f.id; await wfSaveOwn(putOwn(WFOWN, f), "Section added: " + f.name + "."); };
 $("fAdd").onclick = () => fAdd(fctx(view)); $("fRen").onclick = () => fRen(fctx(view)); $("fMov").onclick = () => fMov(fctx(view)); $("fDel").onclick = () => fDel(fctx(view));
 // right-click (or long-press on a phone) on any folder
 const vOfRow = r => r.dataset.f ? +r.dataset.f : r.dataset.lf !== undefined ? (r.dataset.lf ? "lf:" + r.dataset.lf : null) : r.dataset.wf !== undefined ? "wf:" + r.dataset.wf : null;
-function ctxMenu(x, y, v) { const c = fctx(v), m = $("ctx"); if (!c || !ownerOk) return; const mm = c.k === "mmj", dis = mm || c.fixed;
+function ctxMenu(x, y, v) { const c = fctx(v), m = $("ctx"); if (!c || !ownerOk) return; const mm = c.k === "mmj" && !mmjCan(), dis = mm || c.fixed;
   const it = [["Open", () => { view = v; sel.clear(); draw(); tab("files"); }], ["＋ New Section (top of the Map)…", () => $("fSec").click()], ["⧉ Open as its own window", () => popFolder(typeof v === "number" ? "m" + v : v)], "-",
     ["+ New folder inside…", () => fAdd(c), mm], ["Rename…", () => fRen(c), dis], ["Move to…", () => fMov(c), dis], ["↑ Move up", () => fShift(c, -1), dis], ["↓ Move down", () => fShift(c, 1), dis], "-", ...mkMenuItems([keyOfView(v)]), "-", ["🗑 Delete…", () => fDel(c), c.fixed]];
-  if (mm) it.push("-", ["+ New post here", () => { view = v; $("newpost").click(); }]);
+  if (c.k === "mmj") { const on = !!BY.get(c.id)?.vis; it.splice(4, 0, ["📝 New MMJ note here…", () => mmjNoteNew(c.id), mm], [on ? "🔒 Make private" : "👁 Show to visitors", () => mmjFolderVis(c, !on), mm]); it.push("-", ["+ New post here", () => { view = v; $("newpost").click(); }]); }
   m.innerHTML = `<div class="ch">${esc(c.name)}</div>` + it.map((t, i) => t === "-" ? "<hr>" : `<button type="button" role="menuitem" data-i="${i}"${t[2] ? " disabled" : ""}>${esc(t[0])}</button>`).join("") + (mm ? `<div class="ch">${esc(MMJWAIT)}</div>` : "");
   m.hidden = false; const r = m.getBoundingClientRect(); m.style.left = Math.max(6, Math.min(x, innerWidth - r.width - 6)) + "px"; m.style.top = Math.max(6, Math.min(y, innerHeight - r.height - 6)) + "px";
   m.querySelectorAll("button[data-i]").forEach(b => b.onclick = () => { m.hidden = true; it[+b.dataset.i][1](); }); m.querySelector("button:not(:disabled)")?.focus(); }
@@ -1462,7 +1561,9 @@ function drawCard(c) {
 // + Add item (a card; a file goes to your Drive folder “To BwN” and is linked on the card)
 function dlg(title, body, foot) { $("wfdlgT").textContent = title; $("wfdlgB").innerHTML = body; $("wfdlgF").innerHTML = foot; $("wfdlg").showModal(); }
 $("wfdlgX").onclick = () => $("wfdlg").close();
-$("fNew").onclick = () => $("wAdd").click();
+$("fNew").onclick = () => { if (typeof view !== "number" || !mmjCan()) return $("wAdd").click();
+  dlg("New in “" + (BY.get(view)?.name || "") + "”", `<button type="button" class="wfpick" id="nwNote">📝 MMJ note (saved in Siyagah)</button><button type="button" class="wfpick" id="nwCard">🗂 Item card or file (BwN)</button>`, "");
+  $("nwNote").onclick = () => { $("wfdlg").close(); mmjNoteNew(view); }; $("nwCard").onclick = () => { $("wfdlg").close(); $("wAdd").click(); }; };
 $("wAdd").onclick = () => { if (!ownerOk) return toast("Sign in first.");
   const at = typeof view === "number" ? { mmj: view, mmjName: BY.get(view)?.name || "", mmjPath: BY.get(view)?.path || "" } : typeof view === "string" && view.startsWith("wf:") && view.length > 3 ? { wf: view.slice(3) } : { wf: "bwn" };
   dlg("Add an item", `<div class="mgrid">

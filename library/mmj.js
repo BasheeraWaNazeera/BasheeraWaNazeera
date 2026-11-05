@@ -1,5 +1,6 @@
 // Reader of Siyagah's shared Mapping My Journey copy (BWN J27 Stage 2, Siyagah R1, MMJ-SHARE.md).
-// READ-ONLY: this file never writes anything to Siyagah. Writing comes with Siyagah's R2.
+// Reads the copy; writes ONLY new request documents notebooks/{nb}/mmjin/{reqId} (Siyagah R2, v05.68, "Writing (R2)"),
+// never anything else of Siyagah's, and never changes a request after creating it.
 // Siyagah's Firebase web settings and notebook id come from config.js (siyagah), given by the owner.
 const FB = "https://www.gstatic.com/firebasejs/10.12.2/";
 
@@ -60,6 +61,14 @@ export async function startMMJ({ cfg, nb, idToken, onTree, onNotes, onState }) {
   au.onAuthStateChanged(auth, u => { if (u) { if (!unsub) go(); } else onState("signin"); });
   return {
     async connect() { await au.signInWithPopup(auth, new au.GoogleAuthProvider()); },
+    // R2: ask Siyagah to make a change. Returns the request id; watch(id, cb) reports st new → work → done | refused.
+    async request(op, fields) {
+      const id = "bwn-" + Date.now().toString(36) + "-" + crypto.getRandomValues(new Uint32Array(2)).reduce((a, x) => a + x.toString(36), "");
+      const body = { v: 1, op, from: "bwn", at: fs.serverTimestamp(), st: "new" };
+      for (const [k, v] of Object.entries(fields || {})) if (v !== undefined) body[k] = v;
+      await fs.setDoc(fs.doc(db, `${base}/mmjin/${id}`), body); return id;
+    },
+    watch(id, cb) { const un = fs.onSnapshot(fs.doc(db, `${base}/mmjin/${id}`), d => { const x = d.data(); if (!x) return; cb(x); if (x.st === "done" || x.st === "refused") un(); }, e => cb({ st: "error", why: e.message })); return un; },
     // a picture inside a note: fetched from Siyagah and shown only when its sha256 matches (as Siyagah's _picFetch)
     async pic(sha) {
       const m = await fs.getDoc(fs.doc(db, `${base}/pics/${sha}`)); if (!m.exists()) return null;
