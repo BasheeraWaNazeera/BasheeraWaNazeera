@@ -296,6 +296,8 @@ textarea{min-height:120px;resize:vertical}
 .nmk{display:inline-flex;gap:2px;margin-right:6px}
 .mkb{border:1px solid var(--line);background:var(--panel);border-radius:6px;font-size:.78rem;line-height:1;padding:3px 5px;cursor:pointer;opacity:.55}
 .mkb.on{opacity:1;background:var(--accent-soft);border-color:var(--accent)}
+.lr .fopen{font-size:.7rem;font-weight:600;margin-left:6px;padding:1px 7px;border-radius:999px;border:1px solid var(--accent);color:var(--accent);text-decoration:none;white-space:nowrap;flex-shrink:0}
+.lr .fopen:hover{background:var(--accent-soft)}
 .mmjpend{font-size:.7rem;font-weight:600;margin-left:6px;padding:1px 7px;border-radius:999px;background:#fdf0cf;color:#7a5200;vertical-align:2px;cursor:help}
 .trow{display:flex;align-items:center;justify-content:space-between;gap:10px}
 .newb{font-size:.66rem;background:var(--warn);color:var(--panel);border-radius:999px;padding:0 6px;margin-left:6px;vertical-align:2px;font-weight:600}
@@ -927,7 +929,8 @@ $("ltree").addEventListener("click", e => { const pb = e.target.closest(".fpop1"
   else if (r.dataset.lf !== undefined) { const id = r.dataset.lf, k = id ? "L" + id : "LF"; if (!id) { OPEN.has(k) ? OPEN.delete(k) : OPEN.add(k); }
     else { if (OPEN.has(k) && view === "lf:" + id) OPEN.delete(k); else OPEN.add(k); view = "lf:" + id; sel.clear(); } saveOpen(); draw(); }
   else if (r.dataset.wt !== undefined) { const k = "T" + r.dataset.wt, v = "wt:" + r.dataset.wt; if (OPEN.has(k) && view === v) OPEN.delete(k); else OPEN.add(k); view = v; sel.clear(); saveOpen(); draw(); }
-  else if (r.dataset.wf !== undefined) { const id = r.dataset.wf, k = id ? "W" + id : "WF"; if (OPEN.has(k) && view === "wf:" + id) OPEN.delete(k); else OPEN.add(k); view = "wf:" + id; sel.clear(); saveOpen(); draw(); }
+  else if (r.dataset.wf !== undefined) { const id = r.dataset.wf, k = id ? "W" + id : "WF", fu = WF.find(f => f.id === id);
+    if (fu?.url && !e.target.closest(".ltw,.fopen,.updn,.fpop1")) window.open(wfUrl(fu), "_blank", "noopener"); if (OPEN.has(k) && view === "wf:" + id) OPEN.delete(k); else OPEN.add(k); view = "wf:" + id; sel.clear(); saveOpen(); draw(); }
   else if (r.dataset.i) { if (e.target.closest("[data-dot]")) { cycleCard(e.target.closest("[data-dot]").dataset.dot); return; } draft = null; cur = r.dataset.i; draw(); showNote(); tab("note"); } });
 // drag a file or card onto a folder (Map or WorkFlow); ticked files move together
 $("ltree").addEventListener("dragstart", e => { const r = e.target.closest(".lr[data-i]"); if (r) e.dataTransfer.setData("text/bwn", r.dataset.i); });
@@ -1037,6 +1040,9 @@ const PNAME = { bwn: "BwN", mmsa: "MSA", siy: "Siyagah", web: "Web", khutbah: "M
 const WF0 = [{ id: "inbox", name: "🆕 Inbox from the Architects", parent: null, order: 0 }].concat(["bwn", "mmsa", "siy", "web", "khutbah", "pl"].map((id, i) => ({ id, name: PNAME[id], parent: null, order: i + 1 })),
   [["qr", "QuranRevival · QR Lead"], ["mmsa-hadith", "Hadith Lead"], ["mmsa-dua", "Dua Lead"], ["mmsa-health", "Health Lead"]].map(([id, name], i) => ({ id, name, parent: "mmsa", order: i + 1 })),
   [{ id: "other", name: "Other (no project)", parent: null, order: 20 }]);
+// a folder can open a page when tapped (owner, 6 Nov: “(06) Jumu'a Khutbah folder opens to” the Khutbah page)
+WF0.find(f => f.id === "khutbah").url = "https://claude.ai/artifact/6BYUwxCixuSj5Jde4x7qBS#t061126unseen";
+const wfUrl = f => f?.url ? openUrl({ url: f.url }) : "";
 const wfFor = x => WF0.some(f => f.id === x.wf) ? x.wf : WF0.some(f => f.id === x.pid) ? x.pid : "inbox";
 let WF = WF0.slice(), WFOWN = [], LAST = [];
 const CSTAT = ["todo", "working", "done"];
@@ -1122,7 +1128,7 @@ function wfTreeHTML() {
     return [...g].sort((a, b) => TPL(a[0]).localeCompare(TPL(b[0]))).map(([t, arr]) => { const k = "T" + fid + "|" + t, o = OPEN.has(k), v = "wt:" + fid + "|" + t;
       return `<li><div class="lr${view === v ? " sel" : ""}" data-wt="${esc(fid + "|" + t)}" tabindex="0" aria-expanded="${o}"><span class="ltw">${o ? "−" : "+"}</span><span class="nm">📁 ${esc(TPL(t))}</span><span class="cnt">(${arr.length})</span></div>${o ? `<ul>${arr.map(li).join("")}</ul>` : ""}</li>`; }).join(""); };
   const build = pid => wfKids(pid).map(f => { const k = "W" + f.id, its = cardsIn(f.id), has = wfKids(f.id).length || its.length, open = has && OPEN.has(k), n = cnt(f.id);
-    return `<li><div class="lr${view === "wf:" + f.id ? " sel" : ""}" data-wf="${esc(f.id)}" tabindex="0"${has ? ` aria-expanded="${open}"` : ""}><span class="ltw">${has ? (open ? "−" : "+") : ""}</span><span class="nm">${esc(f.name)}</span>${n ? `<span class="cnt">(${n})</span>` : ""}</div>${open ? `<ul>${build(f.id)}${byType(f.id, its)}</ul>` : ""}</li>`; }).join("");
+    return `<li><div class="lr${view === "wf:" + f.id ? " sel" : ""}" data-wf="${esc(f.id)}" tabindex="0"${has ? ` aria-expanded="${open}"` : ""}><span class="ltw">${has ? (open ? "−" : "+") : ""}</span><span class="nm">${esc(f.name)}</span>${f.url ? `<a class="fopen" href="${esc(wfUrl(f))}" target="_blank" rel="noopener" title="Open this folder’s page in its own window">↗ Open</a>` : ""}${n ? `<span class="cnt">(${n})</span>` : ""}</div>${open ? `<ul>${build(f.id)}${byType(f.id, its)}</ul>` : ""}</li>`; }).join("");
   if (!ownerOk) return "";
   const open = OPEN.has("WF"), wfCards = cards.filter(r => r.type === "card" && !secRoot(r.wf)).length;
   const secs = WF.filter(f => f.sec && !f.parent).sort((a, b) => (a.order ?? 50) - (b.order ?? 50) || a.name.localeCompare(b.name, "en", { numeric: true })).map(f => { const k = "W" + f.id, its = cardsIn(f.id), has = wfKids(f.id).length || its.length, o = has && OPEN.has(k), n = cnt(f.id);
@@ -1365,6 +1371,10 @@ async function fAdd(c) { if (!c) return toast("Tap a folder first, or right-clic
   const n = (prompt(`Name of the new folder inside “${c.name}”:`) || "").trim(); if (!n) return;
   if (c.k === "wf") { const f = { id: "f" + Date.now().toString(36), name: n.slice(0, 120), parent: c.id || null, order: 50 }; OPEN.add("WF"); if (c.id) OPEN.add("W" + c.id); saveOpen(); view = "wf:" + f.id; return wfSaveOwn(putOwn(WFOWN, f), "Folder added: " + f.name + "."); }
   const id = "lf" + Date.now().toString(36); try { await api.saveLF(id, { name: n.slice(0, 120), range: "", parent: c.id || null, order: 50, private: true }); OPEN.add("LF"); OPEN.add("L" + c.id); saveOpen(); view = "lf:" + id; toast("Folder added (private: visitors do not see it)."); } catch (e) { setupNote(e); } refresh(); }
+function wfLink(c) { const f = WF.find(x => x.id === c.id); if (!f) return;
+  const u = prompt(`Page that “${c.name}” opens when tapped (https://…). Leave empty for none:`, f.url || ""); if (u === null) return; const v = u.trim();
+  if (v && !/^https:\/\//i.test(v)) return toast("Use a full https:// link.");
+  wfSaveOwn(putOwn(WFOWN, { ...(WFOWN.find(o => o.id === f.id) || f), url: v }), v ? "Folder link saved: tapping it opens the page." : "Folder link removed."); }
 async function fRen(c) { if (!c || c.fixed) return; if (c.k === "mmj") return mmjCan() ? mmjFolderRename(c) : toast(MMJWAIT, 7000);
   const n = (prompt("New name:", c.name) || "").trim(); if (!n || n === c.name) return;
   if (c.k === "wf") return wfSaveOwn(putOwn(WFOWN, { ...WF.find(f => f.id === c.id), name: n.slice(0, 120) }), "Renamed.");
@@ -1418,7 +1428,7 @@ $("fAdd").onclick = () => fAdd(fctx(view)); $("fRen").onclick = () => fRen(fctx(
 const vOfRow = r => r.dataset.f ? +r.dataset.f : r.dataset.lf !== undefined ? (r.dataset.lf ? "lf:" + r.dataset.lf : null) : r.dataset.wf !== undefined ? "wf:" + r.dataset.wf : null;
 function ctxMenu(x, y, v) { const c = fctx(v), m = $("ctx"); if (!c || !ownerOk) return; const mm = c.k === "mmj" && !mmjCan(), dis = mm || c.fixed;
   const it = [["Open", () => { view = v; sel.clear(); draw(); tab("files"); }], ["＋ New Section (top of the Map)…", () => $("fSec").click()], ["⧉ Open as its own window", () => popFolder(typeof v === "number" ? "m" + v : v)], "-",
-    ["+ New folder inside…", () => fAdd(c), mm], ["Rename…", () => fRen(c), dis], ["Move to…", () => fMov(c), dis], ["↑ Move up", () => fShift(c, -1), dis], ["↓ Move down", () => fShift(c, 1), dis], "-", ...mkMenuItems([keyOfView(v)]), "-", ["🗑 Delete…", () => fDel(c), c.fixed]];
+    ["+ New folder inside…", () => fAdd(c), mm], ["Rename…", () => fRen(c), dis], ["Move to…", () => fMov(c), dis], ...(c.k === "wf" && c.id && c.id !== "inbox" ? [["🔗 Page this folder opens…", () => wfLink(c)]] : []), ["↑ Move up", () => fShift(c, -1), dis], ["↓ Move down", () => fShift(c, 1), dis], "-", ...mkMenuItems([keyOfView(v)]), "-", ["🗑 Delete…", () => fDel(c), c.fixed]];
   if (c.k === "mmj") { const on = !!BY.get(c.id)?.vis; it.splice(4, 0, ["📝 New MMJ note here…", () => mmjNoteNew(c.id), mm], [on ? "🔒 Make private" : "👁 Show to visitors", () => mmjFolderVis(c, !on), mm]); it.push("-", ["+ New post here", () => { view = v; $("newpost").click(); }]); }
   m.innerHTML = `<div class="ch">${esc(c.name)}</div>` + it.map((t, i) => t === "-" ? "<hr>" : `<button type="button" role="menuitem" data-i="${i}"${t[2] ? " disabled" : ""}>${esc(t[0])}</button>`).join("") + (mm ? `<div class="ch">${esc(MMJWAIT)}</div>` : "");
   m.hidden = false; const r = m.getBoundingClientRect(); m.style.left = Math.max(6, Math.min(x, innerWidth - r.width - 6)) + "px"; m.style.top = Math.max(6, Math.min(y, innerHeight - r.height - 6)) + "px";
