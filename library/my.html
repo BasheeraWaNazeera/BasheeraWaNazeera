@@ -1159,8 +1159,10 @@ let MMJN = [], MMJSRC = "website", mmjApi = null, mmjBusy = false, PKEYS = new S
 const ARTRE = /^https:\/\/claude\.ai\/artifact\/([A-Za-z0-9]{10,40})(#.*)?$/;
 const VIEWER = "https://basheerawanazeera.github.io/BasheeraWaNazeera/library/page.html?p=";
 // the link a card opens: its BwN copy when the Database holds one, else its own link (owner, 4 Nov: Claude links often do not open)
-const openUrl = c => { const m = ARTRE.exec(String(c.url || "").trim()); if (m && (PKEYS.has(m[1]) || c.pkey === m[1])) return VIEWER + m[1] + (m[2] || ""); return c.url || ""; };
-const onlyClaude = c => ARTRE.test(String(c.url || "").trim()) && openUrl(c) === c.url;
+// pages the owner works on in Claude itself always open the claude.ai link (owner, 6 Nov 3:30pm: the Khutbah page)
+const CLAUDE_FIRST = new Set(["6BYUwxCixuSj5Jde4x7qBS"]);
+const openUrl = c => { const m = ARTRE.exec(String(c.url || "").trim()); if (m && !CLAUDE_FIRST.has(m[1]) && (PKEYS.has(m[1]) || c.pkey === m[1])) return VIEWER + m[1] + (m[2] || ""); return c.url || ""; };
+const onlyClaude = c => { const m = ARTRE.exec(String(c.url || "").trim()); return !!m && !CLAUDE_FIRST.has(m[1]) && openUrl(c) === c.url; };
 const fnv = s => { let h = 2166136261; for (const ch of s) { h ^= ch.codePointAt(0); h = Math.imul(h, 16777619) >>> 0; } return h; };
 const mnum = sid => !sid ? 0 : /^mmj-c-\d+$/.test(sid) ? +sid.slice(6) : -(fnv(sid) % 1e9) - 1; // site folders keep their number; the owner's own folders get a stable stand-in
 function mmjState(st, msg) { const b = $("mmjst"); if (!b) return; b.hidden = false; b.className = "mmjst" + (st === "live" ? " ok" : st === "denied" || st === "error" ? " warn" : "");
