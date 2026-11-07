@@ -299,6 +299,7 @@ textarea{min-height:120px;resize:vertical}
 .lr .fopen{font-size:.7rem;font-weight:600;margin-left:6px;padding:1px 7px;border-radius:999px;border:1px solid var(--accent);color:var(--accent);text-decoration:none;white-space:nowrap;flex-shrink:0}
 .lr .fopen:hover{background:var(--accent-soft)}
 .ltree .tsec .recsort{margin-left:auto;font-size:.72rem;padding:1px 4px;border:1px solid var(--line);border-radius:6px;background:var(--panel);color:var(--ink);text-transform:none;letter-spacing:0}
+.ltree .plab{color:var(--accent);font-weight:700}
 .ltree .rday{list-style:none;font-size:.7rem;color:var(--muted);padding:6px 6px 0 30px}
 .ltree .recall{font-size:.78rem;margin:2px 0 4px 30px}
 .ltree .tsec{display:flex;align-items:center;justify-content:space-between;gap:8px}
@@ -954,13 +955,20 @@ $("ltree").addEventListener("click", e => { const b = e.target.closest(".fsw"); 
   if (k === null) return; OPEN.has(k) ? OPEN.delete(k) : OPEN.add(k); saveOpen(); drawLTree(); }, true);
 // Recent (owner, 8 Nov): the WorkFlow files by time, Latest · Oldest · By date, at the top of the Map
 let RSORT = "new"; try { RSORT = localStorage.getItem("viRecSort") || "new"; } catch { }
+// each Recent item starts with its project, e.g. “MSA-Health:” (owner, 8 Nov)
+const PSHORT = { inbox: "Inbox", bwn: "BwN", mmsa: "MSA", siy: "Siyagah", web: "Web", khutbah: "Khutbah", pl: "PCA", qr: "MSA-QR", "mmsa-hadith": "MSA-Hadith", "mmsa-dua": "MSA-Dua", "mmsa-health": "MSA-Health", other: "Other" };
+function projLabel(r) { let f = WF.find(x => x.id === r.wf), n = 0; while (f && !PSHORT[f.id] && f.parent && n++ < 9) f = WF.find(x => x.id === f.parent);
+  return f ? PSHORT[f.id] || f.name.replace(/^\(\w+\)\s*/, "") : projOf(r)[0] || ""; }
+function labelled(r) { const L = projLabel(r); let t = String(r.title || "");
+  if (L) { const esc2 = L.replace(/[-]/g, "[-\\s]?"); t = t.replace(new RegExp("^" + esc2 + "\\s*[·:\\-–]\\s*", "i"), ""); }
+  return (L ? `<span class="plab">${esc(L)}:</span> ` : "") + esc(t); }
 const recentAll = () => ITEMS.filter(r => r.type === "card" && r.wf);
 const DAYB = ["Today", "Yesterday", "This week", "This month", "Earlier"];
 function dayBucket(at) { if (!at) return "Earlier"; const d = new Date(at), n = new Date(), day = 864e5, t0 = new Date(n.getFullYear(), n.getMonth(), n.getDate()).getTime();
   return d.getTime() >= t0 ? "Today" : d.getTime() >= t0 - day ? "Yesterday" : d.getTime() >= t0 - 6 * day ? "This week" : d.getMonth() === n.getMonth() && d.getFullYear() === n.getFullYear() ? "This month" : "Earlier"; }
 function recentHTML() { if (!ownerOk && !DEMO) return ""; const all = recentAll(); if (!all.length) return "";
   const list = all.slice().sort((a, b) => (RSORT === "old" ? 1 : -1) * (a.at || "").localeCompare(b.at || "")).slice(0, 10);
-  const row = r => `<li><div class="lr${cur === r.id ? " sel" : ""}" data-i="${esc(r.id)}" tabindex="0"><span class="ltw"></span><span class="nm">${cdot(r)}${ICONOF(r)} ${esc(r.title)}</span><span class="cnt">${r.at ? esc(when(r.at)) : ""}</span></div></li>`;
+  const row = r => `<li><div class="lr${cur === r.id ? " sel" : ""}" data-i="${esc(r.id)}" tabindex="0"><span class="ltw"></span><span class="nm">${cdot(r)}${ICONOF(r)} ${labelled(r)}</span><span class="cnt">${r.at ? esc(when(r.at)) : ""}</span></div></li>`;
   let body = ""; if (RSORT === "date") { let last = ""; list.forEach(r => { const b = dayBucket(r.at); if (b !== last) { body += `<li class="rday">${b}</li>`; last = b; } body += row(r); }); } else body = list.map(row).join("");
   return body + `<li><button type="button" class="link recall" id="recAll">Show all ${all.length} in the list →</button></li>`; }
 $("ltree").addEventListener("change", e => { if (e.target.id !== "recSort") return; RSORT = e.target.value; try { localStorage.setItem("viRecSort", RSORT); } catch { } drawLTree(); });
