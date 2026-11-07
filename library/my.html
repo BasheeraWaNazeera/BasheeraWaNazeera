@@ -1709,7 +1709,7 @@ function drawDraft() {
   const kind = d.kind === "rec" ? "New recording" : d.kind === "up" ? "New upload" : "Taken in from Drive";
   N.innerHTML = `<input class="np-ti" id="dTitle" value="${esc(d.title || "")}" placeholder="Title" aria-label="Title">
     <span class="meta">${kind} · not saved yet</span>
-    ${d.kind === "rec" && d.video ? (d.blob ? `<video id="dPlay" class="vrec" controls playsinline></video>` : `<video id="dPrev" class="vrec" playsinline muted autoplay></video>`) : d.kind === "rec" ? `<audio id="dPlay" controls ${d.blob ? "" : "hidden"}></audio>` : `<ul class="meta" style="margin:0;padding-left:18px">${d.files.map(f => `<li>${esc(f.name)}${f.size ? " · " + (f.size / 1048576).toFixed(1) + " MB" : ""}</li>`).join("")}</ul>`}
+    ${d.kind === "rec" && d.video ? (d.blob ? `<video id="dPlay" class="vrec" controls playsinline></video>` : `<video id="dPrev" class="vrec" playsinline muted autoplay></video><button class="btn ghost" id="dFlip" type="button" title="Switch between the front and back camera (works while recording)">${VC?.face === "environment" ? "🔄 Front camera" : "🔄 Back camera"}</button>`) : d.kind === "rec" ? `<audio id="dPlay" controls ${d.blob ? "" : "hidden"}></audio>` : `<ul class="meta" style="margin:0;padding-left:18px">${d.files.map(f => `<li>${esc(f.name)}${f.size ? " · " + (f.size / 1048576).toFixed(1) + " MB" : ""}</li>`).join("")}</ul>`}
     ${d.kind !== "rec" ? `<label class="fld">Language <select class="sel" id="dLang">${Object.values(LANGS).concat("Mixed").map(l => `<option${l === d.lang ? " selected" : ""}>${l}</option>`).join("")}</select></label>` : ""}
     <label class="fld">Transcript${d.kind === "rec" ? " (typed live; you can correct it)" : ""}<textarea id="dText" placeholder="${d.kind === "rec" ? "Words appear here while you speak." : "Otter’s text file fills this in, or leave it empty."}">${esc(d.text || "")}</textarea></label>
     <span class="meta" id="sttnote">${esc(d.stt || "")}</span>
@@ -1719,6 +1719,7 @@ function drawDraft() {
       <button class="btn ghost" id="dDrop" type="button">Discard</button><span class="meta" id="dProg"></span></div>`;
   if (d.blob) $("dPlay").src = d.url || (d.url = URL.createObjectURL(d.blob));
   if (d.stream && $("dPrev")) $("dPrev").srcObject = d.stream;
+  if ($("dFlip")) $("dFlip").onclick = camFlip;
   if (d.lang === "Arabic") { $("dText").dir = "rtl"; $("dText").classList.add("ar"); }
   const chips = () => { const p = propose(($("dTitle").value || "") + " " + ($("dText").value || ""));
     $("dChips").innerHTML = p.length ? `<span class="meta">Proposed:</span>` + p.map(f => `<button type="button" data-id="${f.id}" title="${esc(f.path)}">${esc(f.name)}</button>`).join("") : "";
@@ -1774,10 +1775,29 @@ $("pick").onclick = takeIn;
 // Record here (MyVoice): audio + free live transcript (English, Bangla, Arabic)
 let mr, chunks = [], t0 = 0, tick, sr, srOn = false, finalText = "";
 const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+// cameras (owner, 7 Nov: “Enable back cam too”): the picture goes through a canvas, so 🔄 can switch front ↔ back even while recording
+let VC = null;
+const camFace = () => { try { return localStorage.getItem("viCam") || "user"; } catch { return "user"; } };
+const camGet = face => navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: face }, width: { ideal: 1280 }, height: { ideal: 720 } } });
+async function camStart() {
+  const face = camFace(), cam = await camGet(face), mic = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } }).catch(e => { cam.getTracks().forEach(t => t.stop()); throw e; });
+  const st = cam.getVideoTracks()[0].getSettings(), cv = document.createElement("canvas"); cv.width = st.width || 1280; cv.height = st.height || 720;
+  const el = document.createElement("video"); el.muted = true; el.playsInline = true; el.srcObject = cam; await el.play().catch(() => { });
+  const ctx = cv.getContext("2d");
+  const draw = () => { const w = el.videoWidth, h = el.videoHeight; if (!w || !h) return; const k = Math.min(cv.width / w, cv.height / h), dw = w * k, dh = h * k;
+    ctx.fillStyle = "#000"; ctx.fillRect(0, 0, cv.width, cv.height); ctx.drawImage(el, (cv.width - dw) / 2, (cv.height - dh) / 2, dw, dh); };
+  VC = { face, cam, el, timer: setInterval(draw, 1000 / 30) };
+  return new MediaStream([...cv.captureStream(30).getVideoTracks(), ...mic.getAudioTracks()]); }
+function camStop() { if (!VC) return; clearInterval(VC.timer); VC.cam.getTracks().forEach(t => t.stop()); VC = null; }
+async function camFlip() { if (!VC) return; const face = VC.face === "user" ? "environment" : "user";
+  try { const cam = await camGet(face); VC.cam.getTracks().forEach(t => t.stop()); VC.cam = cam; VC.face = face; VC.el.srcObject = cam; await VC.el.play().catch(() => { });
+    try { localStorage.setItem("viCam", face); } catch { } const b = $("dFlip"); if (b) b.textContent = face === "user" ? "🔄 Back camera" : "🔄 Front camera";
+    toast(face === "user" ? "Front camera." : "Back camera."); }
+  catch { toast("This device has no other camera.", 4000); } }
 // video too (owner, 7 Nov): camera + microphone, same live transcript, saved to Drive “To BwN”
 async function record(video = false) { video = video === true;
   if (mr && mr.state === "recording") { mr.stop(); return; }
-  let stream; try { stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true }, ...(video ? { video: { facingMode: "user", width: { ideal: 1280 }, height: { ideal: 720 } } } : {}) }); }
+  let stream; try { stream = video ? await camStart() : await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } }); }
   catch { toast(video ? "Camera or microphone not allowed. Allow both in the browser’s site settings and try again." : "Microphone not allowed. Allow it in the browser’s site settings and try again.", 6000); return; }
   const code = $("rlang").value, L = LANGS[code];
   draft = { kind: "rec", video, stream: video ? stream : null, lang: L, title: "", text: "", stt: SR ? `Live typing in ${L} (free, by Chrome).` : "This browser has no free live typing; use Chrome. The recording still saves." };
@@ -1786,7 +1806,7 @@ async function record(video = false) { video = video === true;
   mr = new MediaRecorder(stream, type ? { mimeType: type, ...(video ? { videoBitsPerSecond: 1500000, audioBitsPerSecond: 96000 } : { audioBitsPerSecond: 64000 }) } : undefined); chunks = []; finalText = "";
   const d = draft;
   mr.ondataavailable = e => e.data.size && chunks.push(e.data);
-  mr.onstop = () => { const secs = (Date.now() - t0) / 1000; stream.getTracks().forEach(t => t.stop()); clearInterval(tick); srOn = false; try { sr?.stop(); } catch { }
+  mr.onstop = () => { const secs = (Date.now() - t0) / 1000; stream.getTracks().forEach(t => t.stop()); camStop(); clearInterval(tick); srOn = false; try { sr?.stop(); } catch { }
     $("rec").textContent = "● Record"; $("rec").classList.remove("on"); $("recv").textContent = "🎥"; $("recv").classList.remove("on"); $("rec").disabled = $("recv").disabled = false; $("live").hidden = true; $("timer").hidden = true; $("rlang").disabled = false;
     if (draft !== d) return; // discarded while recording
     d.blob = new Blob(chunks, { type: mr.mimeType || (d.video ? "video/webm" : "audio/webm") }); d.dur = fmt(secs); d.stream = null;
