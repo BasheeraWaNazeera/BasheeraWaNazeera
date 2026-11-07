@@ -313,6 +313,9 @@ textarea{min-height:120px;resize:vertical}
 .fsw.on{background:var(--accent);border-color:var(--accent)}.fsw.on .kn{left:13px}
 .fsw:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 @media (max-width:460px){.menubar .ops{gap:4px!important}.menubar .ops .ibtn{padding:4px 7px!important;min-width:0}.menubar #rec{padding-left:10px!important;padding-right:10px!important}.menubar .seg .segb{padding:3px 7px!important}.menubar #wAdd{padding-left:10px!important;padding-right:10px!important}.menubar #rlang{padding-left:4px!important;padding-right:2px!important}}
+.vwrap{position:relative}
+.vwrap .vstamp{position:absolute;left:10px;bottom:14px;font:600 .8rem/1.2 system-ui,sans-serif;color:#fff;background:rgba(0,0,0,.45);padding:3px 8px;border-radius:6px;pointer-events:none;text-shadow:0 1px 2px #000}
+.stampsw{font-size:.82rem}
 video.vrec{width:100%;max-height:60vh;border-radius:10px;background:#000;margin:6px 0}
 #recv.on{background:#c0392b;color:#fff;border-color:#c0392b}
 .mmjpend{font-size:.7rem;font-weight:600;margin-left:6px;padding:1px 7px;border-radius:999px;background:#fdf0cf;color:#7a5200;vertical-align:2px;cursor:help}
@@ -1678,7 +1681,7 @@ function showNote0() {
   const noteHtml = r.note || (r.text ? `<p>${esc(r.text).replace(/\n+/g, "</p><p>")}</p>` : "<p></p>");
   N.innerHTML = `<div class="crumb">${pathHTML(placeOf(r))}</div>
     <h2 class="ptitle">${esc(r.title)}</h2>
-    <div class="chips2"><span class="chip draft">${r.video ? "Video recording" : "Recording"} · only you see it</span><span class="chip">${esc(r.src)}${r.dur ? " · " + esc(r.dur) : ""}</span><span class="chip">${esc(r.lang)}</span><span class="chip">${esc(when(r.at))}</span>${r.textFrom ? `<span class="chip">transcript: ${esc(r.textFrom)}</span>` : ""}${r.shared ? `<span class="chip priv">link shared</span>` : ""}</div>
+    <div class="chips2"><span class="chip draft">${r.video ? "Video recording" : "Recording"} · only you see it</span>${r.stamp ? `<span class="chip">🕘📍 ${esc(r.stamp)}</span>` : ""}<span class="chip">${esc(r.src)}${r.dur ? " · " + esc(r.dur) : ""}</span><span class="chip">${esc(r.lang)}</span><span class="chip">${esc(when(r.at))}</span>${r.textFrom ? `<span class="chip">transcript: ${esc(r.textFrom)}</span>` : ""}${r.shared ? `<span class="chip priv">link shared</span>` : ""}</div>
     <div class="nbar">${au ? `<button class="btn" id="nPlay" type="button">▶ Play</button>` : ""}
       <span class="fname" title="${f ? esc(f.path) + " · MMJ " + f.id : ""}">📁 ${f ? `<b>${esc(f.name)}</b>` : "Not yet filed"}</span>
       <button class="btn ghost" id="nFolder" type="button">${f ? "Change folder" : "Choose folder"}</button>
@@ -1703,7 +1706,7 @@ function showNote0() {
       b.disabled = true; b.textContent = "Loading…";
       try { await api.ensureDrive?.(); const blob = await api.blob(au.id), vid = r.video || /^video\//.test(au.mime || blob.type || ""); a = document.createElement(vid ? "video" : "audio"); a.controls = true; if (vid) { a.playsInline = true; a.className = "vrec"; } a.src = URL.createObjectURL(blob);
         a.onplay = () => b.textContent = "⏸ Pause"; a.onpause = a.onended = () => b.textContent = "▶ Play";
-        $("nAudio").append(a); $("nAudio").hidden = false; b.disabled = false; a.play().catch(() => { b.textContent = "▶ Play"; }); }
+        $("nAudio").append(a); if (vid && r.stamp) { $("nAudio").classList.add("vwrap"); const st = document.createElement("span"); st.className = "vstamp"; st.textContent = r.stamp; $("nAudio").append(st); } $("nAudio").hidden = false; b.disabled = false; a.play().catch(() => { b.textContent = "▶ Play"; }); }
       catch (e) { b.disabled = false; b.textContent = "▶ Play"; setupNote(e); } }; }
   $("nLinks").onclick = e => { e.stopPropagation(); openDrop($("nLinks"), $("nLinksDrop")); };
   $("nLinksDrop").onclick = () => { $("nLinksDrop").hidden = true; };
@@ -1740,7 +1743,10 @@ function drawDraft() {
   const kind = d.kind === "rec" ? "New recording" : d.kind === "up" ? "New upload" : "Taken in from Drive";
   N.innerHTML = `<input class="np-ti" id="dTitle" value="${esc(d.title || "")}" placeholder="Title" aria-label="Title">
     <span class="meta">${kind} · not saved yet</span>
-    ${d.kind === "rec" && d.video ? (d.blob ? `<video id="dPlay" class="vrec" controls playsinline></video>` : `<video id="dPrev" class="vrec" playsinline muted autoplay></video><button class="btn ghost" id="dFlip" type="button" title="Switch between the front and back camera (works while recording)">${VC?.face === "environment" ? "🔄 Front camera" : "🔄 Back camera"}</button>`) : d.kind === "rec" ? `<audio id="dPlay" controls ${d.blob ? "" : "hidden"}></audio>` : `<ul class="meta" style="margin:0;padding-left:18px">${d.files.map(f => `<li>${esc(f.name)}${f.size ? " · " + (f.size / 1048576).toFixed(1) + " MB" : ""}</li>`).join("")}</ul>`}
+    ${d.kind === "rec" ? `<label class="chk stampsw"><input type="checkbox" id="dStamp" ${stampOn() ? "checked" : ""}> 🕘📍 Time, date and place stamp</label>` : ""}
+    ${d.kind === "rec" && d.video ? (d.blob ? `<div class="vwrap"><video id="dPlay" class="vrec" controls playsinline></video>${d.stamp ? `<span class="vstamp">${esc(d.stamp)}</span>` : ""}</div>`
+      : `<div class="vwrap"><video id="dPrev" class="vrec" playsinline muted autoplay></video>${d.stamp ? `<span class="vstamp" id="vStamp">${esc(d.stamp)}</span>` : ""}</div>`
+        + (d.ready ? `<div class="acts"><button class="btn" id="dGo" type="button">● Start recording</button><button class="btn ghost" id="dFlip" type="button" title="Switch between the front and back camera">${VC?.face === "environment" ? "🔄 Front camera" : "🔄 Back camera"}</button></div><span class="meta">Choose the camera, then start. (Switching while recording made phones crash.)</span>` : `<span class="meta">Recording… tap ■ Stop at the top to finish.</span>`)) : d.kind === "rec" ? `<audio id="dPlay" controls ${d.blob ? "" : "hidden"}></audio>` : `<ul class="meta" style="margin:0;padding-left:18px">${d.files.map(f => `<li>${esc(f.name)}${f.size ? " · " + (f.size / 1048576).toFixed(1) + " MB" : ""}</li>`).join("")}</ul>`}
     ${d.kind !== "rec" ? `<label class="fld">Language <select class="sel" id="dLang">${Object.values(LANGS).concat("Mixed").map(l => `<option${l === d.lang ? " selected" : ""}>${l}</option>`).join("")}</select></label>` : ""}
     <label class="fld">Transcript${d.kind === "rec" ? " (typed live; you can correct it)" : ""}<textarea id="dText" placeholder="${d.kind === "rec" ? "Words appear here while you speak." : "Otter’s text file fills this in, or leave it empty."}">${esc(d.text || "")}</textarea></label>
     <span class="meta" id="sttnote">${esc(d.stt || "")}</span>
@@ -1751,16 +1757,20 @@ function drawDraft() {
   if (d.blob) $("dPlay").src = d.url || (d.url = URL.createObjectURL(d.blob));
   if (d.stream && $("dPrev")) $("dPrev").srcObject = d.stream;
   if ($("dFlip")) $("dFlip").onclick = camFlip;
+  if ($("dGo")) $("dGo").onclick = () => recGo(d);
+  if ($("dStamp")) $("dStamp").onchange = e => { try { localStorage.setItem("viStamp", e.target.checked ? "1" : "0"); } catch { }
+    if (e.target.checked) { d.title = $("dTitle").value || ""; stampStart(d); } else { if (d.autoTitle && $("dTitle").value === d.title) d.title = ""; d.stamp = ""; d.autoTitle = false; } drawDraft(); };
   if (d.lang === "Arabic") { $("dText").dir = "rtl"; $("dText").classList.add("ar"); }
   const chips = () => { const p = propose(($("dTitle").value || "") + " " + ($("dText").value || ""));
     $("dChips").innerHTML = p.length ? `<span class="meta">Proposed:</span>` + p.map(f => `<button type="button" data-id="${f.id}" title="${esc(f.path)}">${esc(f.name)}</button>`).join("") : "";
     $("dChips").querySelectorAll("button").forEach(b => b.onclick = () => { d.f = BY.get(+b.dataset.id); drawDraft(); }); };
   chips();
-  $("dTitle").oninput = () => { d.title = $("dTitle").value; chips(); };
+  $("dTitle").oninput = () => { d.title = $("dTitle").value; d.autoTitle = false; chips(); };
   $("dText").oninput = () => { d.text = $("dText").value; d.typed = true; chips(); };
   if ($("dLang")) $("dLang").onchange = () => d.lang = $("dLang").value;
   $("dFolder").onclick = () => openMap("Choose the folder", ($("dTitle").value || "") + " " + ($("dText").value || ""), d.f?.id, f => { d.f = f; drawDraft(); });
-  $("dDrop").onclick = () => { if ((d.blob || d.files?.length) && !confirm("Discard this? It has not been saved.")) return; if (mr?.state === "recording") mr.stop(); draft = null; showNote(); };
+  $("dDrop").onclick = () => { if ((d.blob || d.files?.length) && !confirm("Discard this? It has not been saved.")) return; if (mr?.state === "recording") mr.stop();
+    if (d.ready) { camStop(); $("recv").textContent = "🎥"; $("recv").classList.remove("on"); $("rec").disabled = false; } draft = null; showNote(); };
   $("dSave").onclick = saveDraft;
 }
 async function saveDraft() {
@@ -1781,7 +1791,7 @@ async function saveDraft() {
       for (const x of d.files) files.push({ ...(await api.adopt(x.id, props)), audio: /^(audio|video)\//.test(x.mimeType) });
     }
     const id = "voice-" + Date.now().toString(36);
-    await api.saveRec(id, { title, ...(d.video ? { video: true } : {}), src: d.kind === "rec" ? (d.video ? "MyVoice · video" : "MyVoice") : d.kind === "up" ? "Otter" : "Otter (from Drive)", lang: d.lang, at: new Date().toISOString(), dur: d.dur || "",
+    await api.saveRec(id, { title, ...(d.video ? { video: true } : {}), ...(d.stamp ? { stamp: d.stamp, place: d.place || "" } : {}), src: d.kind === "rec" ? (d.video ? "MyVoice · video" : "MyVoice") : d.kind === "up" ? "Otter" : "Otter (from Drive)", lang: d.lang, at: new Date().toISOString(), dur: d.dur || "",
       text, textFrom: text ? (d.kind === "rec" ? (d.typed ? "browser speech-to-text, corrected" : "browser speech-to-text") : "Otter") : "",
       mmj: f ? f.id : null, mmjName: f ? f.name : "", mmjPath: f ? f.path : "", status: "new", shared: false,
       files: files.map(x => ({ id: x.id, name: x.name, mime: x.mimeType || "", size: +x.size || 0, link: x.webViewLink || "", audio: !!x.audio })) });
@@ -1807,45 +1817,57 @@ $("pick").onclick = takeIn;
 // Record here (MyVoice): audio + free live transcript (English, Bangla, Arabic)
 let mr, chunks = [], t0 = 0, tick, sr, srOn = false, finalText = "";
 const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-// cameras (owner, 7 Nov: “Enable back cam too”): the picture goes through a canvas, so 🔄 can switch front ↔ back even while recording
+// cameras (owner, 7 Nov: “Enable back cam too”; 8 Nov: it crashed a few seconds in). The camera goes straight to the recorder again
+// (the drawing step used to switch cameras mid-recording used too much of the phone's memory); you choose front or back before you start.
 let VC = null;
 const camFace = () => { try { return localStorage.getItem("viCam") || "user"; } catch { return "user"; } };
-const camGet = face => navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: face }, width: { ideal: 1280 }, height: { ideal: 720 } } });
-async function camStart() {
-  const face = camFace(), cam = await camGet(face), mic = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } }).catch(e => { cam.getTracks().forEach(t => t.stop()); throw e; });
-  const st = cam.getVideoTracks()[0].getSettings(), cv = document.createElement("canvas"); cv.width = st.width || 1280; cv.height = st.height || 720;
-  const el = document.createElement("video"); el.muted = true; el.playsInline = true; el.srcObject = cam; await el.play().catch(() => { });
-  const ctx = cv.getContext("2d");
-  const draw = () => { const w = el.videoWidth, h = el.videoHeight; if (!w || !h) return; const k = Math.min(cv.width / w, cv.height / h), dw = w * k, dh = h * k;
-    ctx.fillStyle = "#000"; ctx.fillRect(0, 0, cv.width, cv.height); ctx.drawImage(el, (cv.width - dw) / 2, (cv.height - dh) / 2, dw, dh); };
-  VC = { face, cam, el, timer: setInterval(draw, 1000 / 30) };
-  return new MediaStream([...cv.captureStream(30).getVideoTracks(), ...mic.getAudioTracks()]); }
-function camStop() { if (!VC) return; clearInterval(VC.timer); VC.cam.getTracks().forEach(t => t.stop()); VC = null; }
-async function camFlip() { if (!VC) return; const face = VC.face === "user" ? "environment" : "user";
-  try { const cam = await camGet(face); VC.cam.getTracks().forEach(t => t.stop()); VC.cam = cam; VC.face = face; VC.el.srcObject = cam; await VC.el.play().catch(() => { });
-    try { localStorage.setItem("viCam", face); } catch { } const b = $("dFlip"); if (b) b.textContent = face === "user" ? "🔄 Back camera" : "🔄 Front camera";
-    toast(face === "user" ? "Front camera." : "Back camera."); }
+const camOpen = face => navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true }, video: { facingMode: { ideal: face }, width: { ideal: 1280 }, height: { ideal: 720 }, frameRate: { ideal: 30, max: 30 } } });
+function camStop() { if (!VC) return; VC.stream.getTracks().forEach(t => t.stop()); VC = null; }
+async function camFlip() { if (!VC || (mr && mr.state === "recording")) return; const face = VC.face === "user" ? "environment" : "user";
+  try { const st = await camOpen(face); camStop(); VC = { face, stream: st }; if (draft?.video) draft.stream = st; if ($("dPrev")) $("dPrev").srcObject = st;
+    try { localStorage.setItem("viCam", face); } catch { } if ($("dFlip")) $("dFlip").textContent = face === "user" ? "🔄 Back camera" : "🔄 Front camera"; }
   catch { toast("This device has no other camera.", 4000); } }
+// time, date and place stamp (owner, 8 Nov), on/off; title like “10.Aug.26 - 09.00 PM - Sydney”
+const MON = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+const stampOn = () => { try { return localStorage.getItem("viStamp") !== "0"; } catch { return true; } };
+const tzPlace = () => { try { return (Intl.DateTimeFormat().resolvedOptions().timeZone || "").split("/").pop().replace(/_/g, " "); } catch { return ""; } };
+function stampText(d, place) { const p = n => String(n).padStart(2, "0"), h = d.getHours() % 12 || 12;
+  return `${p(d.getDate())}.${MON[d.getMonth()]}.${String(d.getFullYear()).slice(2)} - ${p(h)}.${p(d.getMinutes())} ${d.getHours() < 12 ? "AM" : "PM"}${place ? " - " + place : ""}`; }
+let PLACE = null; // found once per page: your town from the phone's location, else your time zone's city
+async function findPlace() { if (PLACE) return PLACE; const fall = tzPlace();
+  try { const pos = await new Promise((ok, no) => navigator.geolocation ? navigator.geolocation.getCurrentPosition(ok, no, { timeout: 8000, maximumAge: 30 * 6e4 }) : no());
+    const j = await (await fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${pos.coords.latitude.toFixed(3)}&longitude=${pos.coords.longitude.toFixed(3)}&localityLanguage=en`)).json();
+    return PLACE = j.city || j.locality || j.principalSubdivision || fall; } catch { return PLACE = fall; } }
+function stampStart(d) { if (!stampOn()) return; d.t0 = new Date(); d.stamp = stampText(d.t0, tzPlace()); if (!d.title) { d.title = d.stamp; d.autoTitle = true; }
+  findPlace().then(pl => { if (!pl) return; d.place = pl; d.stamp = stampText(d.t0, pl); if (d.autoTitle && (!$("dTitle") || $("dTitle").value === d.title)) { d.title = d.stamp; if ($("dTitle") && draft === d) $("dTitle").value = d.title; }
+    if ($("vStamp") && draft === d) $("vStamp").textContent = d.stamp; }); }
 // video too (owner, 7 Nov): camera + microphone, same live transcript, saved to Drive “To BwN”
 async function record(video = false) { video = video === true;
   if (mr && mr.state === "recording") { mr.stop(); return; }
-  let stream; try { stream = video ? await camStart() : await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } }); }
+  if (video && draft?.kind === "rec" && draft.video && draft.ready) return recGo(draft); // second tap of 🎥 starts
+  let stream; try { stream = video ? await camOpen(camFace()) : await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } }); }
   catch { toast(video ? "Camera or microphone not allowed. Allow both in the browser’s site settings and try again." : "Microphone not allowed. Allow it in the browser’s site settings and try again.", 6000); return; }
-  const code = $("rlang").value, L = LANGS[code];
-  draft = { kind: "rec", video, stream: video ? stream : null, lang: L, title: "", text: "", stt: SR ? `Live typing in ${L} (free, by Chrome).` : "This browser has no free live typing; use Chrome. The recording still saves." };
+  if (video) { camStop(); VC = { face: camFace(), stream }; }
+  const L = LANGS[$("rlang").value];
+  draft = { kind: "rec", video, ready: video, stream, lang: L, title: "", text: "", stt: SR ? `Live typing in ${L} (free, by Chrome).` : "This browser has no free live typing; use Chrome. The recording still saves." };
+  stampStart(draft);
+  if (video) { $("recv").textContent = "● Start"; $("recv").classList.add("on"); $("rec").disabled = true; }
   showNote(); tab("note");
-  const type = (video ? ["video/mp4;codecs=avc1,mp4a", "video/webm;codecs=vp9,opus", "video/webm;codecs=vp8,opus", "video/mp4", "video/webm"] : ["audio/webm;codecs=opus", "audio/mp4", "audio/webm", "audio/ogg"]).find(t => window.MediaRecorder?.isTypeSupported?.(t)) || "";
-  mr = new MediaRecorder(stream, type ? { mimeType: type, ...(video ? { videoBitsPerSecond: 1500000, audioBitsPerSecond: 96000 } : { audioBitsPerSecond: 64000 }) } : undefined); chunks = []; finalText = "";
-  const d = draft;
+  if (!video) recGo(draft); }
+function recGo(d) { const stream = d.stream, video = d.video, code = $("rlang").value, L = d.lang; d.ready = false;
+  if (d.autoTitle) { d.t0 = new Date(); d.stamp = stampText(d.t0, d.place || tzPlace()); d.title = d.stamp; } // the stamp is the moment recording starts
+  const type = (video ? ["video/webm;codecs=vp8,opus", "video/webm;codecs=vp9,opus", "video/mp4", "video/webm"] : ["audio/webm;codecs=opus", "audio/mp4", "audio/webm", "audio/ogg"]).find(t => window.MediaRecorder?.isTypeSupported?.(t)) || "";
+  mr = new MediaRecorder(stream, type ? { mimeType: type, ...(video ? { videoBitsPerSecond: 1200000, audioBitsPerSecond: 96000 } : { audioBitsPerSecond: 64000 }) } : undefined); chunks = []; finalText = "";
   mr.ondataavailable = e => e.data.size && chunks.push(e.data);
-  mr.onstop = () => { const secs = (Date.now() - t0) / 1000; stream.getTracks().forEach(t => t.stop()); camStop(); clearInterval(tick); srOn = false; try { sr?.stop(); } catch { }
+  mr.onstop = () => { const secs = (Date.now() - t0) / 1000; stream.getTracks().forEach(t => t.stop()); if (video) VC = null; clearInterval(tick); srOn = false; try { sr?.stop(); } catch { }
     $("rec").textContent = "● Record"; $("rec").classList.remove("on"); $("recv").textContent = "🎥"; $("recv").classList.remove("on"); $("rec").disabled = $("recv").disabled = false; $("live").hidden = true; $("timer").hidden = true; $("rlang").disabled = false;
     if (draft !== d) return; // discarded while recording
-    d.blob = new Blob(chunks, { type: mr.mimeType || (d.video ? "video/webm" : "audio/webm") }); d.dur = fmt(secs); d.stream = null;
+    d.blob = new Blob(chunks, { type: mr.mimeType || (video ? "video/webm" : "audio/webm") }); chunks = []; d.dur = fmt(secs); d.stream = null;
     if ($("dText")) d.text = $("dText").value; if ($("dTitle")) d.title = $("dTitle").value;
-    if (!d.title) d.title = (d.video ? "Video note " : "Voice note ") + stamp(); drawDraft(); };
+    if (!d.title) d.title = (video ? "Video note " : "Voice note ") + stamp(); drawDraft(); };
   mr.start(1000); t0 = Date.now(); tick = setInterval(() => $("timer").textContent = fmt((Date.now() - t0) / 1000), 500);
   const rb = video ? $("recv") : $("rec"); rb.textContent = "■ Stop"; rb.classList.add("on"); (video ? $("rec") : $("recv")).disabled = true; $("live").hidden = false; $("timer").hidden = false; $("rlang").disabled = true;
+  if (draft === d) drawDraft();
   if (SR) { sr = new SR(); sr.lang = code; sr.continuous = true; sr.interimResults = true; srOn = true;
     sr.onresult = e => { let interim = ""; for (let i = e.resultIndex; i < e.results.length; i++) { const r = e.results[i]; if (r.isFinal) finalText += r[0].transcript.trim() + " "; else interim += r[0].transcript; }
       if (draft === d && $("dText")) { $("dText").value = finalText + interim; d.text = $("dText").value; } };
