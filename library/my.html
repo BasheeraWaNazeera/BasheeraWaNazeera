@@ -298,6 +298,9 @@ textarea{min-height:120px;resize:vertical}
 .mkb.on{opacity:1;background:var(--accent-soft);border-color:var(--accent)}
 .lr .fopen{font-size:.7rem;font-weight:600;margin-left:6px;padding:1px 7px;border-radius:999px;border:1px solid var(--accent);color:var(--accent);text-decoration:none;white-space:nowrap;flex-shrink:0}
 .lr .fopen:hover{background:var(--accent-soft)}
+.ltree .tsec .recsort{margin-left:auto;font-size:.72rem;padding:1px 4px;border:1px solid var(--line);border-radius:6px;background:var(--panel);color:var(--ink);text-transform:none;letter-spacing:0}
+.ltree .rday{list-style:none;font-size:.7rem;color:var(--muted);padding:6px 6px 0 30px}
+.ltree .recall{font-size:.78rem;margin:2px 0 4px 30px}
 .ltree .tsec{display:flex;align-items:center;justify-content:space-between;gap:8px}
 .secsw{position:relative;width:34px;height:18px;border-radius:999px;border:1px solid var(--line);background:var(--line);cursor:pointer;padding:0;flex-shrink:0;transition:background .15s}
 .secsw .kn{position:absolute;top:1px;left:1px;width:14px;height:14px;border-radius:50%;background:var(--panel);box-shadow:0 1px 2px rgba(0,0,0,.3);transition:left .15s}
@@ -503,7 +506,7 @@ video.vrec{width:100%;max-height:60vh;border-radius:10px;background:#000;margin:
         <span class="fpop" id="fpop" hidden>
           <select id="wTopic" aria-label="Topic"></select>
           <select id="wSubject" aria-label="Subject"></select>
-          <label>Group <select id="wGrp"><option value="none">None</option><option value="folder">Folder</option><option value="stage">Stage</option><option value="topic">Topic</option><option value="project">Project</option><option value="type">Type</option><option value="job">Job</option></select></label>
+          <label>Group <select id="wGrp"><option value="none">None</option><option value="folder">Folder</option><option value="stage">Stage</option><option value="topic">Topic</option><option value="project">Project</option><option value="type">Type</option><option value="job">Job</option><option value="date">Date (Today, Yesterday…)</option></select></label>
           <span class="pv">Folder paths <span class="seg" role="group" aria-label="Folder paths"><button class="segb" type="button" id="pvLine" title="Folder path in one line, wrapped">Line</button><button class="segb" type="button" id="pvTree" title="Folder path as a tree">Tree</button></span></span>
           <button class="link" id="wAll" type="button">Show all</button>
         </span></span>
@@ -659,10 +662,13 @@ async function realApi() {
   const [{ initializeApp }, fs, au] = await Promise.all([import(FB + "firebase-app.js"), import(FB + "firebase-firestore.js"), import(FB + "firebase-auth.js")]);
   const app = initializeApp(firebaseConfig), db = fs.getFirestore(app), auth = au.getAuth(app);
   const provider = new au.GoogleAuthProvider(); provider.addScope(SCOPE);
-  try { const t = JSON.parse(sessionStorage.getItem("bwnDrive") || "null"); if (t && Date.now() - t.at < 50 * 6e4) { token = t.v; tokenAt = t.at; } } catch { }
-  const connect = async () => { const r = await au.signInWithPopup(auth, provider); const c = au.GoogleAuthProvider.credentialFromResult(r);
-    token = c?.accessToken || null; tokenAt = Date.now(); idTok = c?.idToken || null; try { sessionStorage.setItem("bwnDrive", JSON.stringify({ v: token, at: tokenAt })); } catch { } showAuth(); };
-  const signout = () => { sessionStorage.removeItem("bwnDrive"); token = null; au.signOut(auth); };
+  try { const t = JSON.parse(localStorage.getItem("bwnDrive") || sessionStorage.getItem("bwnDrive") || "null"); if (t && Date.now() - t.at < 50 * 6e4) { token = t.v; tokenAt = t.at; } } catch { }
+  const connect = async () => { if (auth.currentUser?.email) provider.setCustomParameters({ login_hint: auth.currentUser.email }); // straight back in as you, no account chooser
+    const r = await au.signInWithPopup(auth, provider); const c = au.GoogleAuthProvider.credentialFromResult(r);
+    token = c?.accessToken || null; tokenAt = Date.now(); idTok = c?.idToken || null; try { localStorage.setItem("bwnDrive", JSON.stringify({ v: token, at: tokenAt })); } catch { } showAuth(); };
+  // Drive's permission lasts an hour; when it has run out, renew it inside the tap that needs it (Save, Play, Drive), so you never sign in again by hand
+  const ensureDrive = async () => { if (token && Date.now() - tokenAt < 50 * 6e4) return; if (!auth.currentUser) throw Object.assign(new Error("Sign in first."), { code: "token" }); await connect(); };
+  const signout = () => { try { localStorage.removeItem("bwnDrive"); sessionStorage.removeItem("bwnDrive"); } catch { } token = null; au.signOut(auth); };
   au.onAuthStateChanged(auth, async u => { ownerOk = false; user = u;
     if (u) { try { await fs.getDoc(fs.doc(db, "owner", "check")); ownerOk = true; } catch { } }
     showAuth(); });
@@ -684,7 +690,7 @@ async function realApi() {
   const F = "id,name,mimeType,size,webViewLink,appProperties";
   const patch = (id, body, extra = "") => gfetch(`${DRIVE}/files/${id}?fields=${F}${extra}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
   return {
-    connect, signout,
+    connect, signout, ensureDrive,
     async list() { const s = await fs.getDocs(fs.query(fs.collection(db, "postPrivate"), fs.where("kind", "==", "voice"))); return s.docs.map(d => ({ id: d.id, ...d.data() })); },
     async saveRec(id, rec) { await fs.setDoc(fs.doc(db, "postPrivate", id), { kind: "voice", ...rec }, { merge: true }); },
     async posts() { const s = await fs.getDocs(fs.collection(db, "posts")); return s.docs.map(d => ({ id: d.id, ...d.data() })); },
@@ -831,10 +837,11 @@ function listFor(v) {
   if (typeof v === "string" && v.startsWith("wt:")) { const [fid, t] = v.slice(3).split("|"); return ITEMS.filter(r => r.wf === fid && typeOf(r) === t && (r.type === "card" || secRoot(r.wf))); }
   if (isWF) { const s = v.length > 3 ? wfIn(v.slice(3)) : null; return ITEMS.filter(r => s ? s.has(r.wf) && (r.type === "card" || secRoot(r.wf)) : r.type === "card" && !secRoot(r.wf)); }
   if (isLF) { const s = lfIn(v.slice(3)); return ITEMS.filter(r => r.type === "post" && s.has(r.folder)); }
+  if (v === "recent") return recentAll();
   return v === "all" ? ITEMS : v === "unfiled" ? ITEMS.filter(r => !r.wf && (!r.mmj || !BY.has(r.mmj))) : ITEMS.filter(r => r.mmj && ancestors(r.mmj).includes(v));
 }
 const titleFor = v => typeof v === "string" && v.startsWith("wt:") ? wfName(v.slice(3).split("|")[0]) + " › " + TPL(v.slice(3).split("|")[1]) : titleFor0(v);
-const titleFor0 = v => v === "trash" ? "🗑 Trash" : typeof v === "string" && v.startsWith("wf:") ? (v.length > 3 ? wfName(v.slice(3)) : "WorkFlow · all cards") : v === "all" ? "All files" : v === "unfiled" ? "Not yet filed"
+const titleFor0 = v => v === "trash" ? "🗑 Trash" : v === "recent" ? "🕘 Recent · WorkFlow" : typeof v === "string" && v.startsWith("wf:") ? (v.length > 3 ? wfName(v.slice(3)) : "WorkFlow · all cards") : v === "all" ? "All files" : v === "unfiled" ? "Not yet filed"
   : typeof v === "string" && v.startsWith("lf:") ? (LF.find(f => f.id === v.slice(3))?.name || "Library folder") : BY.get(v)?.name || "Folder";
 const rowH = r => r.type === "mmjnote" ? `<div class="row${cur === r.id ? " on" : ""}" data-id="${esc(r.id)}" tabindex="0"><input type="checkbox" aria-label="Tick ${esc(r.title)}" ${sel.has(r.id) ? "checked" : ""}>
       <span><b>📝 ${esc(r.title)}</b><span class="st ${r.vis ? "pub" : "priv"}">${r.vis ? "👁 visitors" : "🔒 private"}</span><span class="meta">MMJ note · from Siyagah${r.tags?.length ? " · " + esc(r.tags.slice(0, 4).join(", ")) : ""}${r.at ? " · " + esc(when(r.at)) : ""}</span>${pathLine(r)}</span></div>` : r.type === "card" ? cardRow(r) : `<div class="row${cur === r.id ? " on" : ""}" data-id="${r.id}" tabindex="0">
@@ -925,9 +932,10 @@ function drawLTree() {
   }).join("");
   const wfh = wfTreeHTML(), lfh = lfTreeHTML(), mm = build(0);
   // each section heading has an on/off switch that shows or hides the section (owner, 6 Nov: toggle, not arrow); remembered on this device
-  const sec = (k, t, body) => { if (!body) return ""; const on = !SECHIDE.has(k);
-    return `<li class="tsec"><span>${t}</span><button type="button" class="secsw${on ? " on" : ""}" role="switch" aria-checked="${on}" data-sec="${k}" title="${on ? "Hide" : "Show"} ${t}" aria-label="Show ${t}"><span class="kn"></span></button></li>` + (on ? body : ""); };
-  const html = sec("proj", "By project", wfh) + sec("lib", "Library", lfh) + sec("mmj", "Mapping My Journey", mm);
+  const sec = (k, t, body, extra = "") => { if (!body) return ""; const on = !SECHIDE.has(k);
+    return `<li class="tsec"><span>${t}</span>${on ? extra : ""}<button type="button" class="secsw${on ? " on" : ""}" role="switch" aria-checked="${on}" data-sec="${k}" title="${on ? "Hide" : "Show"} ${t}" aria-label="Show ${t}"><span class="kn"></span></button></li>` + (on ? body : ""); };
+  const html = sec("rec", "Recent", recentHTML(), `<select class="recsort" id="recSort" aria-label="Order of the Recent list" title="Order of the Recent list">${[["new", "Latest"], ["old", "Oldest"], ["date", "By date"]].map(([v, l]) => `<option value="${v}"${RSORT === v ? " selected" : ""}>${l}</option>`).join("")}</select>`)
+    + sec("proj", "By project", wfh) + sec("lib", "Library", lfh) + sec("mmj", "Mapping My Journey", mm);
   host.innerHTML = html ? `<ul class="ltree">${html}</ul>` : `<p class="empty">${TREE.length ? "No folder has files yet." : "Loading the Map…"}</p>`;
   host.querySelectorAll(".lr[data-f],.lr[data-lf]:not([data-lf='']),.lr[data-wf]").forEach(r => { const b = document.createElement("button"); b.type = "button"; b.className = "fpop1";
     b.dataset.pop = r.dataset.f ? "m" + r.dataset.f : r.dataset.lf ? "lf:" + r.dataset.lf : "wf:" + r.dataset.wf; b.title = "Open this folder as its own window"; b.setAttribute("aria-label", b.title); b.textContent = "⧉"; r.append(b); });
@@ -944,6 +952,20 @@ function drawLTree() {
 $("ltree").addEventListener("click", e => { const b = e.target.closest(".fsw"); if (!b) return; e.stopPropagation(); e.preventDefault(); const r = b.closest(".lr");
   const k = r.dataset.f ? +r.dataset.f : r.dataset.lf !== undefined ? (r.dataset.lf ? "L" + r.dataset.lf : "LF") : r.dataset.wt !== undefined ? "T" + r.dataset.wt : r.dataset.wf !== undefined ? (r.dataset.wf ? "W" + r.dataset.wf : "WF") : null;
   if (k === null) return; OPEN.has(k) ? OPEN.delete(k) : OPEN.add(k); saveOpen(); drawLTree(); }, true);
+// Recent (owner, 8 Nov): the WorkFlow files by time, Latest · Oldest · By date, at the top of the Map
+let RSORT = "new"; try { RSORT = localStorage.getItem("viRecSort") || "new"; } catch { }
+const recentAll = () => ITEMS.filter(r => r.type === "card" && r.wf);
+const DAYB = ["Today", "Yesterday", "This week", "This month", "Earlier"];
+function dayBucket(at) { if (!at) return "Earlier"; const d = new Date(at), n = new Date(), day = 864e5, t0 = new Date(n.getFullYear(), n.getMonth(), n.getDate()).getTime();
+  return d.getTime() >= t0 ? "Today" : d.getTime() >= t0 - day ? "Yesterday" : d.getTime() >= t0 - 6 * day ? "This week" : d.getMonth() === n.getMonth() && d.getFullYear() === n.getFullYear() ? "This month" : "Earlier"; }
+function recentHTML() { if (!ownerOk && !DEMO) return ""; const all = recentAll(); if (!all.length) return "";
+  const list = all.slice().sort((a, b) => (RSORT === "old" ? 1 : -1) * (a.at || "").localeCompare(b.at || "")).slice(0, 10);
+  const row = r => `<li><div class="lr${cur === r.id ? " sel" : ""}" data-i="${esc(r.id)}" tabindex="0"><span class="ltw"></span><span class="nm">${cdot(r)}${ICONOF(r)} ${esc(r.title)}</span><span class="cnt">${r.at ? esc(when(r.at)) : ""}</span></div></li>`;
+  let body = ""; if (RSORT === "date") { let last = ""; list.forEach(r => { const b = dayBucket(r.at); if (b !== last) { body += `<li class="rday">${b}</li>`; last = b; } body += row(r); }); } else body = list.map(row).join("");
+  return body + `<li><button type="button" class="link recall" id="recAll">Show all ${all.length} in the list →</button></li>`; }
+$("ltree").addEventListener("change", e => { if (e.target.id !== "recSort") return; RSORT = e.target.value; try { localStorage.setItem("viRecSort", RSORT); } catch { } drawLTree(); });
+$("ltree").addEventListener("click", e => { if (e.target.id !== "recAll") return; e.stopPropagation(); view = "recent"; sel.clear(); clearFilters();
+  FL.sort = RSORT === "old" ? "old" : "new"; FL.grp = RSORT === "date" ? "date" : "none"; saveFL(); draw(); tab("files"); }, true);
 let SECHIDE = new Set(); try { SECHIDE = new Set(JSON.parse(localStorage.getItem("viSecHide") || "[]")); } catch { }
 $("ltree").addEventListener("click", e => { const b = e.target.closest("[data-sec]"); if (!b) return; e.stopPropagation(); const k = b.dataset.sec;
   SECHIDE.has(k) ? SECHIDE.delete(k) : SECHIDE.add(k); try { localStorage.setItem("viSecHide", JSON.stringify([...SECHIDE])); } catch { } drawLTree(); }, true);
@@ -1498,6 +1520,7 @@ function sortL(list) { const newest = (a, b) => (b.at || "").localeCompare(a.at 
     size: (a, b) => sizeOf(b) - sizeOf(a) || newest(a, b), draft: stFirst("Draft"), working: stFirst("Under process"), finished: stFirst("Finished"), published: stFirst("Published"), status: stFirst("Under process") };
   return list.slice().sort(by[FL.sort] || newest); }
 function groupsOf(list) { if (FL.grp === "none") return [[null, list]];
+  if (FL.grp === "date") { const g = new Map(); list.forEach(r => { const b = dayBucket(r.at); (g.get(b) || g.set(b, []).get(b)).push(r); }); return [...g].sort((a, b) => (DAYB.indexOf(a[0]) - DAYB.indexOf(b[0])) * (FL.sort === "old" ? -1 : 1)); }
   const g = new Map(), put = (k, r) => (g.get(k) || g.set(k, []).get(k)).push(r);
   list.forEach(r => FL.grp === "topic" ? (topOf(r).length ? topOf(r) : ["(no topic)"]).forEach(t => put(t, r)) : FL.grp === "project" ? projOf(r).forEach(p => put(p, r)) : FL.grp === "stage" ? put(stageOf(r), r) : FL.grp === "type" ? put(typeOf(r), r) : FL.grp === "job" ? put(jobOf(r) || "(no job)", r) : put(folderOf(r), r));
   return [...g].sort((a, b) => FL.grp === "stage" ? STAGES.indexOf(a[0]) - STAGES.indexOf(b[0]) : a[0].localeCompare(b[0], "en", { numeric: true })); }
@@ -1670,7 +1693,7 @@ function showNote0() {
     b.onclick = async () => {
       if (a) { a.paused ? a.play() : a.pause(); return; }
       b.disabled = true; b.textContent = "Loading…";
-      try { const blob = await api.blob(au.id), vid = r.video || /^video\//.test(au.mime || blob.type || ""); a = document.createElement(vid ? "video" : "audio"); a.controls = true; if (vid) { a.playsInline = true; a.className = "vrec"; } a.src = URL.createObjectURL(blob);
+      try { await api.ensureDrive?.(); const blob = await api.blob(au.id), vid = r.video || /^video\//.test(au.mime || blob.type || ""); a = document.createElement(vid ? "video" : "audio"); a.controls = true; if (vid) { a.playsInline = true; a.className = "vrec"; } a.src = URL.createObjectURL(blob);
         a.onplay = () => b.textContent = "⏸ Pause"; a.onpause = a.onended = () => b.textContent = "▶ Play";
         $("nAudio").append(a); $("nAudio").hidden = false; b.disabled = false; a.play().catch(() => { b.textContent = "▶ Play"; }); }
       catch (e) { b.disabled = false; b.textContent = "▶ Play"; setupNote(e); } }; }
@@ -1734,6 +1757,7 @@ function drawDraft() {
 }
 async function saveDraft() {
   const d = draft; if (!d) return; const btn = $("dSave"), pr = $("dProg"); btn.disabled = true;
+  try { await api.ensureDrive?.(); } catch (e) { btn.disabled = false; return setupNote(e); }
   const title = ($("dTitle").value || "").trim() || (d.kind === "rec" ? (d.video ? "Video note " : "Voice note ") + stamp() : "Otter recording");
   const text = ($("dText").value || "").trim(), f = d.f;
   const props = { bwn: "voice", src: d.kind === "rec" ? "myvoice" : d.kind === "up" ? "otter" : "otter-drive", title: title.slice(0, 100), lang: d.lang, mmj: f ? String(f.id) : "" };
@@ -1766,7 +1790,7 @@ $("ofile").onchange = async () => { const files = [...$("ofile").files]; $("ofil
   draft = { kind: "up", files, lang: "English", title: a.name.replace(/\.[^.]+$/, "").replace(/[_-]+/g, " ").trim(), text: t ? (await t.text()).slice(0, 20000) : "" };
   showNote(); tab("note"); };
 // Take in from Drive
-async function takeIn() { try { const docs = await api.picker(); if (!docs.length) return;
+async function takeIn() { try { await api.ensureDrive?.(); const docs = await api.picker(); if (!docs.length) return;
   let text = ""; const t = docs.find(x => x.mimeType === "text/plain"); if (t) { await api.adopt(t.id, { bwn: "voice" }); text = (await api.text(t.id)).slice(0, 20000); }
   draft = { kind: "drive", files: docs, lang: "English", title: (docs.find(x => /^(audio|video)\//.test(x.mimeType)) || docs[0]).name.replace(/\.[^.]+$/, ""), text };
   showNote(); tab("note"); } catch (e) { setupNote(e); } }
