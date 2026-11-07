@@ -303,6 +303,14 @@ textarea{min-height:120px;resize:vertical}
 .secsw .kn{position:absolute;top:1px;left:1px;width:14px;height:14px;border-radius:50%;background:var(--panel);box-shadow:0 1px 2px rgba(0,0,0,.3);transition:left .15s}
 .secsw.on{background:var(--accent);border-color:var(--accent)}.secsw.on .kn{left:17px}
 .secsw:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.ltw.hasw{width:auto;min-width:0;margin-right:4px}
+.fsw{position:relative;width:26px;height:14px;border-radius:999px;border:1px solid var(--line);background:var(--line);cursor:pointer;padding:0;vertical-align:middle;transition:background .15s}
+.fsw .kn{position:absolute;top:1px;left:1px;width:10px;height:10px;border-radius:50%;background:var(--panel);box-shadow:0 1px 2px rgba(0,0,0,.3);transition:left .15s}
+.fsw.on{background:var(--accent);border-color:var(--accent)}.fsw.on .kn{left:13px}
+.fsw:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+@media (max-width:460px){.menubar .ops{gap:4px!important}.menubar .ops .ibtn{padding:4px 7px!important;min-width:0}.menubar #rec{padding-left:10px!important;padding-right:10px!important}.menubar .seg .segb{padding:3px 7px!important}.menubar #wAdd{padding-left:10px!important;padding-right:10px!important}.menubar #rlang{padding-left:4px!important;padding-right:2px!important}}
+video.vrec{width:100%;max-height:60vh;border-radius:10px;background:#000;margin:6px 0}
+#recv.on{background:#c0392b;color:#fff;border-color:#c0392b}
 .mmjpend{font-size:.7rem;font-weight:600;margin-left:6px;padding:1px 7px;border-radius:999px;background:#fdf0cf;color:#7a5200;vertical-align:2px;cursor:help}
 .trow{display:flex;align-items:center;justify-content:space-between;gap:10px}
 .newb{font-size:.66rem;background:var(--warn);color:var(--panel);border-radius:999px;padding:0 6px;margin-left:6px;vertical-align:2px;font-weight:600}
@@ -441,6 +449,7 @@ textarea{min-height:120px;resize:vertical}
     <section class="ops" aria-label="Record and take in" id="ops">
       <select id="rlang" aria-label="Language of the recording" title="Language of the recording"><option value="en-AU">EN</option><option value="bn-BD">BN</option><option value="ar-SA">AR</option></select>
       <button class="btn sm" id="rec" title="New recording (R)">● Record</button>
+      <button class="ibtn" id="recv" type="button" title="Record video with sound (V)" aria-label="Record video">🎥</button>
       <span class="timer" id="timer" hidden>0:00</span>
       <span id="live" class="meta" hidden><span class="dot"></span></span>
       <label class="ibtn" for="ofile" title="Upload Otter file(s) (U) · in Otter: ⋯ → Export → Audio (and Text)" aria-label="Upload Otter file(s)">⤒</label>
@@ -830,7 +839,7 @@ const titleFor0 = v => v === "trash" ? "🗑 Trash" : typeof v === "string" && v
 const rowH = r => r.type === "mmjnote" ? `<div class="row${cur === r.id ? " on" : ""}" data-id="${esc(r.id)}" tabindex="0"><input type="checkbox" aria-label="Tick ${esc(r.title)}" ${sel.has(r.id) ? "checked" : ""}>
       <span><b>📝 ${esc(r.title)}</b><span class="st ${r.vis ? "pub" : "priv"}">${r.vis ? "👁 visitors" : "🔒 private"}</span><span class="meta">MMJ note · from Siyagah${r.tags?.length ? " · " + esc(r.tags.slice(0, 4).join(", ")) : ""}${r.at ? " · " + esc(when(r.at)) : ""}</span>${pathLine(r)}</span></div>` : r.type === "card" ? cardRow(r) : `<div class="row${cur === r.id ? " on" : ""}" data-id="${r.id}" tabindex="0">
       <input type="checkbox" aria-label="Tick ${esc(r.title)}" ${sel.has(r.id) ? "checked" : ""}>
-      <span><span class="rt"><b>${r.type === "post" ? "🎬 " : "🎙 "}${esc(r.title)}</b>${r.type === "post" ? `<span class="st ${esc(r.status)}">${STATUS[r.status] || ""}</span>` : ""}</span>${r.type === "post" ? (r.lang || r.len ? `<span class="snip">${esc([r.lang, r.len && r.len !== "—" ? r.len : "", r.ytUrl ? "on YouTube" : ""].filter(Boolean).join(" · "))}</span>` : "") : `<span class="snip">${esc([r.src, r.lang, r.dur, r.post ? "🎬 has a video post" : ""].filter(Boolean).join(" · "))}${textOf(r) ? " — " + esc(textOf(r).slice(0, 200)) : ""}</span>`}${metaLine(r)}
+      <span><span class="rt"><b>${r.type === "post" ? "🎬 " : r.video ? "🎥 " : "🎙 "}${esc(r.title)}</b>${r.type === "post" ? `<span class="st ${esc(r.status)}">${STATUS[r.status] || ""}</span>` : ""}</span>${r.type === "post" ? (r.lang || r.len ? `<span class="snip">${esc([r.lang, r.len && r.len !== "—" ? r.len : "", r.ytUrl ? "on YouTube" : ""].filter(Boolean).join(" · "))}</span>` : "") : `<span class="snip">${esc([r.src, r.lang, r.dur, r.post ? "🎬 has a video post" : ""].filter(Boolean).join(" · "))}${textOf(r) ? " — " + esc(textOf(r).slice(0, 200)) : ""}</span>`}${metaLine(r)}
       ${pathLine(r)}</span></div>`;
 function draw() {
   COUNTS = new Map(); let unf = 0;
@@ -909,7 +918,7 @@ function drawLTree() {
   if (cur !== drawLTree.last) { drawLTree.last = cur; const c = cur && ITEMS.find(x => x.id === cur); if (c?.mmj && BY.has(c.mmj)) ancestors(c.mmj).forEach(a => OPEN.add(a)); } // show where a newly opened file sits
   if (q.length >= 2) return drawTree(host, { counts: COUNTS, only: onlyWith, sel: typeof view === "number" ? view : null, q, onPick: f => { view = f.id; ancestors(f.id).forEach(a => OPEN.add(a)); saveOpen(); $("fq").value = ""; sel.clear(); draw(); tab("files"); } });
   const items = id => ITEMS.filter(r => r.mmj === id);
-  const itemRow = r => `<li><div class="lr${cur === r.id ? " sel" : ""}" data-i="${esc(r.id)}" tabindex="0"><span class="ltw"></span>${r.type === "post" && r.no ? `<span class="rng">${esc(r.no)}</span>` : ""}<span class="nm">${r.type === "card" ? cdot(r) + ICONOF(r) : r.type === "post" ? "🎬" : r.type === "mmjnote" ? "📝" : "🎙"} ${esc(r.title)}</span><span class="kind">${r.type === "post" ? (r.kind === "AUDIO" ? "AUDIO" : "VIDEO") : r.type === "card" ? esc((r.ckind || "CARD").toUpperCase()) : r.type === "mmjnote" ? "NOTE" : "REC"}</span>${r.type === "post" && r.status !== "pub" ? `<span class="lock">${r.status === "draft" ? "draft" : "private"}</span>` : ""}</div></li>`;
+  const itemRow = r => `<li><div class="lr${cur === r.id ? " sel" : ""}" data-i="${esc(r.id)}" tabindex="0"><span class="ltw"></span>${r.type === "post" && r.no ? `<span class="rng">${esc(r.no)}</span>` : ""}<span class="nm">${r.type === "card" ? cdot(r) + ICONOF(r) : r.type === "post" ? "🎬" : r.type === "mmjnote" ? "📝" : r.video ? "🎥" : "🎙"} ${esc(r.title)}</span><span class="kind">${r.type === "post" ? (r.kind === "AUDIO" ? "AUDIO" : "VIDEO") : r.type === "card" ? esc((r.ckind || "CARD").toUpperCase()) : r.type === "mmjnote" ? "NOTE" : "REC"}</span>${r.type === "post" && r.status !== "pub" ? `<span class="lock">${r.status === "draft" ? "draft" : "private"}</span>` : ""}</div></li>`;
   const build = pid => (KIDS.get(pid) || []).filter(f => (!onlyWith || COUNTS.get(f.id)) && !mkOf("m:" + f.id).trash).map(f => {
     const kids = (KIDS.get(f.id) || []).filter(k => (!onlyWith || COUNTS.get(k.id)) && !mkOf("m:" + k.id).trash), its = items(f.id), has = kids.length || its.length, open = has && OPEN.has(f.id), [rng, nm] = splitName(f.name), n = COUNTS.get(f.id);
     return `<li><div class="lr${view === f.id ? " sel" : ""}" data-f="${f.id}" tabindex="0"${has ? ` aria-expanded="${open}"` : ""}><span class="ltw">${has ? (open ? "−" : "+") : ""}</span>${rng ? `<span class="rng">${esc(rng)}</span>` : ""}<span class="nm">${esc(nm)}</span>${n ? `<span class="cnt">(${n})</span>` : ""}</div>${open ? `<ul>${build(f.id)}${its.map(itemRow).join("")}</ul>` : ""}</li>`;
@@ -927,8 +936,14 @@ function drawLTree() {
   host.querySelectorAll(".lr[data-wf]:not([data-wf='']):not([data-wf='inbox']),.lr[data-lf]:not([data-lf=''])").forEach(r => { r.draggable = true;
     if (r.classList.contains("sel")) { const u = document.createElement("span"); u.className = "updn";
       u.innerHTML = `<button type="button" data-shift="-1" title="Move this folder up (Alt+↑)" aria-label="Move folder up">↑</button><button type="button" data-shift="1" title="Move this folder down (Alt+↓)" aria-label="Move folder down">↓</button>`; r.insertBefore(u, r.querySelector(".fpop1")); } });
+  host.querySelectorAll(".lr .ltw").forEach(t => { const x = t.textContent.trim(); if (x !== "+" && x !== "−") return; const on = x === "−";
+    t.innerHTML = `<button type="button" class="fsw${on ? " on" : ""}" role="switch" aria-checked="${on}" title="${on ? "Close" : "Open"} this folder" aria-label="Open this folder"><span class="kn"></span></button>`; t.classList.add("hasw"); });
   paintMarks(host);
 }
+// the folder switch opens or closes the folder without changing what the list shows (owner, 7 Nov: “Yes. Switch.”)
+$("ltree").addEventListener("click", e => { const b = e.target.closest(".fsw"); if (!b) return; e.stopPropagation(); e.preventDefault(); const r = b.closest(".lr");
+  const k = r.dataset.f ? +r.dataset.f : r.dataset.lf !== undefined ? (r.dataset.lf ? "L" + r.dataset.lf : "LF") : r.dataset.wt !== undefined ? "T" + r.dataset.wt : r.dataset.wf !== undefined ? (r.dataset.wf ? "W" + r.dataset.wf : "WF") : null;
+  if (k === null) return; OPEN.has(k) ? OPEN.delete(k) : OPEN.add(k); saveOpen(); drawLTree(); }, true);
 let SECHIDE = new Set(); try { SECHIDE = new Set(JSON.parse(localStorage.getItem("viSecHide") || "[]")); } catch { }
 $("ltree").addEventListener("click", e => { const b = e.target.closest("[data-sec]"); if (!b) return; e.stopPropagation(); const k = b.dataset.sec;
   SECHIDE.has(k) ? SECHIDE.delete(k) : SECHIDE.add(k); try { localStorage.setItem("viSecHide", JSON.stringify([...SECHIDE])); } catch { } drawLTree(); }, true);
@@ -1632,7 +1647,7 @@ function showNote0() {
   const noteHtml = r.note || (r.text ? `<p>${esc(r.text).replace(/\n+/g, "</p><p>")}</p>` : "<p></p>");
   N.innerHTML = `<div class="crumb">${pathHTML(placeOf(r))}</div>
     <h2 class="ptitle">${esc(r.title)}</h2>
-    <div class="chips2"><span class="chip draft">Recording · only you see it</span><span class="chip">${esc(r.src)}${r.dur ? " · " + esc(r.dur) : ""}</span><span class="chip">${esc(r.lang)}</span><span class="chip">${esc(when(r.at))}</span>${r.textFrom ? `<span class="chip">transcript: ${esc(r.textFrom)}</span>` : ""}${r.shared ? `<span class="chip priv">link shared</span>` : ""}</div>
+    <div class="chips2"><span class="chip draft">${r.video ? "Video recording" : "Recording"} · only you see it</span><span class="chip">${esc(r.src)}${r.dur ? " · " + esc(r.dur) : ""}</span><span class="chip">${esc(r.lang)}</span><span class="chip">${esc(when(r.at))}</span>${r.textFrom ? `<span class="chip">transcript: ${esc(r.textFrom)}</span>` : ""}${r.shared ? `<span class="chip priv">link shared</span>` : ""}</div>
     <div class="nbar">${au ? `<button class="btn" id="nPlay" type="button">▶ Play</button>` : ""}
       <span class="fname" title="${f ? esc(f.path) + " · MMJ " + f.id : ""}">📁 ${f ? `<b>${esc(f.name)}</b>` : "Not yet filed"}</span>
       <button class="btn ghost" id="nFolder" type="button">${f ? "Change folder" : "Choose folder"}</button>
@@ -1655,7 +1670,7 @@ function showNote0() {
     b.onclick = async () => {
       if (a) { a.paused ? a.play() : a.pause(); return; }
       b.disabled = true; b.textContent = "Loading…";
-      try { const blob = await api.blob(au.id); a = document.createElement("audio"); a.controls = true; a.src = URL.createObjectURL(blob);
+      try { const blob = await api.blob(au.id), vid = r.video || /^video\//.test(au.mime || blob.type || ""); a = document.createElement(vid ? "video" : "audio"); a.controls = true; if (vid) { a.playsInline = true; a.className = "vrec"; } a.src = URL.createObjectURL(blob);
         a.onplay = () => b.textContent = "⏸ Pause"; a.onpause = a.onended = () => b.textContent = "▶ Play";
         $("nAudio").append(a); $("nAudio").hidden = false; b.disabled = false; a.play().catch(() => { b.textContent = "▶ Play"; }); }
       catch (e) { b.disabled = false; b.textContent = "▶ Play"; setupNote(e); } }; }
@@ -1694,7 +1709,7 @@ function drawDraft() {
   const kind = d.kind === "rec" ? "New recording" : d.kind === "up" ? "New upload" : "Taken in from Drive";
   N.innerHTML = `<input class="np-ti" id="dTitle" value="${esc(d.title || "")}" placeholder="Title" aria-label="Title">
     <span class="meta">${kind} · not saved yet</span>
-    ${d.kind === "rec" ? `<audio id="dPlay" controls ${d.blob ? "" : "hidden"}></audio>` : `<ul class="meta" style="margin:0;padding-left:18px">${d.files.map(f => `<li>${esc(f.name)}${f.size ? " · " + (f.size / 1048576).toFixed(1) + " MB" : ""}</li>`).join("")}</ul>`}
+    ${d.kind === "rec" && d.video ? (d.blob ? `<video id="dPlay" class="vrec" controls playsinline></video>` : `<video id="dPrev" class="vrec" playsinline muted autoplay></video>`) : d.kind === "rec" ? `<audio id="dPlay" controls ${d.blob ? "" : "hidden"}></audio>` : `<ul class="meta" style="margin:0;padding-left:18px">${d.files.map(f => `<li>${esc(f.name)}${f.size ? " · " + (f.size / 1048576).toFixed(1) + " MB" : ""}</li>`).join("")}</ul>`}
     ${d.kind !== "rec" ? `<label class="fld">Language <select class="sel" id="dLang">${Object.values(LANGS).concat("Mixed").map(l => `<option${l === d.lang ? " selected" : ""}>${l}</option>`).join("")}</select></label>` : ""}
     <label class="fld">Transcript${d.kind === "rec" ? " (typed live; you can correct it)" : ""}<textarea id="dText" placeholder="${d.kind === "rec" ? "Words appear here while you speak." : "Otter’s text file fills this in, or leave it empty."}">${esc(d.text || "")}</textarea></label>
     <span class="meta" id="sttnote">${esc(d.stt || "")}</span>
@@ -1703,6 +1718,7 @@ function drawDraft() {
     <div class="acts"><button class="btn" id="dSave" type="button" ${d.kind === "rec" && !d.blob ? "disabled" : ""}>Save to Drive and file it</button>
       <button class="btn ghost" id="dDrop" type="button">Discard</button><span class="meta" id="dProg"></span></div>`;
   if (d.blob) $("dPlay").src = d.url || (d.url = URL.createObjectURL(d.blob));
+  if (d.stream && $("dPrev")) $("dPrev").srcObject = d.stream;
   if (d.lang === "Arabic") { $("dText").dir = "rtl"; $("dText").classList.add("ar"); }
   const chips = () => { const p = propose(($("dTitle").value || "") + " " + ($("dText").value || ""));
     $("dChips").innerHTML = p.length ? `<span class="meta">Proposed:</span>` + p.map(f => `<button type="button" data-id="${f.id}" title="${esc(f.path)}">${esc(f.name)}</button>`).join("") : "";
@@ -1717,14 +1733,14 @@ function drawDraft() {
 }
 async function saveDraft() {
   const d = draft; if (!d) return; const btn = $("dSave"), pr = $("dProg"); btn.disabled = true;
-  const title = ($("dTitle").value || "").trim() || (d.kind === "rec" ? "Voice note " + stamp() : "Otter recording");
+  const title = ($("dTitle").value || "").trim() || (d.kind === "rec" ? (d.video ? "Video note " : "Voice note ") + stamp() : "Otter recording");
   const text = ($("dText").value || "").trim(), f = d.f;
   const props = { bwn: "voice", src: d.kind === "rec" ? "myvoice" : d.kind === "up" ? "otter" : "otter-drive", title: title.slice(0, 100), lang: d.lang, mmj: f ? String(f.id) : "" };
   try {
     const files = [];
     if (d.kind === "rec") {
-      const ext = /mp4/.test(d.blob.type) ? "m4a" : /ogg/.test(d.blob.type) ? "ogg" : "webm", safe = title.replace(/[\\/:*?"<>|]+/g, " ").slice(0, 80);
-      pr.textContent = "Uploading the recording…"; files.push({ ...(await api.upload(d.blob, `MyVoice ${stamp()} ${safe}.${ext}`, props)), audio: true });
+      const ext = /mp4/.test(d.blob.type) ? (d.video ? "mp4" : "m4a") : /ogg/.test(d.blob.type) ? "ogg" : "webm", safe = title.replace(/[\\/:*?"<>|]+/g, " ").slice(0, 80);
+      pr.textContent = d.video ? `Uploading the video (${(d.blob.size / 1048576).toFixed(0)} MB)…` : "Uploading the recording…"; files.push({ ...(await api.upload(d.blob, `${d.video ? "MyVideo" : "MyVoice"} ${stamp()} ${safe}.${ext}`, props)), audio: true });
       if (text) { pr.textContent = "Saving the transcript…"; files.push({ ...(await api.upload(new Blob([text], { type: "text/plain" }), `MyVoice ${stamp()} ${safe} (transcript).txt`, props)), audio: false }); }
     } else if (d.kind === "up") {
       for (const [i, x] of d.files.entries()) { pr.textContent = `Uploading ${i + 1} of ${d.files.length}…`; files.push({ ...(await api.upload(x, x.name, props)), audio: isAudio(x) }); }
@@ -1732,7 +1748,7 @@ async function saveDraft() {
       for (const x of d.files) files.push({ ...(await api.adopt(x.id, props)), audio: /^(audio|video)\//.test(x.mimeType) });
     }
     const id = "voice-" + Date.now().toString(36);
-    await api.saveRec(id, { title, src: d.kind === "rec" ? "MyVoice" : d.kind === "up" ? "Otter" : "Otter (from Drive)", lang: d.lang, at: new Date().toISOString(), dur: d.dur || "",
+    await api.saveRec(id, { title, ...(d.video ? { video: true } : {}), src: d.kind === "rec" ? (d.video ? "MyVoice · video" : "MyVoice") : d.kind === "up" ? "Otter" : "Otter (from Drive)", lang: d.lang, at: new Date().toISOString(), dur: d.dur || "",
       text, textFrom: text ? (d.kind === "rec" ? (d.typed ? "browser speech-to-text, corrected" : "browser speech-to-text") : "Otter") : "",
       mmj: f ? f.id : null, mmjName: f ? f.name : "", mmjPath: f ? f.path : "", status: "new", shared: false,
       files: files.map(x => ({ id: x.id, name: x.name, mime: x.mimeType || "", size: +x.size || 0, link: x.webViewLink || "", audio: !!x.audio })) });
@@ -1758,25 +1774,26 @@ $("pick").onclick = takeIn;
 // Record here (MyVoice): audio + free live transcript (English, Bangla, Arabic)
 let mr, chunks = [], t0 = 0, tick, sr, srOn = false, finalText = "";
 const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-async function record() {
+// video too (owner, 7 Nov): camera + microphone, same live transcript, saved to Drive “To BwN”
+async function record(video = false) { video = video === true;
   if (mr && mr.state === "recording") { mr.stop(); return; }
-  let stream; try { stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } }); }
-  catch { toast("Microphone not allowed. Allow it in the browser’s site settings and try again.", 6000); return; }
+  let stream; try { stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true }, ...(video ? { video: { facingMode: "user", width: { ideal: 1280 }, height: { ideal: 720 } } } : {}) }); }
+  catch { toast(video ? "Camera or microphone not allowed. Allow both in the browser’s site settings and try again." : "Microphone not allowed. Allow it in the browser’s site settings and try again.", 6000); return; }
   const code = $("rlang").value, L = LANGS[code];
-  draft = { kind: "rec", lang: L, title: "", text: "", stt: SR ? `Live typing in ${L} (free, by Chrome).` : "This browser has no free live typing; use Chrome. The recording still saves." };
+  draft = { kind: "rec", video, stream: video ? stream : null, lang: L, title: "", text: "", stt: SR ? `Live typing in ${L} (free, by Chrome).` : "This browser has no free live typing; use Chrome. The recording still saves." };
   showNote(); tab("note");
-  const type = ["audio/webm;codecs=opus", "audio/mp4", "audio/webm", "audio/ogg"].find(t => window.MediaRecorder?.isTypeSupported?.(t)) || "";
-  mr = new MediaRecorder(stream, type ? { mimeType: type, audioBitsPerSecond: 64000 } : undefined); chunks = []; finalText = "";
+  const type = (video ? ["video/mp4;codecs=avc1,mp4a", "video/webm;codecs=vp9,opus", "video/webm;codecs=vp8,opus", "video/mp4", "video/webm"] : ["audio/webm;codecs=opus", "audio/mp4", "audio/webm", "audio/ogg"]).find(t => window.MediaRecorder?.isTypeSupported?.(t)) || "";
+  mr = new MediaRecorder(stream, type ? { mimeType: type, ...(video ? { videoBitsPerSecond: 1500000, audioBitsPerSecond: 96000 } : { audioBitsPerSecond: 64000 }) } : undefined); chunks = []; finalText = "";
   const d = draft;
   mr.ondataavailable = e => e.data.size && chunks.push(e.data);
   mr.onstop = () => { const secs = (Date.now() - t0) / 1000; stream.getTracks().forEach(t => t.stop()); clearInterval(tick); srOn = false; try { sr?.stop(); } catch { }
-    $("rec").textContent = "● Record"; $("rec").classList.remove("on"); $("live").hidden = true; $("timer").hidden = true; $("rlang").disabled = false;
+    $("rec").textContent = "● Record"; $("rec").classList.remove("on"); $("recv").textContent = "🎥"; $("recv").classList.remove("on"); $("rec").disabled = $("recv").disabled = false; $("live").hidden = true; $("timer").hidden = true; $("rlang").disabled = false;
     if (draft !== d) return; // discarded while recording
-    d.blob = new Blob(chunks, { type: mr.mimeType || "audio/webm" }); d.dur = fmt(secs);
+    d.blob = new Blob(chunks, { type: mr.mimeType || (d.video ? "video/webm" : "audio/webm") }); d.dur = fmt(secs); d.stream = null;
     if ($("dText")) d.text = $("dText").value; if ($("dTitle")) d.title = $("dTitle").value;
-    if (!d.title) d.title = "Voice note " + stamp(); drawDraft(); };
+    if (!d.title) d.title = (d.video ? "Video note " : "Voice note ") + stamp(); drawDraft(); };
   mr.start(1000); t0 = Date.now(); tick = setInterval(() => $("timer").textContent = fmt((Date.now() - t0) / 1000), 500);
-  $("rec").textContent = "■ Stop"; $("rec").classList.add("on"); $("live").hidden = false; $("timer").hidden = false; $("rlang").disabled = true;
+  const rb = video ? $("recv") : $("rec"); rb.textContent = "■ Stop"; rb.classList.add("on"); (video ? $("rec") : $("recv")).disabled = true; $("live").hidden = false; $("timer").hidden = false; $("rlang").disabled = true;
   if (SR) { sr = new SR(); sr.lang = code; sr.continuous = true; sr.interimResults = true; srOn = true;
     sr.onresult = e => { let interim = ""; for (let i = e.resultIndex; i < e.results.length; i++) { const r = e.results[i]; if (r.isFinal) finalText += r[0].transcript.trim() + " "; else interim += r[0].transcript; }
       if (draft === d && $("dText")) { $("dText").value = finalText + interim; d.text = $("dText").value; } };
@@ -1789,7 +1806,7 @@ async function record() {
     sr.onend = () => { if (srOn && mr.state === "recording") try { sr.start(); } catch { } };
     try { sr.start(); } catch { } }
 }
-$("rec").onclick = record;
+$("rec").onclick = () => record(false); $("recv").onclick = () => record(true);
 
 // ---------- tabs (phone + tablet) ----------
 function tab(t) { if (innerWidth >= 1000) return; $("panes").dataset.tab = t; $("tabs").querySelectorAll("button").forEach(b => b.setAttribute("aria-selected", b.dataset.tab === t)); }
@@ -1797,7 +1814,7 @@ $("tabs").querySelectorAll("button").forEach(b => b.onclick = () => { $("panes")
 
 // ---------- menu bar ----------
 const MENUS = () => [
-  ["File", [["● New recording", record, "R"], ["⤒ Upload Otter file(s)…", chooseFiles, "U"], ["☁ Take in from Drive…", takeIn, "D"], "-",
+  ["File", [["● New recording", () => record(false), "R"], ["🎥 New video recording", () => record(true), "V"], ["⤒ Upload Otter file(s)…", chooseFiles, "U"], ["☁ Take in from Drive…", takeIn, "D"], "-",
     ["Reconnect Drive", () => api.connect().catch(e => toast(e.message)), "", DEMO], ["Sign out", () => api.signout(), "", DEMO || !user]]],
   ["Edit", [["Select all in this list", () => { $("selAll").checked = true; $("selAll").onchange(); }, "A"], ["Clear ticks", () => { sel.clear(); draw(); }, "", !sel.size], "-",
     ["Move ticked to folder…", bulkMove, "M", !sel.size], ["Delete ticked…", bulkDel, "Del", !sel.size]]],
@@ -1834,7 +1851,7 @@ document.addEventListener("keydown", e => {
   if (e.key === "Escape" && !$("fpop").hidden) { fpopShow(false); $("wTog").focus(); return; }
   if (e.target.closest("input,textarea,select,[contenteditable]") || e.ctrlKey || e.metaKey || e.altKey || !ownerOk || !mapwin.hidden) return;
   const k = e.key.toLowerCase();
-  if (k === "r") { e.preventDefault(); record(); } else if (k === "u") chooseFiles(); else if (k === "d") takeIn(); else if (k === "f") $("openMap").click();
+  if (k === "r") { e.preventDefault(); record(); } else if (k === "v") { e.preventDefault(); record(true); } else if (k === "u") chooseFiles(); else if (k === "d") takeIn(); else if (k === "f") $("openMap").click();
   else if (k === "a") { e.preventDefault(); $("selAll").checked = true; $("selAll").onchange(); } else if (k === "m" && sel.size) bulkMove(); else if (e.key === "Delete" && sel.size) bulkDel(); else if (k === "?") { draft = null; cur = null; draw(); showNote(); }
 });
 
