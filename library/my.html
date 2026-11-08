@@ -1100,7 +1100,7 @@ const WF0 = [{ id: "inbox", name: "🆕 Inbox from the Architects", parent: null
   [["qr", "QuranRevival · QR Lead"], ["mmsa-hadith", "Hadith Lead"], ["mmsa-dua", "Dua Lead"], ["mmsa-health", "Health Lead"]].map(([id, name], i) => ({ id, name, parent: "mmsa", order: i + 1 })),
   [{ id: "other", name: "Other (no project)", parent: null, order: 20 }],
   // myStuff (owner's A, 8 Nov): the owner's own pages and tools, a Map section of its own after Library
-  [{ id: "ms", name: "myStuff", parent: null, order: 90, ms: true }].concat([["ms-design", "🎨 Design & Colour"], ["ms-write", "📝 Writing & Text"], ["ms-media", "🎬 Video & Audio"], ["ms-plan", "📊 Planning & Trackers"], ["ms-other", "🗂 Other"]].map(([id, name], i) => ({ id, name, parent: "ms", order: i + 1 }))));
+  [{ id: "ms", name: "myStuff", parent: null, order: 90, ms: true }].concat([["ms-design", "🎨 Design & Colour"], ["ms-write", "📝 Writing & Text"], ["ms-media", "🎬 Video & Audio"], ["ms-plan", "📊 Planning & Trackers"], ["ms-legal", "📁 Personal & Legal"], ["ms-other", "🗂 Other"]].map(([id, name], i) => ({ id, name, parent: "ms", order: i + 1 }))));
 // a folder can open a page when tapped (owner, 6 Nov: “(06) Jumu'a Khutbah folder opens to” the Khutbah page)
 WF0.find(f => f.id === "khutbah").url = "https://claude.ai/artifact/6BYUwxCixuSj5Jde4x7qBS#t061126unseen";
 const wfUrl = f => f?.url ? openUrl({ url: f.url }) : "";
@@ -1159,7 +1159,8 @@ async function takeInbox() {
           if (Number.isInteger(x.mmj)) Object.assign(c, { mmj: x.mmj, mmjName: BY.get(x.mmj)?.name || "", mmjPath: BY.get(x.mmj)?.path || "" });
           else c.wf = wfFor(x); }
         else { c.new = x.new !== false; const w = wfFor(x); // a newer version moves the card only while it still sits where it first landed (your own filing is kept)
-          if (old.wf && w !== old.wf && (old.wf === "inbox" || old.wf === old.pid || WF0.find(f => f.id === w)?.parent === old.wf)) c.wf = w; }
+          if (old.wf && w !== old.wf && (old.wf === "inbox" || old.wf === old.pid || WF0.find(f => f.id === w)?.parent === old.wf || (old.sentWf ? old.wf === old.sentWf : msIn(old.wf) && msIn(w)))) c.wf = w; }
+        c.sentWf = wfFor(x); // where the Architect last put it: a later version may move it only while it is still there
         await api.saveCard(id, c); await api.inboxDone(x.id); n++;
       } catch (e) { bad++; console.warn("card not taken in", x.id, e); } }
       $("opsmsg").textContent = `Taking in cards from the Architects: ${n}…`;
@@ -1730,7 +1731,7 @@ function helpHTML() {
     <li><b>The Map</b> (left): your Mapping My Journey folders; numbers show how many recordings each holds. <b>⤢ Full window</b> opens it large; drag its title bar, resize from any side or corner.</li>
     <li><b>Files</b> (middle): 🎙 recordings and 🎬 video posts. Tick several, then Move to folder, Share link or Delete in one go (video posts are never deleted here).</li>
     <li><b>🎬 Make video post</b> (on a recording): makes the post visitors will see, as a Draft, in the same folder, with the transcript as its note. Add the YouTube link, then set it to Published.</li>
-    <li><b>myStuff</b> (a Map section after Library, with its own on/off switch): your own pages and tools, in 🎨 Design &amp; Colour · 📝 Writing &amp; Text · 🎬 Video &amp; Audio · 📊 Planning &amp; Trackers · 🗂 Other. Each tool is one card; a newer version updates the same card. Drag a card onto another myStuff folder to move it; ＋📁 adds a folder inside myStuff.</li>
+    <li><b>myStuff</b> (a Map section after Library, with its own on/off switch): your own pages and tools, in 🎨 Design &amp; Colour · 📝 Writing &amp; Text · 🎬 Video &amp; Audio · 📊 Planning &amp; Trackers · 📁 Personal &amp; Legal · 🗂 Other. Each tool is one card; a newer version updates the same card. Drag a card onto another myStuff folder to move it; ＋📁 adds a folder inside myStuff.</li>
     <li><b>🗂 WorkFlow · private</b> (top of the Map): your work cards (lists, demos, reports, databases), one folder per Architect and, inside MSA, one per Lead (QuranRevival, Hadith, Dua, Health). Each Architect’s cards land straight in its own folder; only a card that names no known folder waits in <b>🆕 Inbox</b> with a New mark. Drag a card onto any folder to file it; + Folder, Rename and Move are under “All files” when a WorkFlow folder is open. Tap a card’s dot to go todo → working → done.</li>
     <li><b>Find bar</b> (in the top bar): search, filters by Topic · Subject · Project · Type with counts, Show all, Group and Sort; this device remembers them. <b>▦ Cards</b> shows everything as cards; <b>▥ Notebook</b> brings back the three sections. <b>+ Add item</b> adds a card (a file goes to your Drive folder “To BwN”).</li>
     <li><b>Note</b> (right): ▶ Play, the folder and Choose folder, 🔗 Links (Drive files, share link) and 🗑 on one bar; below it the notes and transcript, which save by itself.</li>
