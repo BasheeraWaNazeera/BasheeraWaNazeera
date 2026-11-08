@@ -746,7 +746,7 @@ function demoApi() {
   ownerOk = true; token = "demo"; user = { email: "demo (nothing leaves this browser)" }; setTimeout(showAuth);
   const cards = [{ id: "card-bwn-db1", kind: "card", name: "Video Library database (Firebase)", ckind: "Database", status: "done", url: "https://console.firebase.google.com/project/basheera-wa-nazeera/firestore", ver: "Spark (free)", what: "Example card: the Library's database.", wf: "bwn", projects: ["BwN"], topics: [], by: "BWN Architect", at: "2026-10-28T00:05:00Z" },
     { id: "card-bwn-mv-dawah", kind: "card", name: "Dawah Groups (EN, 18:17)", ckind: "Other", status: "todo", url: "", ver: "", what: "Example card filed in a Mapping My Journey folder.", mmj: 250, mmjName: "(17.10) Know the BASIC AFFAIRS of Islam - Dawah (Calling people towards Allah)", projects: ["BwN"], topics: ["Dawah"], by: "BWN Architect", at: "2026-10-30T00:00:00Z" }];
-  let wf = [], box = [{ id: "web-demo1", pid: "web", cid: "demo1", name: "Example card sent by an Architect", what: "It arrives in WorkFlow › Inbox with a New mark. Drag it onto a folder to file it.", url: "https://basheerawanazeera.github.io/BasheeraWaNazeera/", kind: "List", status: "todo", by: "Web Architect", at: new Date().toISOString(), projects: ["Web"], topics: ["Example"] }];
+  let wf = [], box = [{ id: "web-demo1", pid: "web", cid: "demo1", name: "Example card sent by an Architect", what: "It arrives in WorkFlow › Inbox with a New mark. Drag it onto a folder to file it.", url: "https://basheerawanazeera.github.io/BasheeraWaNazeera/", kind: "List", status: "todo", by: "Web Architect", at: new Date().toISOString(), projects: ["Web"], topics: ["Example"] }, { id: "bwn-demo2", pid: "bwn", cid: "demo2", wf: "ms-design", name: "Natural Color Studio - v01.07 - 04.09.26", what: "Example of one of your own tools, filed in myStuff.", url: "https://claude.ai/artifact/HjW84F7A4W78PWF8d3aJNe", kind: "Other", status: "todo", by: "BwN Architect", at: new Date().toISOString(), projects: ["BwN"], topics: ["myStuff"] }];
   return {
     connect() { }, signout() { },
     async list() { return structuredClone(recs); },
@@ -939,7 +939,7 @@ function drawLTree() {
   const sec = (k, t, body, extra = "") => { if (!body) return ""; const on = !SECHIDE.has(k);
     return `<li class="tsec"><span>${t}</span>${on ? extra : ""}<button type="button" class="secsw${on ? " on" : ""}" role="switch" aria-checked="${on}" data-sec="${k}" title="${on ? "Hide" : "Show"} ${t}" aria-label="Show ${t}"><span class="kn"></span></button></li>` + (on ? body : ""); };
   const html = sec("rec", "Recent", recentHTML(), `<select class="recsort" id="recSort" aria-label="Order of the Recent list" title="Order of the Recent list">${[["new", "Latest"], ["old", "Oldest"], ["date", "By date"]].map(([v, l]) => `<option value="${v}"${RSORT === v ? " selected" : ""}>${l}</option>`).join("")}</select>`)
-    + sec("proj", "By project", wfh) + sec("lib", "Library", lfh) + sec("mmj", "Mapping My Journey", mm);
+    + sec("proj", "By project", wfh) + sec("lib", "Library", lfh) + sec("ms", "myStuff", wfTreeHTML("ms")) + sec("mmj", "Mapping My Journey", mm);
   host.innerHTML = html ? `<ul class="ltree">${html}</ul>` : `<p class="empty">${TREE.length ? "No folder has files yet." : "Loading the Map…"}</p>`;
   host.querySelectorAll(".lr[data-f],.lr[data-lf]:not([data-lf='']),.lr[data-wf]").forEach(r => { const b = document.createElement("button"); b.type = "button"; b.className = "fpop1";
     b.dataset.pop = r.dataset.f ? "m" + r.dataset.f : r.dataset.lf ? "lf:" + r.dataset.lf : "wf:" + r.dataset.wf; b.title = "Open this folder as its own window"; b.setAttribute("aria-label", b.title); b.textContent = "⧉"; r.append(b); });
@@ -1098,7 +1098,9 @@ const PNAME = { bwn: "BwN", mmsa: "MSA", siy: "Siyagah", web: "Web", khutbah: "M
 // one folder per Architect, and per Lead inside its project (owner, 4 Nov); Inbox only for cards that name no known folder
 const WF0 = [{ id: "inbox", name: "🆕 Inbox from the Architects", parent: null, order: 0 }].concat(["bwn", "mmsa", "siy", "web", "khutbah", "pl"].map((id, i) => ({ id, name: PNAME[id], parent: null, order: i + 1 })),
   [["qr", "QuranRevival · QR Lead"], ["mmsa-hadith", "Hadith Lead"], ["mmsa-dua", "Dua Lead"], ["mmsa-health", "Health Lead"]].map(([id, name], i) => ({ id, name, parent: "mmsa", order: i + 1 })),
-  [{ id: "other", name: "Other (no project)", parent: null, order: 20 }]);
+  [{ id: "other", name: "Other (no project)", parent: null, order: 20 }],
+  // myStuff (owner's A, 8 Nov): the owner's own pages and tools, a Map section of its own after Library
+  [{ id: "ms", name: "myStuff", parent: null, order: 90, ms: true }].concat([["ms-design", "🎨 Design & Colour"], ["ms-write", "📝 Writing & Text"], ["ms-media", "🎬 Video & Audio"], ["ms-plan", "📊 Planning & Trackers"], ["ms-other", "🗂 Other"]].map(([id, name], i) => ({ id, name, parent: "ms", order: i + 1 }))));
 // a folder can open a page when tapped (owner, 6 Nov: “(06) Jumu'a Khutbah folder opens to” the Khutbah page)
 WF0.find(f => f.id === "khutbah").url = "https://claude.ai/artifact/6BYUwxCixuSj5Jde4x7qBS#t061126unseen";
 const wfUrl = f => f?.url ? openUrl({ url: f.url }) : "";
@@ -1116,7 +1118,7 @@ const ICONOF = r => ICONS[typeOf(r)] || "◇";
 const cdot = r => `<button type="button" class="cdot ${CSTAT.includes(r.status) ? r.status : "todo"}" data-dot="${esc(r.id)}" title="Status: ${esc(r.status || "todo")} (tap: todo → working → done)" aria-label="Status ${esc(r.status || "todo")}, tap to change"></button>`;
 const projOf = r => r.type === "card" && r.projects?.length ? [...new Set(r.projects.map(p => PNAME[String(p).toLowerCase()] || p))] : ["BwN"]; // "mmsa" and "MSA" are the same project
 const topOf = r => Array.isArray(r.topics) ? r.topics : [];
-const subjOf = r => r.wf ? "WorkFlow" : r.mmj && BY.has(r.mmj) ? BY.get(ancestors(r.mmj).at(-1)).name : "Not yet filed";
+const subjOf = r => r.wf ? (msIn(r.wf) ? "myStuff" : "WorkFlow") : r.mmj && BY.has(r.mmj) ? BY.get(ancestors(r.mmj).at(-1)).name : "Not yet filed";
 const mmjPath = id => ancestors(id).reverse().map(x => BY.get(x)?.name || "").join(" › ");
 const placeOf = r => r.wf ? (secRoot(r.wf) ? wfPath(r.wf).replace(/^WorkFlow › /, "Section › ") : wfPath(r.wf)) : r.mmj && BY.has(r.mmj) ? "The Map › " + mmjPath(r.mmj) : r.type === "post" && r.folder && LF.some(f => f.id === r.folder) ? "First Library folders › " + LF.find(f => f.id === r.folder).name : r.mmjPath || "Not yet filed";
 let PATHV = "line"; try { PATHV = localStorage.getItem("viPath") || "line"; } catch { }
@@ -1126,11 +1128,12 @@ const pathLine = r => pathHTML(placeOf(r));
 function setPathV(v) { PATHV = v; try { localStorage.setItem("viPath", v); } catch { } $("pvLine").classList.toggle("on", v !== "tree"); $("pvTree").classList.toggle("on", v === "tree"); draw(); if (!draft) showNote(); }
 const folderOf = r => r.wf ? wfName(r.wf) : r.mmj && BY.has(r.mmj) ? BY.get(r.mmj).name : "Not yet filed";
 function setWF(own) { WFOWN = own || []; WF = WF0.map(f => ({ ...f, ...(WFOWN.find(o => o.id === f.id) || {}) })).concat(WFOWN.filter(o => !WF0.some(f => f.id === o.id))).filter(f => !f.deleted); }
-const wfKids = pid => WF.filter(f => (f.parent ?? null) === pid && (pid !== null || !f.sec)).sort((a, b) => (a.order ?? 50) - (b.order ?? 50) || a.name.localeCompare(b.name, "en", { numeric: true }));
+const wfKids = pid => WF.filter(f => (f.parent ?? null) === pid && (pid !== null || (!f.sec && !f.ms))).sort((a, b) => (a.order ?? 50) - (b.order ?? 50) || a.name.localeCompare(b.name, "en", { numeric: true }));
 const secRoot = id => { let f = WF.find(x => x.id === id), n = 0; while (f && f.parent && n++ < 20) f = WF.find(x => x.id === f.parent); return f && f.sec ? f : null; };
 const wfIn = id => { const s = new Set([id]); let g = true; while (g) { g = false; WF.forEach(f => { if (s.has(f.parent) && !s.has(f.id)) { s.add(f.id); g = true; } }); } return s; };
 const wfName = id => WF.find(f => f.id === id)?.name || "WorkFlow";
-const wfPath = id => { const p = []; let f = WF.find(x => x.id === id), n = 0; while (f && n++ < 9) { p.unshift(f.name); f = WF.find(x => x.id === f.parent); } return "WorkFlow › " + p.join(" › "); };
+const wfPath = id => { const p = []; let f = WF.find(x => x.id === id), n = 0, ms = false; while (f && n++ < 9) { p.unshift(f.name); ms = !!f.ms; f = WF.find(x => x.id === f.parent); } return ms ? p.join(" › ") : "WorkFlow › " + p.join(" › "); };
+const msIn = id => { let f = WF.find(x => x.id === id), n = 0; while (f && f.parent && n++ < 20) f = WF.find(x => x.id === f.parent); return !!f?.ms; };
 const html2 = t => String(t || "").split(/\n{2,}/).map(p => `<p>${esc(p).replace(/\n/g, "<br>").replace(/(https:\/\/[^\s<"]+)/g, '<a href="$1" target="_blank" rel="noopener">$1</a>')}</p>`).join("") || "<p></p>";
 const textOf = r => typeof r.text === "string" ? r.text : Array.isArray(r.text) ? r.text.map(x => x?.s || "").join(" ") : "";
 const cleanId = v => String(v || "").replace(/[^A-Za-z0-9_-]/g, "").slice(0, 80);
@@ -1179,7 +1182,7 @@ async function cycleCard(id) { const c = ITEMS.find(x => x.id === id); if (!c ||
   try { await cardSave(c, { status: s }, "Status: " + s + "."); } catch (e) { setupNote(e); } draw(); if (cur === id) showNote(); }
 
 // WorkFlow group in the Map
-function wfTreeHTML() {
+function wfTreeHTML(root) {
   const cards = ITEMS.filter(r => r.wf && (r.type === "card" || secRoot(r.wf)));
   const cardsIn = id => cards.filter(r => r.wf === id), cnt = id => cards.filter(r => r.wf && wfIn(id).has(r.wf)).length;
   const li = r => `<li><div class="lr${cur === r.id ? " sel" : ""}" data-i="${esc(r.id)}" tabindex="0" draggable="true"><span class="ltw"></span><span class="nm">${r.type === "card" ? cdot(r) : ""}${ICONOF(r)} ${esc(r.title)}</span>${r.new ? '<span class="newb">New</span>' : ""}</div></li>`;
@@ -1189,7 +1192,8 @@ function wfTreeHTML() {
   const build = pid => wfKids(pid).map(f => { const k = "W" + f.id, its = cardsIn(f.id), has = wfKids(f.id).length || its.length, open = has && OPEN.has(k), n = cnt(f.id);
     return `<li><div class="lr${view === "wf:" + f.id ? " sel" : ""}" data-wf="${esc(f.id)}" tabindex="0"${has ? ` aria-expanded="${open}"` : ""}><span class="ltw">${has ? (open ? "−" : "+") : ""}</span><span class="nm">${esc(f.name)}</span>${f.url ? `<a class="fopen" href="${esc(wfUrl(f))}" target="_blank" rel="noopener" title="Open this folder’s page in its own window">↗ Open</a>` : ""}${n ? `<span class="cnt">(${n})</span>` : ""}</div>${open ? `<ul>${build(f.id)}${byType(f.id, its)}</ul>` : ""}</li>`; }).join("");
   if (!ownerOk) return "";
-  const open = OPEN.has("WF"), wfCards = cards.filter(r => r.type === "card" && !secRoot(r.wf)).length;
+  if (root) return build(root); // myStuff: its folders straight under the section heading
+  const open = OPEN.has("WF"), wfCards = cards.filter(r => r.type === "card" && !secRoot(r.wf) && !msIn(r.wf)).length;
   const secs = WF.filter(f => f.sec && !f.parent).sort((a, b) => (a.order ?? 50) - (b.order ?? 50) || a.name.localeCompare(b.name, "en", { numeric: true })).map(f => { const k = "W" + f.id, its = cardsIn(f.id), has = wfKids(f.id).length || its.length, o = has && OPEN.has(k), n = cnt(f.id);
     return `<li><div class="lr${view === "wf:" + f.id ? " sel" : ""}" data-wf="${esc(f.id)}" tabindex="0"${has ? ` aria-expanded="${o}"` : ""}><span class="ltw">${has ? (o ? "−" : "+") : ""}</span><span class="nm">▤ ${esc(f.name)}</span>${n ? `<span class="cnt">(${n})</span>` : ""}</div>${o ? `<ul>${build(f.id)}${its.map(li).join("")}</ul>` : ""}</li>`; }).join("");
   return `<li><div class="lr${view === "wf:" ? " sel" : ""}" data-wf="" tabindex="0" aria-expanded="${open}"><span class="ltw">${open ? "−" : "+"}</span><span class="nm">🗂 WorkFlow · private</span><span class="cnt">(${wfCards})</span></div>${open ? `<ul>${build(null)}</ul>` : ""}</li>` + secs;
@@ -1726,6 +1730,7 @@ function helpHTML() {
     <li><b>The Map</b> (left): your Mapping My Journey folders; numbers show how many recordings each holds. <b>⤢ Full window</b> opens it large; drag its title bar, resize from any side or corner.</li>
     <li><b>Files</b> (middle): 🎙 recordings and 🎬 video posts. Tick several, then Move to folder, Share link or Delete in one go (video posts are never deleted here).</li>
     <li><b>🎬 Make video post</b> (on a recording): makes the post visitors will see, as a Draft, in the same folder, with the transcript as its note. Add the YouTube link, then set it to Published.</li>
+    <li><b>myStuff</b> (a Map section after Library, with its own on/off switch): your own pages and tools, in 🎨 Design &amp; Colour · 📝 Writing &amp; Text · 🎬 Video &amp; Audio · 📊 Planning &amp; Trackers · 🗂 Other. Each tool is one card; a newer version updates the same card. Drag a card onto another myStuff folder to move it; ＋📁 adds a folder inside myStuff.</li>
     <li><b>🗂 WorkFlow · private</b> (top of the Map): your work cards (lists, demos, reports, databases), one folder per Architect and, inside MSA, one per Lead (QuranRevival, Hadith, Dua, Health). Each Architect’s cards land straight in its own folder; only a card that names no known folder waits in <b>🆕 Inbox</b> with a New mark. Drag a card onto any folder to file it; + Folder, Rename and Move are under “All files” when a WorkFlow folder is open. Tap a card’s dot to go todo → working → done.</li>
     <li><b>Find bar</b> (in the top bar): search, filters by Topic · Subject · Project · Type with counts, Show all, Group and Sort; this device remembers them. <b>▦ Cards</b> shows everything as cards; <b>▥ Notebook</b> brings back the three sections. <b>+ Add item</b> adds a card (a file goes to your Drive folder “To BwN”).</li>
     <li><b>Note</b> (right): ▶ Play, the folder and Choose folder, 🔗 Links (Drive files, share link) and 🗑 on one bar; below it the notes and transcript, which save by itself.</li>
