@@ -94,10 +94,20 @@ else {
   const [{ initializeApp }, fs, au] = await Promise.all([import(FB + "firebase-app.js"), import(FB + "firebase-firestore.js"), import(FB + "firebase-auth.js")]);
   const app = initializeApp(firebaseConfig), db = fs.getFirestore(app), auth = au.getAuth(app);
   let shown = false, tried = false;
+  // a page an Architect has just sent waits in the Inbox until My view takes it in; the owner can open it at once (BWN J27, 8 Nov)
+  const fromInbox = async () => { try {
+    const q = await fs.getDocs(fs.query(fs.collection(db, "inbox"), fs.where("pkey", "==", key), fs.limit(5)));
+    const x = q.docs.map(v => v.data()).find(v => typeof v.page === "string" && v.page); if (!x) return null;
+    const d = { name: String(x.name || ""), html: x.page, at: String(x.at || new Date().toISOString()), by: String(x.by || "") };
+    await fs.setDoc(fs.doc(db, "pages", key), d, { merge: true });
+    await fs.setDoc(fs.doc(db, "postPrivate", "pagelist"), { kind: "pagelist", keys: fs.arrayUnion(key) }, { merge: true }).catch(() => { });
+    return d; } catch (e) { return null; } };
   const load = async () => {
     try { const s = await fs.getDoc(fs.doc(db, "pages", key));
-      if (!s.exists()) return say("Page not found", "This page is not in the Library (it may have been removed)."), true;
-      const d = s.data(), OWN = ["basheerawanazeera@gmail.com", "smahk9@gmail.com"];
+      const OWN = ["basheerawanazeera@gmail.com", "smahk9@gmail.com"];
+      let d = s.exists() ? s.data() : null;
+      if (!d && auth.currentUser && OWN.includes((auth.currentUser.email || "").toLowerCase())) d = await fromInbox();
+      if (!d) return say("Page not found", "This page is not in the Library (it may have been removed)."), true;
       canSave = !!((d.live || /window\.__BWN_LIVE\s*=\s*true/.test(d.html || "")) && auth.currentUser && OWN.includes((auth.currentUser.email || "").toLowerCase()));
       onDb = ({ col, id, data }, fail) => { if (!canSave || !/^[A-Za-z0-9_-]{1,120}$/.test(col + id)) return fail("this copy cannot save");
         fs.updateDoc(fs.doc(db, "pages", key), new fs.FieldPath("db", col, id), data === null ? fs.deleteField() : data).catch(e => fail(e.message)); };
