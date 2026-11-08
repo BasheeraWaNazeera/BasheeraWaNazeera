@@ -323,7 +323,7 @@ video.vrec{width:100%;max-height:60vh;border-radius:10px;background:#000;margin:
 .newb{font-size:.66rem;background:var(--warn);color:var(--panel);border-radius:999px;padding:0 6px;margin-left:6px;vertical-align:2px;font-weight:600}
 .grp{font-size:.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;padding:9px 12px 3px;border-bottom:1px solid var(--line);background:var(--panel);position:sticky;top:0;z-index:1}
 .fwin.drop{outline:3px dashed var(--gold)}
-.lr.drop,.row.drop{outline:2px dashed var(--gold);background:var(--accent-soft)}
+.lr.drop,.row.drop,.tsec.dropin{outline:2px dashed var(--gold);background:var(--accent-soft)}
 .wftools{display:flex;gap:4px;align-items:center;flex-wrap:wrap;padding:4px 8px;font-size:.78rem;color:var(--muted)}
 .wftools button{border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:6px;padding:0 7px;font-size:.78rem}
 .cardsview{flex:1 1 0;min-height:0;overflow:auto;padding:12px max(12px,env(safe-area-inset-left,0px)) 30px}
@@ -937,10 +937,10 @@ function drawLTree() {
   }).join("");
   const wfh = wfTreeHTML(), lfh = lfTreeHTML(), mm = build(0);
   // each section heading has an on/off switch that shows or hides the section (owner, 6 Nov: toggle, not arrow); remembered on this device
-  const sec = (k, t, body, extra = "") => { if (!body) return ""; const on = !SECHIDE.has(k);
-    return `<li class="tsec"><span>${t}</span>${on ? extra : ""}<button type="button" class="secsw${on ? " on" : ""}" role="switch" aria-checked="${on}" data-sec="${k}" title="${on ? "Hide" : "Show"} ${t}" aria-label="Show ${t}"><span class="kn"></span></button></li>` + (on ? body : ""); };
+  const sec = (k, t, body, extra = "") => { if (!body && !(k === "ms" && ownerOk)) return ""; const on = !SECHIDE.has(k);
+    return `<li class="tsec"${k === "ms" ? ' data-wf="ms" title="Drop a file here to keep it straight in myStuff; right-click for a new folder"' : ""}><span>${t}</span>${on ? extra : ""}<button type="button" class="secsw${on ? " on" : ""}" role="switch" aria-checked="${on}" data-sec="${k}" title="${on ? "Hide" : "Show"} ${t}" aria-label="Show ${t}"><span class="kn"></span></button></li>` + (on ? body : ""); };
   const html = sec("rec", "Recent", recentHTML(), `<select class="recsort" id="recSort" aria-label="Order of the Recent list" title="Order of the Recent list">${[["new", "Latest"], ["old", "Oldest"], ["date", "By date"]].map(([v, l]) => `<option value="${v}"${RSORT === v ? " selected" : ""}>${l}</option>`).join("")}</select>`)
-    + sec("proj", "By project", wfh) + sec("lib", "Library", lfh) + sec("ms", "myStuff", wfTreeHTML("ms")) + sec("mmj", "Mapping My Journey", mm);
+    + sec("secs", "Sections", wfTreeHTML("__secs")) + sec("proj", "By project", wfh) + sec("lib", "Library", lfh) + sec("ms", "myStuff", wfTreeHTML("ms")) + sec("mmj", "Mapping My Journey", mm);
   host.innerHTML = html ? `<ul class="ltree">${html}</ul>` : `<p class="empty">${TREE.length ? "No folder has files yet." : "Loading the Map…"}</p>`;
   host.querySelectorAll(".lr[data-f],.lr[data-lf]:not([data-lf='']),.lr[data-wf]").forEach(r => { const b = document.createElement("button"); b.type = "button"; b.className = "fpop1";
     b.dataset.pop = r.dataset.f ? "m" + r.dataset.f : r.dataset.lf ? "lf:" + r.dataset.lf : "wf:" + r.dataset.wf; b.title = "Open this folder as its own window"; b.setAttribute("aria-label", b.title); b.textContent = "⧉"; r.append(b); });
@@ -994,9 +994,9 @@ $("ltree").addEventListener("click", e => { const pb = e.target.closest(".fpop1"
   else if (r.dataset.i) { if (e.target.closest("[data-dot]")) { cycleCard(e.target.closest("[data-dot]").dataset.dot); return; } draft = null; cur = r.dataset.i; draw(); showNote(); tab("note"); } });
 // drag a file or card onto a folder (Map or WorkFlow); ticked files move together
 $("ltree").addEventListener("dragstart", e => { const r = e.target.closest(".lr[data-i]"); if (r) e.dataTransfer.setData("text/bwn", r.dataset.i); });
-$("ltree").addEventListener("dragover", e => { const r = e.target.closest(".lr[data-f],.lr[data-wf]"); if (!r || !e.dataTransfer.types.includes("text/bwn")) return; e.preventDefault(); $("ltree").querySelectorAll(".drop").forEach(x => x !== r && x.classList.remove("drop")); r.classList.add("drop"); });
-$("ltree").addEventListener("dragleave", e => { const r = e.target.closest(".lr"); if (r && !r.contains(e.relatedTarget)) r.classList.remove("drop"); });
-$("ltree").addEventListener("drop", async e => { const r = e.target.closest(".lr[data-f],.lr[data-wf]"); if (!r) return; e.preventDefault(); r.classList.remove("drop");
+$("ltree").addEventListener("dragover", e => { const r = e.target.closest(".lr[data-f],.lr[data-wf],.tsec[data-wf]"); if (!r || !e.dataTransfer.types.includes("text/bwn")) return; e.preventDefault(); $("ltree").querySelectorAll(".drop,.dropin").forEach(x => x !== r && x.classList.remove("drop", "dropin")); r.classList.add(r.classList.contains("tsec") ? "dropin" : "drop"); });
+$("ltree").addEventListener("dragleave", e => { const t = e.target.closest(".tsec"); if (t && !t.contains(e.relatedTarget)) t.classList.remove("dropin"); const r = e.target.closest(".lr"); if (r && !r.contains(e.relatedTarget)) r.classList.remove("drop"); });
+$("ltree").addEventListener("drop", async e => { const r = e.target.closest(".lr[data-f],.lr[data-wf],.tsec[data-wf]"); if (!r) return; e.preventDefault(); r.classList.remove("drop", "dropin");
   const id = e.dataTransfer.getData("text/bwn"), it = ITEMS.find(x => x.id === id); if (!it || !ownerOk) return;
   if (it.type === "mmjnote") { if (!r.dataset.f || !mmjCan()) return toast(r.dataset.f ? MMJWAIT : "MMJ notes go in Mapping My Journey folders.", 6000); return mmjNotesMove(sel.has(id) ? picked().filter(x => x.type === "mmjnote") : [it], BY.get(+r.dataset.f)); }
   const rs = sel.has(id) ? picked() : [it];
@@ -1198,11 +1198,12 @@ function wfTreeHTML(root) {
   const build = pid => wfKids(pid).map(f => { const k = "W" + f.id, its = cardsIn(f.id), has = wfKids(f.id).length || its.length, open = has && OPEN.has(k), n = cnt(f.id);
     return `<li><div class="lr${view === "wf:" + f.id ? " sel" : ""}" data-wf="${esc(f.id)}" tabindex="0"${has ? ` aria-expanded="${open}"` : ""}><span class="ltw">${has ? (open ? "−" : "+") : ""}</span><span class="nm">${esc(f.name)}</span>${f.url ? `<a class="fopen" href="${esc(wfUrl(f))}" target="_blank" rel="noopener" title="Open this folder’s page in its own window">↗ Open</a>` : ""}${n ? `<span class="cnt">(${n})</span>` : ""}</div>${open ? `<ul>${build(f.id)}${byType(f.id, its)}</ul>` : ""}</li>`; }).join("");
   if (!ownerOk) return "";
-  if (root) return build(root) + cardsIn(root).sort((a, b) => String(a.title).localeCompare(String(b.title), "en", { numeric: true })).map(li).join(""); // myStuff: its folders, then the files kept straight in myStuff
+  if (root && root !== "__secs") return build(root) + cardsIn(root).sort((a, b) => String(a.title).localeCompare(String(b.title), "en", { numeric: true })).map(li).join(""); // myStuff: its folders, then the files kept straight in myStuff
   const open = OPEN.has("WF"), wfCards = cards.filter(r => r.type === "card" && !secRoot(r.wf) && !msIn(r.wf)).length;
   const secs = WF.filter(f => f.sec && !f.parent).sort((a, b) => (a.order ?? 50) - (b.order ?? 50) || a.name.localeCompare(b.name, "en", { numeric: true })).map(f => { const k = "W" + f.id, its = cardsIn(f.id), has = wfKids(f.id).length || its.length, o = has && OPEN.has(k), n = cnt(f.id);
     return `<li><div class="lr${view === "wf:" + f.id ? " sel" : ""}" data-wf="${esc(f.id)}" tabindex="0"${has ? ` aria-expanded="${o}"` : ""}><span class="ltw">${has ? (o ? "−" : "+") : ""}</span><span class="nm">▤ ${esc(f.name)}</span>${n ? `<span class="cnt">(${n})</span>` : ""}</div>${o ? `<ul>${build(f.id)}${its.map(li).join("")}</ul>` : ""}</li>`; }).join("");
-  return `<li><div class="lr${view === "wf:" ? " sel" : ""}" data-wf="" tabindex="0" aria-expanded="${open}"><span class="ltw">${open ? "−" : "+"}</span><span class="nm">🗂 WorkFlow · private</span><span class="cnt">(${wfCards})</span></div>${open ? `<ul>${build(null)}</ul>` : ""}</li>` + secs;
+  if (root === "__secs") return secs; // Sections: their own group at the top of the Map (owner, 8 Nov: they were hidden when By project was off)
+  return `<li><div class="lr${view === "wf:" ? " sel" : ""}" data-wf="" tabindex="0" aria-expanded="${open}"><span class="ltw">${open ? "−" : "+"}</span><span class="nm">🗂 WorkFlow · private</span><span class="cnt">(${wfCards})</span></div>${open ? `<ul>${build(null)}</ul>` : ""}</li>`;
 }
 function drawWfTools() {
   const t = $("wftools"); t.innerHTML = ""; drawFolderTools(); return; // folded into the Map row (owner, 4 Nov)
@@ -1419,7 +1420,7 @@ document.addEventListener("click", e => { const el = e.target.closest("[data-lp]
 const MMJWAIT = "Mapping My Journey folders and notes change through Siyagah. Connect Siyagah first: tap the badge beside “The Map” (it should read “MMJ · Siyagah ✓”).";
 function fctx(v) {
   if (typeof v === "number") return BY.has(v) ? { k: "mmj", id: v, name: BY.get(v).name } : null;
-  if (typeof v === "string" && v.startsWith("wf:")) { const id = v.slice(3); return { k: "wf", id, name: id ? wfName(id) : "WorkFlow", fixed: !id || id === "inbox" }; }
+  if (typeof v === "string" && v.startsWith("wf:")) { const id = v.slice(3); return { k: "wf", id, name: id ? wfName(id) : "WorkFlow", fixed: !id || id === "inbox" || id === "ms" }; }
   if (typeof v === "string" && v.startsWith("lf:")) { const id = v.slice(3); return { k: "lf", id, name: LF.find(f => f.id === id)?.name || "Library folder" }; }
   return null;
 }
@@ -1505,7 +1506,7 @@ function ctxMenu(x, y, v) { const c = fctx(v), m = $("ctx"); if (!c || !ownerOk)
   m.innerHTML = `<div class="ch">${esc(c.name)}</div>` + it.map((t, i) => t === "-" ? "<hr>" : `<button type="button" role="menuitem" data-i="${i}"${t[2] ? " disabled" : ""}>${esc(t[0])}</button>`).join("") + (mm ? `<div class="ch">${esc(MMJWAIT)}</div>` : "");
   m.hidden = false; const r = m.getBoundingClientRect(); m.style.left = Math.max(6, Math.min(x, innerWidth - r.width - 6)) + "px"; m.style.top = Math.max(6, Math.min(y, innerHeight - r.height - 6)) + "px";
   m.querySelectorAll("button[data-i]").forEach(b => b.onclick = () => { m.hidden = true; it[+b.dataset.i][1](); }); m.querySelector("button:not(:disabled)")?.focus(); }
-$("ltree").addEventListener("contextmenu", e => { const r = e.target.closest(".lr[data-f],.lr[data-lf],.lr[data-wf]"); if (!r || !ownerOk) return; const v = vOfRow(r); if (v === null) return;
+$("ltree").addEventListener("contextmenu", e => { const r = e.target.closest(".lr[data-f],.lr[data-lf],.lr[data-wf],.tsec[data-wf]"); if (!r || !ownerOk) return; const v = vOfRow(r); if (v === null) return;
   e.preventDefault(); view = v; draw(); ctxMenu(e.clientX, e.clientY, v); });
 let lpT; $("ltree").addEventListener("pointerdown", e => { if (e.pointerType !== "touch") return; const r = e.target.closest(".lr[data-f],.lr[data-lf],.lr[data-wf]"); if (!r) return;
   clearTimeout(lpT); lpT = setTimeout(() => { const v = vOfRow(r); if (v === null) return; view = v; draw(); ctxMenu(e.clientX, e.clientY, v); }, 550); });
