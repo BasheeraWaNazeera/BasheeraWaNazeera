@@ -369,7 +369,18 @@ video.vrec{width:100%;max-height:60vh;border-radius:10px;background:#000;margin:
 .sortl{white-space:nowrap}
 .sortl select{max-width:150px!important;font:inherit;font-size:.8rem;border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:8px;padding:3px 6px}
 .sortl{font-size:.75rem;color:var(--muted);display:inline-flex;align-items:center;gap:4px}
-.lbar{display:inline-flex;align-items:center;gap:6px;margin-left:auto;flex-wrap:wrap;justify-content:flex-end}
+.lbar{display:flex;align-items:center;gap:6px;flex:1 1 100%;flex-wrap:wrap;justify-content:flex-start;padding-top:2px}
+.bulk{container-type:inline-size}
+.lqw{position:relative;flex:1 1 100%}
+.lbar>.qf,.lbar>.fpw,.lbar>.sortl{flex:1 1 28%;min-width:0}
+.lbar>.qf,.lbar #wTog{width:100%;max-width:none}
+.lbar .sortl select{width:100%;max-width:none!important}
+.lbar .sortl .sl{display:none}
+.lbar .sortl select{flex:1 1 auto;min-width:0}
+@container (min-width:860px){.lqw{flex:0 1 240px}.lbar>.qf,.lbar>.fpw,.lbar>.sortl{flex:0 0 auto}.lbar>.qf{width:auto;max-width:150px}.lbar .sortl{margin-left:auto}.lbar .sortl select,.lbar #wTog{width:auto}.lbar .sortl .sl{display:inline}}
+.lqw::before{content:"🔍";position:absolute;left:8px;top:50%;transform:translateY(-50%);font-size:.75rem;opacity:.6;pointer-events:none}
+#lq{width:100%;font:inherit;font-size:.82rem;border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:999px;padding:4px 10px 4px 26px}
+#lq:focus{outline:2px solid var(--accent);outline-offset:1px}
 .lbar .qf{font:inherit;font-size:.8rem;border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:8px;padding:3px 6px;max-width:150px}
 .fpop select{font:inherit;font-size:.8rem;border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:8px;padding:4px 6px}
 .fpop label,.fpop .pv{font-size:.75rem;color:var(--muted)}
@@ -467,7 +478,7 @@ video.vrec{width:100%;max-height:60vh;border-radius:10px;background:#000;margin:
 <body>
 <div class="app">
   <nav class="menubar" aria-label="Menu" id="menubar">
-    <span class="brand">🗄 BwN Database<small class="appver" id="appver" title="Version · date · time published (Sydney)">v01.01 - 15.11.2026 - 05.48PM</small></span>
+    <span class="brand">🗄 BwN Database<small class="appver" id="appver" title="Version · date · time published (Sydney)">v01.02 - 16.11.2026 - 07.08AM</small></span>
     <span class="seg" role="group" aria-label="View"><a class="segb" href="./" id="toPub">Visitor view</a><span class="segb on" aria-current="page">My view</span></span>
     <span class="menus" id="menus"></span>
     <span class="mdiv" id="mdiv" aria-hidden="true"></span>
@@ -524,7 +535,7 @@ video.vrec{width:100%;max-height:60vh;border-radius:10px;background:#000;margin:
           <select class="qf" id="bMark" disabled aria-label="Mark the ticked items"><option value="">Mark ▾</option><option value="urg">🚨 Urgent</option><option value="imp">❗ Important</option><option value="og">🔄 On-going</option><option value="dim">◐ Dim</option><option value="clear">Clear marks</option></select>
           <button class="btn warn" id="bDel" disabled>Delete</button>
           <span class="lbar" id="lbar">
-      <select class="qf" id="wProject" aria-label="Project"></select><select class="qf" id="wType" aria-label="Type of data"></select><select class="qf" id="wSt" aria-label="Status"><option value="">Any status</option><option value="todo">To do</option><option value="working">Doing</option><option value="done">Done</option><option value="mk:urg">🚨 Urgent</option><option value="mk:imp">❗ Important</option><option value="mk:og">🔄 On-going</option><option value="mk:dim">◐ Dimmed</option></select><span class="fpw"><button class="tbtn" id="wTog" type="button" aria-expanded="false" aria-controls="fpop">Filters ▾</button>
+      <span class="lqw"><input type="search" id="lq" placeholder="Search files, folders, words…" aria-label="Search all files, folders and words" title="Searches every file and folder: titles, notes, transcripts, links"></span><select class="qf" id="wProject" aria-label="Project"></select><select class="qf" id="wType" aria-label="Type of data"></select><select class="qf" id="wSt" aria-label="Status"><option value="">Any status</option><option value="todo">To do</option><option value="working">Doing</option><option value="done">Done</option><option value="mk:urg">🚨 Urgent</option><option value="mk:imp">❗ Important</option><option value="mk:og">🔄 On-going</option><option value="mk:dim">◐ Dimmed</option></select><span class="fpw"><button class="tbtn" id="wTog" type="button" aria-expanded="false" aria-controls="fpop">Filters ▾</button>
         <span class="fpop" id="fpop" hidden>
           <select id="wTopic" aria-label="Topic"></select>
           <select id="wSubject" aria-label="Subject"></select>
@@ -1657,7 +1668,7 @@ function drawFilters(base) {
     $(id).innerHTML = `<option value="">${label}: all (${b.length})</option>` + [...m].sort((a, c) => a[0].localeCompare(c[0])).map(([v, n]) => `<option value="${esc(v)}"${FL[key] === v ? " selected" : ""}>${esc(v)} (${n})</option>`).join(""); };
   fill("wTopic", "topic", "Topic", r => topOf(r).length ? topOf(r) : ["(no topic)"]); fill("wSubject", "subject", "Subject", r => [subjOf(r)]);
   fill("wProject", "project", "Project", projOf); fill("wType", "type", "Type", r => [typeOf(r)]);
-  $("wSt").value = FL.st || ""; if (document.activeElement !== $("wq")) $("wq").value = FL.q; $("wGrp").value = FL.grp; $("wSort").value = FL.sort;
+  $("wSt").value = FL.st || ""; if (document.activeElement !== $("wq")) $("wq").value = FL.q; if (document.activeElement !== $("lq")) $("lq").value = FL.q; $("wGrp").value = FL.grp; $("wSort").value = FL.sort;
   $("wAll").style.fontWeight = FL.q || FL.topic || FL.subject || FL.project || FL.type ? "600" : ""; fbadge();
 }
 // stage of any item: Draft · Under process · Finished · Published (owner, 2 Nov)
@@ -1681,6 +1692,7 @@ $("wSt").onchange = e => fset("st", e.target.value);
 $("wTopic").onchange = e => fset("topic", e.target.value); $("wSubject").onchange = e => fset("subject", e.target.value);
 $("wProject").onchange = e => fset("project", e.target.value); $("wType").onchange = e => fset("type", e.target.value);
 $("wGrp").onchange = e => fset("grp", e.target.value); $("wSort").onchange = e => fset("sort", e.target.value);
+$("lq").oninput = e => { $("wq").value = e.target.value; $("wq").oninput(e); };
 $("wq").oninput = e => { FL.q = e.target.value; if (FL.q.trim()) LASTQ = ""; saveFL(); clearTimeout(fset.t); fset.t = setTimeout(draw, 150); };
 $("wAll").onclick = () => { Object.assign(FL, { q: "", topic: "", subject: "", project: "", type: "", st: "", grp: "none" }); view = "all"; saveFL(); draw(); toast("Showing everything."); };
 function fpopShow(o) { $("fpop").hidden = !o;
