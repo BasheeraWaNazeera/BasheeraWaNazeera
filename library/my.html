@@ -257,6 +257,25 @@ textarea{min-height:120px;resize:vertical}
 .mapwin .mfoot{padding:10px 12px;border-top:1px solid var(--line);display:flex;gap:10px;align-items:center;flex-wrap:wrap;background:var(--bg)}
 .mapwin .mfoot .pick{flex:1;min-width:160px;font-size:.86rem}
 .fw-grip{display:none}
+/* PMS-style window buttons (owner, 16 Nov): ▾ fold · ◧ ◨ snap · ▣ fill · ⛶ full screen */
+.wbar{display:inline-flex;align-items:center;gap:2px;flex-shrink:0}
+.wbar button{border:1px solid var(--line);background:var(--panel);color:var(--accent);border-radius:6px;font-size:.8rem;line-height:1.2;padding:1px 6px;font-family:var(--f-body);cursor:pointer}
+.wbar button:hover,.float-win .fw-hd .wbar button:hover{background:var(--accent-soft)}
+.float-win .fw-hd .wbar button{border:1px solid var(--line);background:var(--panel);padding:1px 6px}
+.wbar [data-wb=min],.wbar [data-wb=l],.wbar [data-wb=r],.wbar [data-wb=f]{display:none}
+.float-win .wbar [data-wb]{display:inline-block}
+.float-win.wb-min{height:auto!important;min-height:0!important}
+.float-win.wb-min>:not(.ph):not(.fw-hd):not(.fw-grip){display:none!important}
+.float-win.wb-min [data-wb=min]{transform:rotate(-90deg)}
+:fullscreen{background:var(--bg);overflow:auto;border-radius:0!important}
+.wb-fs{position:fixed!important;inset:0!important;width:auto!important;height:auto!important;z-index:5000!important;border-radius:0!important;background:var(--bg)}
+body.wb-drag iframe{pointer-events:none}
+.vwin{background:var(--bg);z-index:78}
+.vwin .fw-body iframe{flex:1;width:100%;border:0;background:#fff}
+.vwin .fw-body>.pnote{padding:14px 16px}
+.vwin .fw-hd a{color:var(--accent);font-size:.8rem;text-decoration:none;padding:2px 6px;border-radius:6px;white-space:nowrap}
+.vwin .fw-hd a:hover{background:var(--panel)}
+@media (max-width:639.98px){.float-win .wbar [data-wb]:not([data-wb=fs]){display:none}}
 .float-win .fw-grip{display:block;position:absolute;z-index:12;touch-action:none}
 .modal-resize-t{top:0;left:0;right:0;height:7px;cursor:ns-resize}
 .modal-resize-b{bottom:0;left:0;right:0;height:7px;cursor:ns-resize}
@@ -487,7 +506,7 @@ video.vrec{width:100%;max-height:60vh;border-radius:10px;background:#000;margin:
 <body>
 <div class="app">
   <nav class="menubar" aria-label="Menu" id="menubar">
-    <button class="brand" id="homeBrand" type="button" title="Home: All files, top"><span class="bicon" aria-hidden="true">🗄</span><span class="btxt"><span class="bname">BwN Database</span><small class="appver" id="appver" title="Version · date · time published (Sydney)">v01.08 - 16.11.2026 - 09.58AM</small></span></button>
+    <button class="brand" id="homeBrand" type="button" title="Home: All files, top"><span class="bicon" aria-hidden="true">🗄</span><span class="btxt"><span class="bname">BwN Database</span><small class="appver" id="appver" title="Version · date · time published (Sydney)">v01.09 - 16.11.2026 - 10.39AM</small></span></button>
     <span class="seg" role="group" aria-label="View"><a class="segb" href="./" id="toPub">Visitor view</a><span class="segb on" aria-current="page">My view</span></span>
     <span class="menus" id="menus"></span>
     <span class="mdiv" id="mdiv" aria-hidden="true"></span>
@@ -1794,7 +1813,7 @@ function drawCard(c) {
     <div class="chips2">${cdot(c)}<span class="chip">${esc(c.status || "todo")}</span><span class="chip">${esc(typeOf(c))}</span><span class="chip">${esc(c.by || "")}${c.at ? " · " + esc(when(c.at)) : ""}</span>${c.show ? '<span class="chip pub">Visitors see its link</span>' : '<span class="chip draft">Only you see it</span>'}</div>
     <div class="nbar"><span class="fname">📁 <b>${esc(folderOf(c))}</b></span>
       <button class="btn ghost" id="nFolder" type="button">Map folder</button><button class="btn ghost" id="nWf" type="button">WorkFlow folder</button>
-      ${c.url ? `<a class="btn" href="${esc(openUrl(c))}" target="_blank" rel="noopener">↗ Open in its own window</a><button class="btn ghost" id="nView" type="button">View here</button>` : ""}
+      ${c.url ? `<a class="btn" href="${esc(openUrl(c))}" target="_blank" rel="noopener">↗ Open in its own window</a><button class="btn ghost" id="nView" type="button" title="Open the file here in its own pop-up window: drag, resize, snap, fill or full screen">⧉ Open in a pop-up</button>` : ""}
       ${offIdsOf2(c).length ? `<button class="btn ghost" id="nOff" type="button" title="Keep a copy on this device so it opens without the internet">${isOff(c) ? "✓ On this device" : "📥 Keep offline"}</button>` : ""}
       <button class="ib" id="nDel" type="button" title="Delete this card" aria-label="Delete this card">🗑</button></div>
     <div class="nbar abar" aria-label="Actions for this file">
@@ -1839,7 +1858,7 @@ function drawCard(c) {
   $("nWf").onclick = () => { const opts = WF.map(f => ({ id: f.id, name: wfPath(f.id).replace(/^WorkFlow › /, "") }));
     dlg("WorkFlow folder for “" + c.title + "”", opts.map((o, i) => `<button type="button" class="wfpick" data-k="${i}">${esc(o.name)}</button>`).join(""), "");
     $("wfdlgB").querySelectorAll(".wfpick").forEach(b => b.onclick = async () => { const o = opts[+b.dataset.k]; $("wfdlg").close(); await save({ wf: o.id, mmj: null, mmjName: "", mmjPath: "", new: false, show: false }, "Filed in " + o.name + "."); refresh(); }); };
-  if ($("nView")) $("nView").onclick = () => { const v = $("cView"); v.hidden = !v.hidden; v.innerHTML = v.hidden ? "" : viewerHTML(openUrl(c)); $("nView").textContent = v.hidden ? "View here" : "Close viewer"; };
+  if ($("nView")) $("nView").onclick = () => popViewer(c);
   $("nDel").onclick = async () => { if (!confirm(`Delete the card “${c.title}”?\n\nOnly the card goes; the page or file it links to stays.`)) return;
     try { if (c.show) await api.showPublic(c.id, null); await api.remove(c.id); cur = null; toast("Card deleted."); refresh(); } catch (e) { setupNote(e); } };
   if (c.new) cardSave(c, { new: false }).then(draw).catch(() => { });
@@ -1958,7 +1977,7 @@ function helpHTML() {
     <li><b>🗂 WorkFlow · private</b> (top of the Map): your work cards (lists, demos, reports, databases), one folder per Architect and, inside MSA, one per Lead (QuranRevival, Hadith, Dua, Health). Each Architect’s cards land straight in its own folder; only a card that names no known folder waits in <b>🆕 Inbox</b> with a New mark. Drag a card onto any folder to file it; + Folder, Rename and Move are under “All files” when a WorkFlow folder is open. Tap a card’s dot to go todo → working → done.</li>
     <li><b>Find bar</b> (in the top bar): search, filters by Topic · Subject · Project · Type with counts, Show all, Group and Sort; this device remembers them. <b>▦ Cards</b> shows everything as cards; <b>▥ Notebook</b> brings back the three sections. <b>+ Add item</b> adds a card (a file goes to your Drive folder “To BwN”).</li>
     <li><b>Note</b> (right): ▶ Play, the folder and Choose folder, 🔗 Links (Drive files, share link) and 🗑 on one bar; below it the notes and transcript, which save by itself.</li>
-    <li><b>Sizes:</b> drag the thin bars between the sections to make one wider. <b>⧉</b> on a section’s header pops it out as its own window: drag it by its header, resize it from any side or corner; <b>⇲</b> docks it back (View → Dock all sections). <b>⧉</b> beside any folder opens that folder as its own window; open as many as you like, drag each by its title, resize it from any side or corner, and drop a file or card on it to file it there (View → Close all folder windows). Sizes are remembered on this device.</li><li><b>MMJ from Siyagah:</b> once Siyagah is connected (the badge beside “The Map”), your Mapping My Journey folders and 📝 notes come live from Siyagah; open a note to read it here. Editing MMJ notes and folders from BwN comes with Siyagah’s next step. <b>Order and move:</b> choose a folder and use its <b>↑ ↓</b> (or Alt+↑/↓, or the right-click menu) to move it up or down; drag a folder onto another folder to put it inside; drag files and cards onto any folder. <b>Sections:</b> <b>＋▤</b> makes a new Section, its own group at the top of the Map (private); drop any file, card or recording in it. <b>Folders:</b> tap a folder, then <b>＋📁 new · ✎ rename · ⇄ move · 🗑 delete</b> on the Map’s top row (⊞ / ⊟ open or close all, ＋🎬 new post, 📂 only folders with files), or right-click a folder (long-press on a phone) for the same menu. WorkFlow and Library folders change at once (delete can be undone); Mapping My Journey folders change through Siyagah’s shared folders (Stage 2).</li><li><b>📄 Pages outside Claude:</b> a card’s page (demo, list, report) is kept in your Library and opens on its own at <code>…/library/page.html</code>, private to you; tick <b>Show to visitors</b> on the card to make that page public (anyone with the link).</li><li><b>☰</b> (on the Files header) hides or shows the Map. <b>Status</b> (Any · To do · Doing · Done) filters the list; a search looks in every folder. The page remembers the folder and item you had open. <b>Find and sort</b>: search in the top bar; <b>Filters</b> and <b>Sort</b> sit on the Files bar: search, <b>Filters</b> (Topic, Subject, Project, Type, Group) and <b>Sort</b> by date, type, project, size or stage (Draft · Under process · Finished · Published). Every row and note shows 📁 where it belongs; Filters → Folder paths (or View) shows it in one line or as a tree.</li></ul>
+    <li><b>Sizes:</b> drag the thin bars between the sections to make one wider. <b>⧉</b> on a section’s header pops it out as its own window: drag it by its header, resize it from any side or corner; <b>⇲</b> docks it back (View → Dock all sections). Every pop-up window has the same buttons on its title bar: <b>▾</b> folds it to its title bar, <b>◧ ◨</b> snap it to the left or right half, <b>▣</b> fills the page (again: back to its size), <b>⛶</b> full screen (Esc leaves). <b>⛶</b> is also on each docked section. On a card, <b>⧉ Open in a pop-up</b> opens its file here in such a window. <b>⧉</b> beside any folder opens that folder as its own window; open as many as you like, drag each by its title, resize it from any side or corner, and drop a file or card on it to file it there (View → Close all folder windows). Sizes are remembered on this device.</li><li><b>MMJ from Siyagah:</b> once Siyagah is connected (the badge beside “The Map”), your Mapping My Journey folders and 📝 notes come live from Siyagah; open a note to read it here. Editing MMJ notes and folders from BwN comes with Siyagah’s next step. <b>Order and move:</b> choose a folder and use its <b>↑ ↓</b> (or Alt+↑/↓, or the right-click menu) to move it up or down; drag a folder onto another folder to put it inside; drag files and cards onto any folder. <b>Sections:</b> <b>＋▤</b> makes a new Section, its own group at the top of the Map (private); drop any file, card or recording in it. <b>Folders:</b> tap a folder, then <b>＋📁 new · ✎ rename · ⇄ move · 🗑 delete</b> on the Map’s top row (⊞ / ⊟ open or close all, ＋🎬 new post, 📂 only folders with files), or right-click a folder (long-press on a phone) for the same menu. WorkFlow and Library folders change at once (delete can be undone); Mapping My Journey folders change through Siyagah’s shared folders (Stage 2).</li><li><b>📄 Pages outside Claude:</b> a card’s page (demo, list, report) is kept in your Library and opens on its own at <code>…/library/page.html</code>, private to you; tick <b>Show to visitors</b> on the card to make that page public (anyone with the link).</li><li><b>☰</b> (on the Files header) hides or shows the Map. <b>Status</b> (Any · To do · Doing · Done) filters the list; a search looks in every folder. The page remembers the folder and item you had open. <b>Find and sort</b>: search in the top bar; <b>Filters</b> and <b>Sort</b> sit on the Files bar: search, <b>Filters</b> (Topic, Subject, Project, Type, Group) and <b>Sort</b> by date, type, project, size or stage (Draft · Under process · Finished · Published). Every row and note shows 📁 where it belongs; Filters → Folder paths (or View) shows it in one line or as a tree.</li></ul>
     <h3>Where your files are kept</h3><ul>
     <li><b>Recordings and Otter files:</b> in your own Google Drive (BasheeraWaNazeera@gmail.com) → My Drive → folder <b>“To BwN”</b>. Nobody else can open them unless you press “Share link”.</li>
     <li><b>Title, folder, transcript and notes:</b> in the BWN Firebase database (project basheera-wa-nazeera), readable only by your Google account.</li>
@@ -2229,29 +2248,87 @@ function floatPane(k, on) {
   const el = $(PANES[k]); on = !!on && desk(); FLOAT[k] = on; try { localStorage.setItem("viFloat", JSON.stringify(FLOAT)); } catch { }
   el.classList.toggle("float-win", on); el.querySelectorAll(":scope>.fw-grip").forEach(g => g.remove());
   const btn = el.querySelector(".pop"); if (btn) { btn.textContent = on ? "⇲" : "⧉"; btn.title = on ? "Dock back into the desk" : "Pop out as a window"; }
+  el.classList.remove("wb-min", "wb-fs"); delete el.dataset.snap;
   if (on) { placePane(k); grips(el, k); } else ["width", "height", "left", "top", "zIndex"].forEach(p => el.style[p] = "");
   layout();
 }
 function grips(el, k, onEnd) {
   [["t", "modal-resize-t"], ["r", "modal-resize-r"], ["b", "modal-resize-b"], ["l", "modal-resize-l"], ["tr", "modal-corner modal-corner-tr"], ["tl", "modal-corner modal-corner-tl"], ["bl", "modal-corner modal-corner-bl"], ["br", "modal-corner modal-corner-br"]].forEach(([dir, cls]) => {
     const g = document.createElement("div"); g.className = cls + " fw-grip";
-    g.addEventListener("pointerdown", e => { if (e.button !== 0) return; e.preventDefault(); e.stopPropagation(); const r = el.getBoundingClientRect(), s = { x: e.clientX, y: e.clientY, l: r.left, t: r.top, w: r.width, h: r.height };
+    g.addEventListener("pointerdown", e => { if (e.button !== 0) return; e.preventDefault(); e.stopPropagation(); const r = el.getBoundingClientRect(), s = { x: e.clientX, y: e.clientY, l: r.left, t: r.top, w: r.width, h: r.height }; document.body.classList.add("wb-drag"); delete el.dataset.snap;
       const move = ev => { let { l, t, w, h } = s; const dx = ev.clientX - s.x, dy = ev.clientY - s.y;
         if (dir.includes("r")) w = Math.max(320, s.w + dx); if (dir.includes("l")) { w = Math.max(320, s.w - dx); l = s.l + (s.w - w); }
         if (dir.includes("b")) h = Math.max(240, s.h + dy); if (dir.includes("t")) { h = Math.max(240, s.h - dy); t = Math.max(0, s.t + (s.h - h)); }
         Object.assign(el.style, { width: w + "px", height: h + "px", left: l + "px", top: t + "px" }); };
-      const up = () => { removeEventListener("pointermove", move); removeEventListener("pointerup", up); document.body.style.userSelect = ""; onEnd ? onEnd() : saveGeo(k); };
+      const up = () => { removeEventListener("pointermove", move); removeEventListener("pointerup", up); document.body.style.userSelect = ""; document.body.classList.remove("wb-drag"); onEnd ? onEnd() : saveGeo(k); };
       document.body.style.userSelect = "none"; addEventListener("pointermove", move); addEventListener("pointerup", up); });
     el.append(g); });
 }
+// ---------- PMS-style window buttons on every pop-up (owner, 16 Nov): ▾ fold to the title bar · ◧ ◨ snap to a half · ▣ fill the page (again = back) · ⛶ full screen ----------
+const WB_HTML = `<span class="wbar"><button type="button" data-wb="min" title="Fold to its title bar (again: open)" aria-label="Fold or open">▾</button><button type="button" data-wb="l" title="Snap to the left half" aria-label="Snap left">◧</button><button type="button" data-wb="r" title="Snap to the right half" aria-label="Snap right">◨</button><button type="button" data-wb="f" title="Fill the page (again: back to its size)" aria-label="Fill the page">▣</button><button type="button" data-wb="fs" title="Full screen (Esc or ⛶ again to leave)" aria-label="Full screen">⛶</button></span>`;
+function wbFsOn(el) { return !!el && (document.fullscreenElement === el || el.classList.contains("wb-fs")); }
+function wbFsIcon() { document.querySelectorAll(".wbar [data-wb=fs]").forEach(b => { const on = wbFsOn(b.closest(".pane,.float-win")); b.textContent = on ? "⤡" : "⛶"; b.title = on ? "Leave full screen (Esc)" : "Full screen (Esc or ⛶ again to leave)"; }); }
+function wbFs(el) {
+  if (wbFsOn(el)) { if (document.fullscreenElement === el) document.exitFullscreen().catch(() => { }); el.classList.remove("wb-fs"); wbFsIcon(); return; }
+  const fall = () => { el.classList.add("wb-fs"); wbFsIcon(); };
+  if (el.requestFullscreen) el.requestFullscreen().catch(fall); else fall();
+}
+document.addEventListener("fullscreenchange", wbFsIcon);
+// windows stay below the top menu bar so its menus keep working
+function wbTop() { const mb = document.getElementById("menubar"), bt = mb ? mb.getBoundingClientRect().bottom : 0; return Math.max(8, Math.round(bt) + 6); }
+function wbWire(el, onGeo) {
+  const bar = el.querySelector(".wbar"); if (!bar || bar.dataset.on) return; bar.dataset.on = 1;
+  bar.addEventListener("pointerdown", e => e.stopPropagation());
+  bar.addEventListener("click", e => { const b = e.target.closest("[data-wb]"); if (!b) return; e.stopPropagation(); e.preventDefault(); const a = b.dataset.wb;
+    if (a === "fs") { wbFs(el); return; }
+    if (!el.classList.contains("float-win")) return;
+    if (a === "min") { el.classList.toggle("wb-min"); return; }
+    el.classList.remove("wb-min");
+    if (el.dataset.snap === a) { const p = JSON.parse(el.dataset.prev || "null"); delete el.dataset.snap; if (p) Object.assign(el.style, p); onGeo && onGeo(); return; }
+    if (!el.dataset.snap) el.dataset.prev = JSON.stringify({ left: el.style.left, top: el.style.top, width: el.style.width, height: el.style.height });
+    const W = document.documentElement.clientWidth, H = document.documentElement.clientHeight, g = 8, hw = Math.floor((W - g * 3) / 2), t = wbTop();
+    const box = a === "l" ? [g, t, hw, H - t - g] : a === "r" ? [g * 2 + hw, t, hw, H - t - g] : [g, t, W - g * 2, H - t - g];
+    Object.assign(el.style, { left: box[0] + "px", top: box[1] + "px", width: box[2] + "px", height: box[3] + "px", zIndex: ++zTopP }); el.dataset.snap = a; onGeo && onGeo(); });
+  el.addEventListener("keydown", e => { if (e.key === "Escape" && el.classList.contains("wb-fs")) { e.stopPropagation(); el.classList.remove("wb-fs"); wbFsIcon(); } });
+}
+// a card's file opens inside BwN in its own pop-up window (owner, 16 Nov: “Pop for files opening inside”)
+let VWINS = {}; try { VWINS = JSON.parse(localStorage.getItem("viVwin") || "{}"); } catch { }
+function popViewer(c) {
+  const u = openUrl(c), key = "v" + c.id; let el = document.querySelector(`.vwin[data-k="${CSS.escape(key)}"]`);
+  if (el) { el.classList.remove("wb-min"); el.style.zIndex = ++zTopP; return el; }
+  const W = innerWidth, H = innerHeight, g = VWINS.last, n = document.querySelectorAll(".vwin").length;
+  const w = Math.min(g?.w || 900, W - 16), h = Math.min(g?.h || H - wbTop() - 12, H - wbTop() - 8);
+  el = document.createElement("div"); el.className = "vwin float-win"; el.dataset.k = key; el.setAttribute("role", "dialog"); el.setAttribute("aria-label", c.title || "File");
+  el.innerHTML = `<div class="fw-hd"><span class="fw-drag" aria-hidden="true">⠿</span><span class="fw-title-disp"></span>${WB_HTML}<a href="${esc(u)}" target="_blank" rel="noopener" title="Open in its own window">↗ Own window</a><button type="button" class="fw-x" aria-label="Close this window" title="Close">✕</button></div><div class="fw-body">${viewerHTML(u)}</div>`;
+  el.querySelector(".fw-title-disp").textContent = c.title || "File";
+  const fr = el.querySelector("iframe"); if (fr) { fr.removeAttribute("loading"); fr.setAttribute("allow", "fullscreen; clipboard-write"); fr.setAttribute("allowfullscreen", ""); }
+  Object.assign(el.style, { left: Math.max(0, Math.min((g?.x ?? (W - w) / 2) + n * 28, W - w)) + "px", top: Math.max(wbTop(), Math.min((g?.y ?? wbTop()) + n * 28, H - h)) + "px", width: w + "px", height: h + "px", zIndex: ++zTopP });
+  document.body.append(el);
+  const geo = () => { if (el.dataset.snap) return; const r = el.getBoundingClientRect(); VWINS.last = { x: Math.round(r.left), y: Math.round(r.top), w: Math.round(r.width), h: Math.round(r.height) }; try { localStorage.setItem("viVwin", JSON.stringify(VWINS)); } catch { } };
+  grips(el, null, geo); wbWire(el, geo);
+  el.addEventListener("pointerdown", () => { el.style.zIndex = ++zTopP; }, { capture: true });
+  const hd = el.querySelector(".fw-hd");
+  hd.addEventListener("pointerdown", e => { if (e.button !== 0 || e.target.closest("button,a") || innerWidth < 640) return; e.preventDefault(); const r = el.getBoundingClientRect(), sx = e.clientX, sy = e.clientY; document.body.classList.add("wb-drag"); delete el.dataset.snap;
+    const move = ev => { el.style.left = Math.max(0, Math.min(r.left + ev.clientX - sx, innerWidth - 80)) + "px"; el.style.top = Math.max(0, Math.min(r.top + ev.clientY - sy, innerHeight - 40)) + "px"; };
+    const up = () => { removeEventListener("pointermove", move); removeEventListener("pointerup", up); document.body.classList.remove("wb-drag"); geo(); };
+    addEventListener("pointermove", move); addEventListener("pointerup", up); });
+  hd.addEventListener("dblclick", e => { if (!e.target.closest("button,a")) el.querySelector("[data-wb=f]").click(); });
+  const close = () => { if (document.fullscreenElement === el) document.exitFullscreen().catch(() => { }); el.remove(); };
+  el.querySelector(".fw-x").onclick = close;
+  el.addEventListener("keydown", e => { if (e.key === "Escape" && !wbFsOn(el)) close(); });
+  el.querySelector(".fw-x").focus();
+  return el;
+}
 function initPanes() {
   Object.entries(PANES).forEach(([k, id]) => { const el = $(id), hd = el.querySelector(".ph");
+    el.querySelector(".pop").insertAdjacentHTML("beforebegin", WB_HTML); wbWire(el, () => saveGeo(k));
     el.querySelector(".pop").onclick = e => { e.stopPropagation(); floatPane(k, !FLOAT[k]); };
     el.addEventListener("pointerdown", () => { if (FLOAT[k]) el.style.zIndex = ++zTopP; }, { capture: true });
     hd.addEventListener("pointerdown", e => { if (!FLOAT[k] || e.button !== 0 || e.target.closest("button,input,select,a,label,textarea")) return;
       const r = el.getBoundingClientRect(), sx = e.clientX, sy = e.clientY; e.preventDefault();
+      document.body.classList.add("wb-drag"); delete el.dataset.snap;
       const move = ev => { el.style.left = Math.max(0, Math.min(r.left + ev.clientX - sx, innerWidth - 80)) + "px"; el.style.top = Math.max(0, Math.min(r.top + ev.clientY - sy, innerHeight - 40)) + "px"; };
-      const up = () => { removeEventListener("pointermove", move); removeEventListener("pointerup", up); saveGeo(k); };
+      const up = () => { removeEventListener("pointermove", move); removeEventListener("pointerup", up); document.body.classList.remove("wb-drag"); saveGeo(k); };
       addEventListener("pointermove", move); addEventListener("pointerup", up); });
     if (FLOAT[k]) floatPane(k, true); });
   layout();
@@ -2279,10 +2356,10 @@ function drawFwins() {
   document.querySelectorAll(".fwin").forEach(el => { if (!FWINS.some(w => w.k === el.dataset.k)) el.remove(); });
   FWINS.forEach(w => { const v = fwView(w.k); let el = document.querySelector(`.fwin[data-k="${CSS.escape(w.k)}"]`);
     if (!el) { el = document.createElement("div"); el.className = "fwin float-win"; el.dataset.k = w.k; el.setAttribute("role", "dialog");
-      el.innerHTML = `<div class="fw-hd"><span class="fw-drag" aria-hidden="true">⠿</span><span class="fw-title-disp"></span><button type="button" data-a="here" title="Show this folder in the Files list">Open in Files</button><button type="button" class="fw-x" aria-label="Close this window" title="Close">✕</button></div><div class="fw-tools"><label class="chk"><input type="checkbox" data-a="all" aria-label="Tick all in this folder"> All</label><span class="fw-n"></span><span style="flex:1"></span><button type="button" data-a="ren" title="Rename the ticked file">✎ Rename</button><button type="button" data-a="mov" title="Move the ticked files to any folder">⇄ Move</button><button type="button" data-a="del" title="Delete the ticked files">🗑 Delete</button></div><div class="fw-body"><div class="rows"></div></div>`;
+      el.innerHTML = `<div class="fw-hd"><span class="fw-drag" aria-hidden="true">⠿</span><span class="fw-title-disp"></span>${WB_HTML}<button type="button" data-a="here" title="Show this folder in the Files list">Open in Files</button><button type="button" class="fw-x" aria-label="Close this window" title="Close">✕</button></div><div class="fw-tools"><label class="chk"><input type="checkbox" data-a="all" aria-label="Tick all in this folder"> All</label><span class="fw-n"></span><span style="flex:1"></span><button type="button" data-a="ren" title="Rename the ticked file">✎ Rename</button><button type="button" data-a="mov" title="Move the ticked files to any folder">⇄ Move</button><button type="button" data-a="del" title="Delete the ticked files">🗑 Delete</button></div><div class="fw-body"><div class="rows"></div></div>`;
       const geo = () => { const r = el.getBoundingClientRect(); Object.assign(w, { x: Math.round(r.left), y: Math.round(r.top), w: Math.round(r.width), h: Math.round(r.height) }); saveFw(); };
       Object.assign(el.style, { left: Math.max(0, Math.min(w.x, innerWidth - 120)) + "px", top: Math.max(0, Math.min(w.y, innerHeight - 60)) + "px", width: w.w + "px", height: w.h + "px", zIndex: ++zTopP });
-      document.body.append(el); grips(el, null, geo);
+      document.body.append(el); grips(el, null, geo); wbWire(el, geo);
       el.addEventListener("pointerdown", () => { el.style.zIndex = ++zTopP; }, { capture: true });
       const hd = el.querySelector(".fw-hd");
       hd.addEventListener("pointerdown", e => { if (e.button !== 0 || e.target.closest("button")) return; e.preventDefault(); const r = el.getBoundingClientRect(), sx = e.clientX, sy = e.clientY;
