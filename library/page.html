@@ -97,9 +97,10 @@ else {
   let db; try { db = fs.initializeFirestore(app, { localCache: fs.persistentLocalCache({ tabManager: fs.persistentMultipleTabManager() }) }); } catch { db = fs.getFirestore(app); } // pages kept offline open without the internet (owner, 14 Nov)
   let shown = false, tried = false;
   // a page an Architect has just sent waits in the Inbox until My view takes it in; the owner can open it at once (BWN J27, 8 Nov)
-  const fromInbox = async () => { try {
+  const fromInbox = async (haveAt) => { try {
     const q = await fs.getDocs(fs.query(fs.collection(db, "inbox"), fs.where("pkey", "==", key), fs.limit(5)));
-    const x = q.docs.map(v => v.data()).find(v => typeof v.page === "string" && v.page); if (!x) return null;
+    const x = q.docs.map(v => v.data()).filter(v => typeof v.page === "string" && v.page).sort((a, b) => String(b.at || "").localeCompare(String(a.at || "")))[0]; if (!x) return null;
+    if (haveAt && String(x.at || "") <= String(haveAt)) return null;
     const d = { name: String(x.name || ""), html: x.page, at: String(x.at || new Date().toISOString()), by: String(x.by || "") };
     await fs.setDoc(fs.doc(db, "pages", key), d, { merge: true });
     await fs.setDoc(fs.doc(db, "postPrivate", "pagelist"), { kind: "pagelist", keys: fs.arrayUnion(key) }, { merge: true }).catch(() => { });
@@ -108,7 +109,8 @@ else {
     try { const s = await fs.getDoc(fs.doc(db, "pages", key));
       const OWN = ["basheerawanazeera@gmail.com", "smahk9@gmail.com"];
       let d = s.exists() ? s.data() : null;
-      if (!d && auth.currentUser && OWN.includes((auth.currentUser.email || "").toLowerCase())) d = await fromInbox();
+      // the owner always sees the newest copy: a newer page waiting in the Inbox replaces the stored one at once (owner, 16 Nov)
+      if (auth.currentUser && OWN.includes((auth.currentUser.email || "").toLowerCase())) { const nd = await fromInbox(d && d.at); if (nd) d = nd; }
       if (!d) return say("Page not found", "This page is not in the Library (it may have been removed)."), true;
       canSave = !!((d.live || /window\.__BWN_LIVE\s*=\s*true/.test(d.html || "")) && auth.currentUser && OWN.includes((auth.currentUser.email || "").toLowerCase()));
       onDb = ({ col, id, data }, fail) => { if (!canSave || !/^[A-Za-z0-9_-]{1,120}$/.test(col + id)) return fail("this copy cannot save");
