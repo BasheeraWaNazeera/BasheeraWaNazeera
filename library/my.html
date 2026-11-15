@@ -480,7 +480,7 @@ video.vrec{width:100%;max-height:60vh;border-radius:10px;background:#000;margin:
 <body>
 <div class="app">
   <nav class="menubar" aria-label="Menu" id="menubar">
-    <span class="brand">🗄 BwN Database<small class="appver" id="appver" title="Version · date · time published (Sydney)">v01.05 - 16.11.2026 - 08.33AM</small></span>
+    <span class="brand">🗄 BwN Database<small class="appver" id="appver" title="Version · date · time published (Sydney)">v01.06 - 16.11.2026 - 08.47AM</small></span>
     <span class="seg" role="group" aria-label="View"><a class="segb" href="./" id="toPub">Visitor view</a><span class="segb on" aria-current="page">My view</span></span>
     <span class="menus" id="menus"></span>
     <span class="mdiv" id="mdiv" aria-hidden="true"></span>
@@ -796,6 +796,21 @@ async function realApi() {
     async delPost(id) { await fs.deleteDoc(fs.doc(db, "posts", id)); },
     async saveLF(id, f) { await fs.setDoc(fs.doc(db, "folders", id), f, { merge: true }); },
     async getPage(id) { const s = await fs.getDoc(fs.doc(db, "pages", id)); return s.exists() ? s.data() : null; }, // read once = kept in this device's copy of the Database
+    // Drive copies of Library pages (owner, 16 Nov): To BwN › Library versions › <page>, newest 3 kept
+    async verFolder(pkey, name) {
+      const sub = async (parent, k, v, nm) => { const q = encodeURIComponent(`'${parent}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false and appProperties has { key='${k}' and value='${v}' }`);
+        const j = await (await gfetch(`${DRIVE}/files?q=${q}&fields=files(id)&spaces=drive`)).json(); if (j.files?.length) return j.files[0].id;
+        return (await (await gfetch(`${DRIVE}/files?fields=id`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: nm, mimeType: "application/vnd.google-apps.folder", parents: [parent], appProperties: { [k]: v } }) })).json()).id; };
+      const root = await sub(await folder(), "bwnRoot", "versions", "Library versions");
+      return sub(root, "bwnPage", pkey, name); },
+    async uploadTo(parent, blob, name, props) {
+      const meta = { name, parents: [parent], appProperties: props, mimeType: blob.type || undefined };
+      const r = await gfetch(`${UP}/files?uploadType=resumable&fields=${F}`, { method: "POST", headers: { "Content-Type": "application/json; charset=UTF-8", "X-Upload-Content-Type": blob.type || "application/octet-stream" }, body: JSON.stringify(meta) });
+      const u = await fetch(r.headers.get("Location"), { method: "PUT", headers: { "Content-Type": blob.type || "application/octet-stream" }, body: blob });
+      if (!u.ok) throw new Error("Upload to Drive failed (" + u.status + ")"); return u.json(); },
+    async listIn(parent) { const q = encodeURIComponent(`'${parent}' in parents and trashed=false and mimeType!='application/vnd.google-apps.folder'`);
+      return ((await (await gfetch(`${DRIVE}/files?q=${q}&orderBy=createdTime desc&fields=files(id,name,createdTime)&spaces=drive&pageSize=50`)).json()).files) || []; },
+    async trash(id) { await patch(id, { trashed: true }); },
     async delLF(id) { await fs.deleteDoc(fs.doc(db, "folders", id)); },
     async inbox(n = 8, after = "") { const q = after ? fs.query(fs.collection(db, "inbox"), fs.orderBy(fs.documentId()), fs.startAfter(after), fs.limit(n)) : fs.query(fs.collection(db, "inbox"), fs.orderBy(fs.documentId()), fs.limit(n));
       const s = await fs.getDocs(q); return s.docs.map(d => ({ id: d.id, ...d.data() })); },
@@ -835,7 +850,7 @@ function demoApi() {
     async wfFolders() { return structuredClone(wf); }, async saveWf(list) { wf = structuredClone(list); },
     async inbox(n = 8, after = "") { return structuredClone(box.filter(x => !after || x.id > after).sort((a, b) => a.id < b.id ? -1 : 1).slice(0, n)); }, async inboxDone(id) { box = box.filter(x => x.id !== id); },
     async showPublic(id, doc) { const i = posts.findIndex(p => p.id === id); if (i >= 0) posts.splice(i, 1); if (doc) posts.push({ id, ...doc }); },
-    async savePage() { }, async delPage() { }, async pagePub() { }, async pageKeys() { return []; }, async addPageKeys() { },
+    async savePage() { }, async delPage() { }, async verFolder() { return "demo"; }, async uploadTo() { return {}; }, async listIn() { return []; }, async trash() { }, async pagePub() { }, async pageKeys() { return []; }, async addPageKeys() { },
   };
 }
 // Google Picker: ticked files become visible to this page (drive.file). A close button guards against Google error pages.
@@ -890,12 +905,39 @@ function setupNote(e) {
 
 function postAt(p) { const t = p.updated?.toDate ? p.updated.toDate() : new Date(p.date || 0); return isNaN(t) ? "" : t.toISOString(); }
 const STATUS = { pub: "Published", draft: "Draft", priv: "Private" };
+// ---------- Drive copies: the latest 3 versions of ticked Library pages (owner, 16 Nov) ----------
+let driveBusy = false, driveWarned = false, SHIMTXT = null;
+async function bwnShim() { if (SHIMTXT !== null) return SHIMTXT;
+  try { const t = await (await fetch("./page.html", { cache: "no-cache" })).text(); const a = t.indexOf("const SHIM = `"), b = t.indexOf("`;", a + 14);
+    SHIMTXT = a >= 0 && b > a ? new Function("return `" + t.slice(a + 14, b) + "`")() : ""; } catch { SHIMTXT = ""; }
+  return SHIMTXT; }
+const hash36 = str => { let h = 0; for (let i = 0; i < str.length; i++) h = (h * 31 + str.charCodeAt(i)) >>> 0; return h.toString(36); };
+async function driveKeepRun(only) {
+  if (driveBusy || !ownerOk || DEMO) return; driveBusy = true;
+  try { const cs = ITEMS.filter(x => x.type === "card" && x.drive && x.pkey && (!only || only.includes(x.id)));
+    for (const c of cs) {
+      const pk = cleanId(c.pkey), pg = await api.getPage(pk).catch(() => null); if (!pg || !pg.html) continue;
+      const dbj = JSON.stringify(pg.db || {}), stamp = String(pg.at || "") + ":" + hash36(pg.html.length + "|" + dbj);
+      if (c.driveStamp === stamp) continue;
+      const shim = await bwnShim(), tag = "<script>window.__BWN_DB=" + dbj.replace(/</g, "\\u003c") + ";window.__BWN_SAVE=false;" + shim + "<\/script>";
+      const html = /<head[^>]*>/i.test(pg.html) ? pg.html.replace(/<head[^>]*>/i, m => m + tag) : tag + pg.html;
+      const d = new Date(), p2 = n => String(n).padStart(2, "0"), st = `${d.getFullYear()}-${p2(d.getMonth() + 1)}-${p2(d.getDate())} ${p2(d.getHours())}.${p2(d.getMinutes())}`;
+      const nm = String(c.title || pk).replace(/[\\/:*?"<>|]/g, "-").slice(0, 120);
+      const fid = await api.verFolder(pk, nm);
+      await api.uploadTo(fid, new Blob([html], { type: "text/html" }), `${nm} - ${st}.html`, { bwnPage: pk.slice(0, 60) });
+      const files = await api.listIn(fid); for (const f of files.slice(3)) await api.trash(f.id).catch(() => { }); // older copies go to the Drive Bin (restorable 30 days)
+      const upd = { driveStamp: stamp, driveFolder: fid, driveN: Math.min(3, files.length), driveLast: d.toISOString() };
+      await api.saveCard(c.id, upd); Object.assign(c, upd);
+    }
+  } catch (e) { if (e.code === "token") { if (!driveWarned) { driveWarned = true; toast("Drive copies are waiting: press Reconnect Drive.", 6000); } } else console.warn("Drive copies:", e); }
+  finally { driveBusy = false; } }
 async function refresh() {
   if (!api) return setTimeout(refresh, 100);
   try { await takeInbox();
     const [recs, ps, lf, cs, wf, mk] = await Promise.all([api.list(), api.posts(), api.folders().catch(() => []), api.cards().catch(() => []), api.wfFolders().catch(() => []), api.marks().catch(() => ({}))]); LF = lf; setWF(wf); MK = mk || {};
     if (await autoFile(ps)) return refresh();
     ITEMS = MMJV().concat(recs.map(r => ({ ...r, type: "rec" }))).concat(ps.filter(p => p.kind !== "LINK").map(p => ({ ...p, type: "post", at: p.at || postAt(p) })), cs.map(c => ({ ...c, type: "card", title: c.name || "Untitled" })));
+    setTimeout(() => driveKeepRun(), 2500); // ticked pages: keep their newest 3 versions in Drive
   } catch (e) { $("rows").innerHTML = `<p class="empty">Could not load: ${esc(e.message)}</p>`; return; }
   ITEMS.sort((a, b) => (b.at || "").localeCompare(a.at || ""));
   [...sel].forEach(id => { if (!ITEMS.some(r => r.id === id)) sel.delete(id); });
@@ -1764,6 +1806,7 @@ function drawCard(c) {
     <section class="np" id="nEd"><input class="np-ti" id="nTitle" value="${esc(c.title)}" aria-label="Title">${editorHTML("c" + c.id, c.html || html2(c.what))}</section>
     ${c.items?.length ? `<div class="citems"><h3 class="pnote">Items (${c.items.length})</h3>${c.items.map(x => `<div><b>${esc(x.n ?? "")}${x.topic ? " · " + esc(x.topic) : ""}</b><br>${esc(x.q || "")}${x.a ? `<br><span class="pnote">${esc(x.a)}</span>` : ""}${x.note ? `<br><i class="pnote">${esc(x.note)}</i>` : ""}</div>`).join("")}</div>` : ""}
     <label class="chk"><input type="checkbox" id="cShow"${c.show ? " checked" : ""}${c.mmj || c.pkey ? "" : " disabled"}> Show to visitors: ${c.pkey ? "anyone with its page link can open it" + (c.mmj ? ", and its link shows under its Mapping My Journey folder" : "") : "its link under its Mapping My Journey folder" + (c.mmj ? "" : " (choose a Map folder first)")}.</label>
+    ${c.pkey ? `<label class="chk"><input type="checkbox" id="cDrive"${c.drive ? " checked" : ""}> 💾 Keep the latest 3 versions in Drive (To BwN › Library versions)${c.driveN ? ` · ${c.driveN} kept, newest ${esc(when(c.driveLast))}` : ""}${c.driveFolder ? ` · <a href="https://drive.google.com/drive/folders/${esc(c.driveFolder)}" target="_blank" rel="noopener">↗ open folder</a>` : ""}</label>` : ""}
     ${c.pkey ? `<p class="pnote">📄 This page is kept in your Library, outside Claude${c.show ? " (public)" : " (private: only you, signed in)"}.${c.orig ? ` Old Claude copy: <a href="${esc(c.orig)}" target="_blank" rel="noopener">↗ open</a>.` : ""}</p>` : ""}`;
   const save = (p, m, redraw) => cardSave(c, p, m).then(() => { if (redraw) { draw(); showNote(); } }).catch(setupNote);
   wireEditor($("nEd"), "c" + c.id, async html => { await cardSave(c, { html }); });
@@ -1775,6 +1818,7 @@ function drawCard(c) {
   $("cVer").onchange = e => save({ ver: e.target.value.trim() }, "Version saved.");
   $("cProj").onchange = e => save({ projects: e.target.value.split(",").map(x => x.trim()).filter(Boolean) }, "Projects saved.", true);
   $("cTop").onchange = e => save({ topics: e.target.value.split(",").map(x => x.trim()).filter(Boolean) }, "Topics saved.", true);
+  if ($("cDrive")) $("cDrive").onchange = e => { const on = e.target.checked; save({ drive: on }, on ? "Drive copies on: the latest 3 versions are kept in To BwN › Library versions." : "Drive copies off (the copies already in Drive stay).", true).then(() => { if (on) driveKeepRun([c.id]); }); };
   $("cShow").onchange = e => save({ show: e.target.checked }, e.target.checked ? (c.pkey ? "Public: anyone with the page link can open it." : "Visitors now see this link under its folder.") : "Hidden from visitors.", true);
   N.querySelector(".chips2 [data-dot]").onclick = () => cycleCard(c.id);
   $("nFolder").onclick = () => openMap("Choose the Map folder for “" + c.title + "”", c.title + " " + (c.what || ""), c.mmj, async f => { try { await moveTo([c], f); toast("Filed in " + f.name + "."); } catch (e) { setupNote(e); } refresh(); });
