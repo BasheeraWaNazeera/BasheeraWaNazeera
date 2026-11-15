@@ -110,7 +110,7 @@ else {
       const OWN = ["basheerawanazeera@gmail.com", "smahk9@gmail.com"];
       let d = s.exists() ? s.data() : null;
       // the owner always sees the newest copy: a newer page waiting in the Inbox replaces the stored one at once (owner, 16 Nov)
-      if (auth.currentUser && OWN.includes((auth.currentUser.email || "").toLowerCase())) { const nd = await fromInbox(d && d.at); if (nd) d = nd; }
+      if (auth.currentUser && OWN.includes((auth.currentUser.email || "").toLowerCase())) { const nd = await fromInbox(d && d.at); if (nd) { const s2 = await fs.getDoc(fs.doc(db, "pages", key)).catch(() => null); d = s2 && s2.exists() ? s2.data() : { ...nd, db: (d && d.db) || {} }; } } // keep the page's saved data (db) with the new copy (owner, 16 Nov)
       if (!d) return say("Page not found", "This page is not in the Library (it may have been removed)."), true;
       canSave = !!((d.live || /window\.__BWN_LIVE\s*=\s*true/.test(d.html || "")) && auth.currentUser && OWN.includes((auth.currentUser.email || "").toLowerCase()));
       onDb = ({ col, id, data }, fail) => { if (!canSave || !/^[A-Za-z0-9_-]{1,120}$/.test(col + id)) return fail("this copy cannot save");
