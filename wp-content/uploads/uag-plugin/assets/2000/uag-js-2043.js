@@ -24,7 +24,7 @@ if ( social_url == "mailto:?body=" ) {
 }
 var request_url = "";
 if ( social_url.indexOf("/pin/create/link/?url=") !== -1 ) {
-	request_url = social_url + encodeURIComponent( window.location.href ) + "&media=" + 'https://i0.wp.com/basheerawanazeera.com/wp-content/uploads/2019/08/789fb-insects4.jpg?fit=486%2C340&#038;ssl=1';
+	request_url = social_url + encodeURIComponent( window.location.href ) + "&media=" + 'https://i0.wp.com/basheerawanazeera.com/wp-content/uploads/2019/07/5399a-hakeem.jpg?fit=778%2C682&#038;ssl=1';
 } else {
 	request_url = social_url + encodeURIComponent( window.location.href );
 }
@@ -61,7 +61,7 @@ if ( social_url == "mailto:?body=" ) {
 }
 var request_url = "";
 if ( social_url.indexOf("/pin/create/link/?url=") !== -1 ) {
-	request_url = social_url + encodeURIComponent( window.location.href ) + "&media=" + 'https://i0.wp.com/basheerawanazeera.com/wp-content/uploads/2019/08/789fb-insects4.jpg?fit=486%2C340&#038;ssl=1';
+	request_url = social_url + encodeURIComponent( window.location.href ) + "&media=" + 'https://i0.wp.com/basheerawanazeera.com/wp-content/uploads/2019/07/5399a-hakeem.jpg?fit=778%2C682&#038;ssl=1';
 } else {
 	request_url = social_url + encodeURIComponent( window.location.href );
 }

@@ -24,7 +24,7 @@ if ( social_url == "mailto:?body=" ) {
 }
 var request_url = "";
 if ( social_url.indexOf("/pin/create/link/?url=") !== -1 ) {
-	request_url = social_url + encodeURIComponent( window.location.href ) + "&media=" + 'https://i0.wp.com/basheerawanazeera.com/wp-content/uploads/2019/05/e7ae8-sandcastle2.jpg?fit=820%2C547&#038;ssl=1';
+	request_url = social_url + encodeURIComponent( window.location.href ) + "&media=" + 'https://basheerawanazeera.com/wp-includes/images/media/default.svg';
 } else {
 	request_url = social_url + encodeURIComponent( window.location.href );
 }
@@ -61,7 +61,7 @@ if ( social_url == "mailto:?body=" ) {
 }
 var request_url = "";
 if ( social_url.indexOf("/pin/create/link/?url=") !== -1 ) {
-	request_url = social_url + encodeURIComponent( window.location.href ) + "&media=" + 'https://i0.wp.com/basheerawanazeera.com/wp-content/uploads/2019/05/e7ae8-sandcastle2.jpg?fit=820%2C547&#038;ssl=1';
+	request_url = social_url + encodeURIComponent( window.location.href ) + "&media=" + 'https://basheerawanazeera.com/wp-includes/images/media/default.svg';
 } else {
 	request_url = social_url + encodeURIComponent( window.location.href );
 }

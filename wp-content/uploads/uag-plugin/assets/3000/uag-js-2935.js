@@ -24,7 +24,7 @@ if ( social_url == "mailto:?body=" ) {
 }
 var request_url = "";
 if ( social_url.indexOf("/pin/create/link/?url=") !== -1 ) {
-	request_url = social_url + encodeURIComponent( window.location.href ) + "&media=" + 'https://i0.wp.com/basheerawanazeera.com/wp-content/uploads/2019/02/3f9b6-slave2-1.jpg?fit=820%2C545&#038;ssl=1';
+	request_url = social_url + encodeURIComponent( window.location.href ) + "&media=" + '';
 } else {
 	request_url = social_url + encodeURIComponent( window.location.href );
 }
@@ -61,7 +61,7 @@ if ( social_url == "mailto:?body=" ) {
 }
 var request_url = "";
 if ( social_url.indexOf("/pin/create/link/?url=") !== -1 ) {
-	request_url = social_url + encodeURIComponent( window.location.href ) + "&media=" + 'https://i0.wp.com/basheerawanazeera.com/wp-content/uploads/2019/02/3f9b6-slave2-1.jpg?fit=820%2C545&#038;ssl=1';
+	request_url = social_url + encodeURIComponent( window.location.href ) + "&media=" + '';
 } else {
 	request_url = social_url + encodeURIComponent( window.location.href );
 }

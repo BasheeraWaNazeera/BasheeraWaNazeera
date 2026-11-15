@@ -24,7 +24,7 @@ if ( social_url == "mailto:?body=" ) {
 }
 var request_url = "";
 if ( social_url.indexOf("/pin/create/link/?url=") !== -1 ) {
-	request_url = social_url + encodeURIComponent( window.location.href ) + "&media=" + 'https://i0.wp.com/basheerawanazeera.com/wp-content/uploads/2019/03/3f664-cropped-brains-2.png?fit=789%2C789&#038;ssl=1';
+	request_url = social_url + encodeURIComponent( window.location.href ) + "&media=" + 'https://i0.wp.com/basheerawanazeera.com/wp-content/uploads/2019/07/dabc7-dna-2.jpg?fit=820%2C615&#038;ssl=1';
 } else {
 	request_url = social_url + encodeURIComponent( window.location.href );
 }
@@ -61,7 +61,7 @@ if ( social_url == "mailto:?body=" ) {
 }
 var request_url = "";
 if ( social_url.indexOf("/pin/create/link/?url=") !== -1 ) {
-	request_url = social_url + encodeURIComponent( window.location.href ) + "&media=" + 'https://i0.wp.com/basheerawanazeera.com/wp-content/uploads/2019/03/3f664-cropped-brains-2.png?fit=789%2C789&#038;ssl=1';
+	request_url = social_url + encodeURIComponent( window.location.href ) + "&media=" + 'https://i0.wp.com/basheerawanazeera.com/wp-content/uploads/2019/07/dabc7-dna-2.jpg?fit=820%2C615&#038;ssl=1';
 } else {
 	request_url = social_url + encodeURIComponent( window.location.href );
 }

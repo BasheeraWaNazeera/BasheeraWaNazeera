@@ -24,7 +24,7 @@ if ( social_url == "mailto:?body=" ) {
 }
 var request_url = "";
 if ( social_url.indexOf("/pin/create/link/?url=") !== -1 ) {
-	request_url = social_url + encodeURIComponent( window.location.href ) + "&media=" + 'https://i0.wp.com/basheerawanazeera.com/wp-content/uploads/2019/08/b7946-light4.jpg?fit=820%2C461&#038;ssl=1';
+	request_url = social_url + encodeURIComponent( window.location.href ) + "&media=" + 'https://i0.wp.com/basheerawanazeera.com/wp-content/uploads/2019/10/facc6-marriage-certificate.jpg?fit=600%2C338&#038;ssl=1';
 } else {
 	request_url = social_url + encodeURIComponent( window.location.href );
 }
@@ -61,7 +61,7 @@ if ( social_url == "mailto:?body=" ) {
 }
 var request_url = "";
 if ( social_url.indexOf("/pin/create/link/?url=") !== -1 ) {
-	request_url = social_url + encodeURIComponent( window.location.href ) + "&media=" + 'https://i0.wp.com/basheerawanazeera.com/wp-content/uploads/2019/08/b7946-light4.jpg?fit=820%2C461&#038;ssl=1';
+	request_url = social_url + encodeURIComponent( window.location.href ) + "&media=" + 'https://i0.wp.com/basheerawanazeera.com/wp-content/uploads/2019/10/facc6-marriage-certificate.jpg?fit=600%2C338&#038;ssl=1';
 } else {
 	request_url = social_url + encodeURIComponent( window.location.href );
 }
