@@ -89,10 +89,12 @@ function show(d) {
     if (e.data.bwn === "publish" && onPub) onPub(e.data.html, err => f.contentWindow.postMessage({ bwn: "published", id: e.data.id, err: err || "" }, "*")); });
 }
 
+if ("serviceWorker" in navigator && location.protocol === "https:") navigator.serviceWorker.register("./sw.js").catch(() => { });
 if (!key) say("No page chosen", "Open a page from its card in the Video Library.");
 else {
   const [{ initializeApp }, fs, au] = await Promise.all([import(FB + "firebase-app.js"), import(FB + "firebase-firestore.js"), import(FB + "firebase-auth.js")]);
-  const app = initializeApp(firebaseConfig), db = fs.getFirestore(app), auth = au.getAuth(app);
+  const app = initializeApp(firebaseConfig), auth = au.getAuth(app);
+  let db; try { db = fs.initializeFirestore(app, { localCache: fs.persistentLocalCache({ tabManager: fs.persistentMultipleTabManager() }) }); } catch { db = fs.getFirestore(app); } // pages kept offline open without the internet (owner, 14 Nov)
   let shown = false, tried = false;
   // a page an Architect has just sent waits in the Inbox until My view takes it in; the owner can open it at once (BWN J27, 8 Nov)
   const fromInbox = async () => { try {
@@ -125,7 +127,7 @@ else {
     if (!u) say("This page is private", "Only the owner can open it. Sign in with the owner's Google account.", `<button id="si" type="button">Sign in with Google</button>`);
     else say("This page is private", `${esc(u.email)} cannot open it. Sign in with the owner's account.`, `<button id="si" type="button">Use another account</button>`);
     const b = document.getElementById("si");
-    if (b) b.onclick = async () => { try { await au.signInWithPopup(auth, new au.GoogleAuthProvider()); } catch (e) { say("Sign-in did not finish", esc(e.message)); } };
+    if (b) b.onclick = async () => { try { if (auth.currentUser) await au.signOut(auth); const gp = new au.GoogleAuthProvider(); gp.setCustomParameters({ prompt: "select_account" }); await au.signInWithPopup(auth, gp); } catch (e) { say("Sign-in did not finish", esc(e.message)); } };
     tried = true;
   });
 }
