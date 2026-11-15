@@ -35,7 +35,10 @@ button:focus-visible,select:focus-visible,input:focus-visible,textarea:focus-vis
 /* menu bar */
 .menubar{display:flex;align-items:center;gap:2px;padding:4px max(10px,env(safe-area-inset-left,0px));background:var(--panel);border-bottom:1px solid var(--line);flex-wrap:wrap;position:relative;z-index:1000}
 .brand{font-family:var(--f-display);font-size:1.15rem;margin-right:6px;white-space:nowrap}
-.brand{display:inline-flex;flex-direction:column;line-height:1.1}.appver{font-family:var(--f-ui,system-ui);font-size:.6rem;opacity:.75;letter-spacing:.02em}
+.brand{display:inline-flex;flex-direction:row;align-items:center;gap:8px;line-height:1.05;background:none;border:0;padding:3px 8px 3px 4px;border-radius:10px;cursor:pointer;color:inherit;text-align:left;font-size:1.27rem}
+.brand:hover{background:rgba(255,255,255,.08)}.brand:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+.brand .bicon{font-size:1.25em;line-height:1}.brand .btxt{display:flex;flex-direction:column;align-items:flex-start}.brand .bname{letter-spacing:.01em}
+.appver{font-family:var(--f-ui,system-ui);font-size:.5em;opacity:.78;letter-spacing:.03em;margin-top:2px;white-space:nowrap}
 .seg{display:inline-flex;border:1px solid var(--line);border-radius:999px;padding:2px;margin-right:8px;background:var(--bg)}
 .segb{font-size:.82rem;padding:3px 11px;border-radius:999px;color:var(--muted);text-decoration:none;white-space:nowrap}
 .segb.on{background:var(--accent);color:var(--panel)}
@@ -436,7 +439,7 @@ video.vrec{width:100%;max-height:60vh;border-radius:10px;background:#000;margin:
 @media (max-width:999.98px){
   /* phone and tablet (owner, 4 Nov): row 1 name · view · account; row 2 the menus; row 3 record, upload, layout, + Add; row 4 search */
   .mdiv{display:none}
-  .menubar .brand{order:1;font-size:1rem;margin-right:2px}.menubar>.seg{order:2;margin-right:0}.menubar>.seg .segb{padding:3px 8px;font-size:.76rem}
+  .menubar .brand{order:1;font-size:1.1rem;margin-right:2px}.menubar>.seg{order:2;margin-right:0}.menubar>.seg .segb{padding:3px 8px;font-size:.76rem}
   .menubar .who{gap:4px}.menubar .acct,.menubar .owl{width:28px;height:28px}
   .who{margin-left:auto;order:3}
   .menubar .menus{order:4;flex-basis:100%;display:flex;justify-content:space-between}
@@ -473,6 +476,9 @@ video.vrec{width:100%;max-height:60vh;border-radius:10px;background:#000;margin:
 .row.frow{grid-template-columns:auto 1fr}.row.frow .fi{font-size:1.1rem;padding:0 4px}
 .backq{display:flex;gap:8px;align-items:center;margin:4px 0 8px;padding:6px 10px;border:1px dashed var(--line);border-radius:8px;background:var(--panel)}
 .backq .link{font-weight:600}
+.abar{margin-top:-2px}.abar .btn.on{background:var(--accent-soft);border-color:var(--accent);color:var(--accent);font-weight:600}
+.stsel select{font:inherit;font-size:.82rem;border:1px solid var(--line);border-radius:999px;padding:5px 10px;background:var(--bg);color:var(--ink);cursor:pointer}
+.rmk{font-size:.8rem;margin-left:4px}
 .offpill{position:fixed;left:50%;top:6px;transform:translateX(-50%);z-index:3000;background:#7a4b00;color:#fff;font:13px system-ui,sans-serif;padding:5px 12px;border-radius:999px;box-shadow:0 2px 8px rgba(0,0,0,.25)}
 .offmark{font-size:.8rem;margin-left:4px}
 </style>
@@ -480,7 +486,7 @@ video.vrec{width:100%;max-height:60vh;border-radius:10px;background:#000;margin:
 <body>
 <div class="app">
   <nav class="menubar" aria-label="Menu" id="menubar">
-    <span class="brand">🗄 BwN Database<small class="appver" id="appver" title="Version · date · time published (Sydney)">v01.06 - 16.11.2026 - 08.47AM</small></span>
+    <button class="brand" id="homeBrand" type="button" title="Home: All files, top"><span class="bicon" aria-hidden="true">🗄</span><span class="btxt"><span class="bname">BwN Database</span><small class="appver" id="appver" title="Version · date · time published (Sydney)">v01.07 - 16.11.2026 - 09.56AM</small></span></button>
     <span class="seg" role="group" aria-label="View"><a class="segb" href="./" id="toPub">Visitor view</a><span class="segb on" aria-current="page">My view</span></span>
     <span class="menus" id="menus"></span>
     <span class="mdiv" id="mdiv" aria-hidden="true"></span>
@@ -1755,7 +1761,7 @@ const TPL = t => ({ Demo: "Demos", MyData: "Databases", Report: "Reports", List:
 const metaLine = r => `<span class="mt">${r.type === "card" ? cdot(r) : `<span class="sdot ${stOf(r)}"></span>`}${STW[stOf(r)]}${projOf(r).map(p => `<span class="tg">${esc(p)}</span>`).join("")}<span class="tg">${esc(typeOf(r))}</span>${jobOf(r) ? `<span class="tg">${esc(jobOf(r))}</span>` : ""}${r.at ? `<span class="dt">${esc(when(r.at))}</span>` : ""}${r.show || r.vis || r.status === "pub" ? '<span class="dt">👁</span>' : ""}</span>`;
 function cardRow(r) {
   return `<div class="row${cur === r.id ? " on" : ""}" data-id="${esc(r.id)}" tabindex="0"><input type="checkbox" aria-label="Tick ${esc(r.title)}" ${sel.has(r.id) ? "checked" : ""}>
-    <span><span class="rt"><b>${ICONOF(r)} ${esc(r.title)}</b>${verOf(r) ? `<span class="tg">v${esc(verOf(r))}</span>` : ""}${r.new ? '<span class="newb">New</span>' : ""}</span>${r.what ? `<span class="snip">${esc(String(r.what).slice(0, 300))}</span>` : ""}${metaLine(r)}
+    <span><span class="rt"><b>${ICONOF(r)} ${esc(r.title)}</b>${verOf(r) ? `<span class="tg">v${esc(verOf(r))}</span>` : ""}${r.drive ? '<span class="rmk" title="Latest 3 versions kept in Drive">💾</span>' : ""}${isQuick(r) ? '<span class="rmk" title="In the ⭐ Quick menu">⭐</span>' : ""}${r.new ? '<span class="newb">New</span>' : ""}</span>${r.what ? `<span class="snip">${esc(String(r.what).slice(0, 300))}</span>` : ""}${metaLine(r)}
     ${pathLine(r)}</span></div>`;
 }
 function drawCards(list) {
@@ -1790,6 +1796,11 @@ function drawCard(c) {
       ${c.url ? `<a class="btn" href="${esc(openUrl(c))}" target="_blank" rel="noopener">↗ Open in its own window</a><button class="btn ghost" id="nView" type="button">View here</button>` : ""}
       ${offIdsOf2(c).length ? `<button class="btn ghost" id="nOff" type="button" title="Keep a copy on this device so it opens without the internet">${isOff(c) ? "✓ On this device" : "📥 Keep offline"}</button>` : ""}
       <button class="ib" id="nDel" type="button" title="Delete this card" aria-label="Delete this card">🗑</button></div>
+    <div class="nbar abar" aria-label="Actions for this file">
+      <button class="btn ghost" id="nMove" type="button" title="Move to any folder: Sections, WorkFlow, myStuff, Library or the Map">📁 Move to…</button>
+      <label class="stsel" title="Work in progress"><select id="nStat" aria-label="Status">${[["todo", "○ To do"], ["working", "◐ WiP"], ["done", "● Done"]].map(([v, l]) => `<option value="${v}"${(c.status || "todo") === v ? " selected" : ""}>${l}</option>`).join("")}</select></label>
+      ${c.pkey ? `<button class="btn ghost${c.drive ? " on" : ""}" id="nDrive" type="button" title="${c.drive ? "Its latest 3 versions are kept in Drive (To BwN › Library versions). Press to stop." : "Keep its latest 3 versions in Drive (To BwN › Library versions)"}">${c.drive ? (c.driveN ? `💾 In Drive ✓ ${c.driveN}` : "💾 Drive: on") : "💾 Save to Drive"}</button>${c.driveFolder ? `<a class="btn ghost" href="https://drive.google.com/drive/folders/${esc(c.driveFolder)}" target="_blank" rel="noopener" title="Open its Drive folder">↗ Drive folder</a>` : ""}` : ""}
+      <button class="btn ghost${isQuick(c) ? " on" : ""}" id="nQuick" type="button" title="Show it in the ⭐ Quick menu for one-click opening">${isQuick(c) ? "⭐ In Quick menu" : "☆ Add to Quick menu"}</button></div>
     ${onlyClaude(c) ? `<p class="pnote">This page is still only in Claude: it opens when you are signed in to claude.ai in this browser. The BwN Architect copies it into your Database so it opens anywhere.</p>` : ""}
     <div class="cview" id="cView" hidden></div>${cardMedia(c).map(m => playerHTML(m.u, m.label, { audio: m.audio })).join("")}
     <div class="mgrid">
@@ -1806,7 +1817,6 @@ function drawCard(c) {
     <section class="np" id="nEd"><input class="np-ti" id="nTitle" value="${esc(c.title)}" aria-label="Title">${editorHTML("c" + c.id, c.html || html2(c.what))}</section>
     ${c.items?.length ? `<div class="citems"><h3 class="pnote">Items (${c.items.length})</h3>${c.items.map(x => `<div><b>${esc(x.n ?? "")}${x.topic ? " · " + esc(x.topic) : ""}</b><br>${esc(x.q || "")}${x.a ? `<br><span class="pnote">${esc(x.a)}</span>` : ""}${x.note ? `<br><i class="pnote">${esc(x.note)}</i>` : ""}</div>`).join("")}</div>` : ""}
     <label class="chk"><input type="checkbox" id="cShow"${c.show ? " checked" : ""}${c.mmj || c.pkey ? "" : " disabled"}> Show to visitors: ${c.pkey ? "anyone with its page link can open it" + (c.mmj ? ", and its link shows under its Mapping My Journey folder" : "") : "its link under its Mapping My Journey folder" + (c.mmj ? "" : " (choose a Map folder first)")}.</label>
-    ${c.pkey ? `<label class="chk"><input type="checkbox" id="cDrive"${c.drive ? " checked" : ""}> 💾 Keep the latest 3 versions in Drive (To BwN › Library versions)${c.driveN ? ` · ${c.driveN} kept, newest ${esc(when(c.driveLast))}` : ""}${c.driveFolder ? ` · <a href="https://drive.google.com/drive/folders/${esc(c.driveFolder)}" target="_blank" rel="noopener">↗ open folder</a>` : ""}</label>` : ""}
     ${c.pkey ? `<p class="pnote">📄 This page is kept in your Library, outside Claude${c.show ? " (public)" : " (private: only you, signed in)"}.${c.orig ? ` Old Claude copy: <a href="${esc(c.orig)}" target="_blank" rel="noopener">↗ open</a>.` : ""}</p>` : ""}`;
   const save = (p, m, redraw) => cardSave(c, p, m).then(() => { if (redraw) { draw(); showNote(); } }).catch(setupNote);
   wireEditor($("nEd"), "c" + c.id, async html => { await cardSave(c, { html }); });
@@ -1818,7 +1828,10 @@ function drawCard(c) {
   $("cVer").onchange = e => save({ ver: e.target.value.trim() }, "Version saved.");
   $("cProj").onchange = e => save({ projects: e.target.value.split(",").map(x => x.trim()).filter(Boolean) }, "Projects saved.", true);
   $("cTop").onchange = e => save({ topics: e.target.value.split(",").map(x => x.trim()).filter(Boolean) }, "Topics saved.", true);
-  if ($("cDrive")) $("cDrive").onchange = e => { const on = e.target.checked; save({ drive: on }, on ? "Drive copies on: the latest 3 versions are kept in To BwN › Library versions." : "Drive copies off (the copies already in Drive stay).", true).then(() => { if (on) driveKeepRun([c.id]); }); };
+  $("nMove").onclick = () => { sel.clear(); sel.add(c.id); bulkMove(); };
+  $("nStat").onchange = e => save({ status: e.target.value }, "Status: " + e.target.selectedOptions[0].textContent + ".", true);
+  if ($("nDrive")) $("nDrive").onclick = () => { const on = !c.drive; save({ drive: on }, on ? "Drive copies on: the latest 3 versions are kept in To BwN › Library versions." : "Drive copies off (the copies already in Drive stay).", true).then(() => { if (on) driveKeepRun([c.id]); }); };
+  $("nQuick").onclick = () => { const on = !isQuick(c); save({ quick: on }, on ? "Added to the ⭐ Quick menu." : "Taken out of the ⭐ Quick menu.", true).then(buildMenus); };
   $("cShow").onchange = e => save({ show: e.target.checked }, e.target.checked ? (c.pkey ? "Public: anyone with the page link can open it." : "Visitors now see this link under its folder.") : "Hidden from visitors.", true);
   N.querySelector(".chips2 [data-dot]").onclick = () => cycleCard(c.id);
   $("nFolder").onclick = () => openMap("Choose the Map folder for “" + c.title + "”", c.title + " " + (c.what || ""), c.mmj, async f => { try { await moveTo([c], f); toast("Filed in " + f.name + "."); } catch (e) { setupNote(e); } refresh(); });
@@ -2130,8 +2143,24 @@ const MENUS = () => [
     ["All files", () => { view = "all"; draw(); tab("files"); }], ["Not yet filed", () => { view = "unfiled"; draw(); tab("files"); }], "-",
     ["Refresh the Map from Mapping My Journey", async () => { await loadTree(true); draw(); toast("The Map is up to date."); }], ["Dock all sections", () => { Object.keys(PANES).forEach(k => floatPane(k, false)); }], [(PATHV !== "tree" ? "✓ " : "") + "Folder paths in one line", () => setPathV("line")], [(PATHV === "tree" ? "✓ " : "") + "Folder paths as a tree", () => setPathV("tree")], ["Close all folder windows", () => { FWINS = []; saveFw(); drawFwins(); }, "", !FWINS.length], ["Reset section and window sizes", () => { try { ["bwnlib.geo", "viCols", "viGeo"].forEach(k => localStorage.removeItem(k)); } catch { } COLS = { ...COLS0 }; GEO = {}; Object.keys(PANES).forEach(k => floatPane(k, false)); layout(); toast("Sizes reset."); }]]],
   ["Share", [["Share links of ticked files", () => bulkShare(true), "", !sel.size], ["Stop sharing ticked files", () => bulkShare(false), "", !sel.size]]],
+  ["⭐ Quick", quickItems()],
+  ["🕘 Legacy", legacyItems()],
   ["Help", [["How it works · where files are kept", () => { draft = null; cur = null; draw(); showNote(); tab("note"); }, "?"]]],
 ];
+// ⭐ Quick: the files you open often (owner, 16 Nov). ⭐ on a card adds or removes it; Color Studio and Scholars start in it.
+const QUICK_DEF = /color studio|scholar/i;
+const isQuick = c => c.type === "card" && (c.quick === true || (c.quick == null && QUICK_DEF.test(c.title || "")));
+function quickItems() {
+  const qs = ITEMS.filter(isQuick).sort((a, b) => String(a.title).localeCompare(String(b.title)));
+  return qs.length ? qs.map(c => ["⭐ " + String(c.title).slice(0, 60), () => { const u = openUrl(c); if (u) window.open(u, "_blank", "noopener"); else { draft = null; cur = c.id; draw(); showNote(); tab("note"); } }])
+    .concat(["-", ["How to add: ☆ Add to Quick menu on a card", () => { }, "", true]]) : [["Nothing yet: press ☆ Add to Quick menu on a card", () => { }, "", true]];
+}
+// 🕘 Legacy: earlier versions of this Database, each opens in its own window with sample data only (owner, 16 Nov)
+let LEGACYV = [];
+fetch("./legacy/index.json", { cache: "no-cache" }).then(r => r.ok ? r.json() : []).then(j => { LEGACYV = Array.isArray(j) ? j : []; buildMenus(); }).catch(() => { });
+function legacyItems() {
+  return LEGACYV.length ? LEGACYV.map(v => ["Legacy " + v.ver + " - " + v.stamp, () => window.open("./legacy/" + v.file + "?demo", "_blank", "noopener")]) : [["No earlier versions yet", () => { }, "", true]];
+}
 let openMenu = null;
 function buildMenus() {
   const bar = $("menubar"), host = $("menus"); bar.querySelectorAll(".menu").forEach(m => m.remove());
@@ -2142,7 +2171,7 @@ function buildMenus() {
     const d = document.createElement("div"); d.className = "drop"; d.hidden = openMenu !== name; d.setAttribute("role", "menu");
     items.forEach(it => { if (it === "-") { d.append(document.createElement("hr")); return; }
       const [label, fn, key, off] = it; const x = document.createElement("button"); x.type = "button"; x.setAttribute("role", "menuitem");
-      x.innerHTML = `<span>${esc(label)}</span>${key ? `<kbd>${esc(key)}</kbd>` : ""}`; x.disabled = !!off || (!ownerOk && name !== "Help" && name !== "View");
+      x.innerHTML = `<span>${esc(label)}</span>${key ? `<kbd>${esc(key)}</kbd>` : ""}`; x.disabled = !!off || (!ownerOk && name !== "Help" && name !== "View" && name !== "🕘 Legacy");
       x.onclick = () => { openMenu = null; buildMenus(); fn(); }; d.append(x); });
     b.onclick = e => { e.stopPropagation(); openMenu = openMenu === name ? null : name; buildMenus(); if (openMenu) bar.querySelector(".drop:not([hidden]) button:not(:disabled)")?.focus(); };
     b.onmouseenter = () => { if (openMenu && openMenu !== name) { openMenu = name; buildMenus(); } };
@@ -2152,6 +2181,7 @@ function buildMenus() {
 document.addEventListener("click", e => { if (openMenu && !e.target.closest(".menu")) { openMenu = null; buildMenus(); }
   if (!$("fpop").hidden && !e.target.closest(".fpw")) fpopShow(false);
   if (!$("acctd").hidden && !e.target.closest(".acw")) { $("acctd").hidden = true; $("acct").setAttribute("aria-expanded", "false"); } });
+$("homeBrand").onclick = () => { openMenu = null; saveOpen(); FL.q = ""; LASTQ = ""; saveFL(); $("wq").value = ""; if ($("lq")) $("lq").value = ""; view = "all"; sel.clear(); draft = null; cur = null; draw(); showNote(); tab("files"); window.scrollTo({ top: 0, behavior: "smooth" }); };
 $("acct").onclick = e => { e.stopPropagation(); const o = $("acctd").hidden; $("acctd").hidden = !o; $("acct").setAttribute("aria-expanded", o); };
 document.addEventListener("click", e => { const d = $("nLinksDrop"); if (d && !d.hidden && !e.target.closest(".lmenu")) d.hidden = true; });
 document.addEventListener("keydown", e => {
