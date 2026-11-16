@@ -4,6 +4,13 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>BWN Video Library</title>
+<link rel="manifest" href="./manifest.webmanifest">
+<meta name="theme-color" content="#1f5c47">
+<link rel="icon" type="image/png" sizes="48x48" href="./icons/bwn-48.png">
+<link rel="apple-touch-icon" href="./icons/bwn-apple-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="BwN">
 <meta name="description" content="Basheera Wa Nazeera talks in Bangla and English: watch and listen.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Marcellus&family=Hind+Siliguri:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&family=Amiri&display=swap">
@@ -187,5 +194,7 @@ body.pop-on .main{display:block;min-height:40vh}
   <footer>Basheera Wa Nazeera · <a href="https://www.youtube.com/@BasheeraWaNazeera" target="_blank" rel="noopener">youtube.com/@BasheeraWaNazeera</a></footer>
 </div>
 <script type="module" src="app.js"></script>
+<script>if ("serviceWorker" in navigator && location.protocol === "https:") navigator.serviceWorker.register("./sw.js").catch(() => { });</script>
+<script src="./install.js" defer></script>
 </body>
 </html>

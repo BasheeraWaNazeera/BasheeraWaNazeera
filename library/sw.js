@@ -1,8 +1,8 @@
 // BwN Library: keeps the Library pages on this device so they open without the internet (owner, 14 Nov 2026, BWN J27).
 // Pages and scripts: the internet first, the copy on this device when offline. Firebase and font files: the copy first.
 // Files the owner keeps offline (📥) live in the "bwn-offline-v1" store and are served from there.
-const V = "bwn-shell-v1";
-const SHELL = ["./my.html", "./page.html", "./index.html", "./app.js", "./config.js", "./mmj.js", "./notepane.js", "./sample.js"];
+const V = "bwn-shell-v2";
+const SHELL = ["./my.html", "./page.html", "./index.html", "./app.js", "./config.js", "./mmj.js", "./notepane.js", "./sample.js", "./install.js", "./manifest.webmanifest", "./icons/bwn-192.png", "./icons/bwn-512.png"];
 self.addEventListener("install", e => { e.waitUntil(caches.open(V).then(c => c.addAll(SHELL)).catch(() => { })); self.skipWaiting(); });
 self.addEventListener("activate", e => { e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k.startsWith("bwn-shell-") && k !== V).map(k => caches.delete(k)))).then(() => self.clients.claim())); });
 self.addEventListener("fetch", e => {
