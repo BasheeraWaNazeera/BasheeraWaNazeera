@@ -56,6 +56,9 @@ a.segb:hover{color:var(--accent)}
 .drop button:hover,.drop button:focus-visible{background:var(--accent-soft)}
 .drop button:disabled{opacity:.4;cursor:default;background:none}
 .drop kbd{font-family:var(--f-mono);font-size:.74rem;color:var(--muted)}
+.drop.sites{width:min(380px,calc(100vw - 16px))}
+.drop.sites button{flex-direction:column;align-items:flex-start;gap:1px}
+.drop.sites kbd{white-space:normal;overflow-wrap:anywhere;font-size:.7rem}
 .drop hr{border:0;border-top:1px solid var(--line);margin:4px 2px}
 .who{margin-left:auto;display:flex;gap:8px;align-items:center;font-size:.82rem;color:var(--muted);flex-wrap:wrap;justify-content:flex-end}
 .btn{font-size:.88rem;border:1px solid var(--accent);background:var(--accent);color:var(--panel);padding:6px 13px;border-radius:999px;display:inline-flex;align-items:center;gap:6px;text-decoration:none;white-space:nowrap}
@@ -506,7 +509,7 @@ video.vrec{width:100%;max-height:60vh;border-radius:10px;background:#000;margin:
 <body>
 <div class="app">
   <nav class="menubar" aria-label="Menu" id="menubar">
-    <button class="brand" id="homeBrand" type="button" title="Home: All files, top"><span class="bicon" aria-hidden="true">🗄</span><span class="btxt"><span class="bname">BwN Database</span><small class="appver" id="appver" title="Version · date · time published (Sydney)">v01.09 - 16.11.2026 - 10.39AM</small></span></button>
+    <button class="brand" id="homeBrand" type="button" title="Home: All files, top"><span class="bicon" aria-hidden="true">🗄</span><span class="btxt"><span class="bname">BwN Database</span><small class="appver" id="appver" title="Version · date · time published (Sydney)">v01.10 - 16.11.2026 - 04.01PM</small></span></button>
     <span class="seg" role="group" aria-label="View"><a class="segb" href="./" id="toPub">Visitor view</a><span class="segb on" aria-current="page">My view</span></span>
     <span class="menus" id="menus"></span>
     <span class="mdiv" id="mdiv" aria-hidden="true"></span>
@@ -1977,7 +1980,7 @@ function helpHTML() {
     <li><b>🗂 WorkFlow · private</b> (top of the Map): your work cards (lists, demos, reports, databases), one folder per Architect and, inside MSA, one per Lead (QuranRevival, Hadith, Dua, Health). Each Architect’s cards land straight in its own folder; only a card that names no known folder waits in <b>🆕 Inbox</b> with a New mark. Drag a card onto any folder to file it; + Folder, Rename and Move are under “All files” when a WorkFlow folder is open. Tap a card’s dot to go todo → working → done.</li>
     <li><b>Find bar</b> (in the top bar): search, filters by Topic · Subject · Project · Type with counts, Show all, Group and Sort; this device remembers them. <b>▦ Cards</b> shows everything as cards; <b>▥ Notebook</b> brings back the three sections. <b>+ Add item</b> adds a card (a file goes to your Drive folder “To BwN”).</li>
     <li><b>Note</b> (right): ▶ Play, the folder and Choose folder, 🔗 Links (Drive files, share link) and 🗑 on one bar; below it the notes and transcript, which save by itself.</li>
-    <li><b>Sizes:</b> drag the thin bars between the sections to make one wider. <b>⧉</b> on a section’s header pops it out as its own window: drag it by its header, resize it from any side or corner; <b>⇲</b> docks it back (View → Dock all sections). Every pop-up window has the same buttons on its title bar: <b>▾</b> folds it to its title bar, <b>◧ ◨</b> snap it to the left or right half, <b>▣</b> fills the page (again: back to its size), <b>⛶</b> full screen (Esc leaves). <b>⛶</b> is also on each docked section. On a card, <b>⧉ Open in a pop-up</b> opens its file here in such a window. <b>⧉</b> beside any folder opens that folder as its own window; open as many as you like, drag each by its title, resize it from any side or corner, and drop a file or card on it to file it there (View → Close all folder windows). Sizes are remembered on this device.</li><li><b>MMJ from Siyagah:</b> once Siyagah is connected (the badge beside “The Map”), your Mapping My Journey folders and 📝 notes come live from Siyagah; open a note to read it here. Editing MMJ notes and folders from BwN comes with Siyagah’s next step. <b>Order and move:</b> choose a folder and use its <b>↑ ↓</b> (or Alt+↑/↓, or the right-click menu) to move it up or down; drag a folder onto another folder to put it inside; drag files and cards onto any folder. <b>Sections:</b> <b>＋▤</b> makes a new Section, its own group at the top of the Map (private); drop any file, card or recording in it. <b>Folders:</b> tap a folder, then <b>＋📁 new · ✎ rename · ⇄ move · 🗑 delete</b> on the Map’s top row (⊞ / ⊟ open or close all, ＋🎬 new post, 📂 only folders with files), or right-click a folder (long-press on a phone) for the same menu. WorkFlow and Library folders change at once (delete can be undone); Mapping My Journey folders change through Siyagah’s shared folders (Stage 2).</li><li><b>📄 Pages outside Claude:</b> a card’s page (demo, list, report) is kept in your Library and opens on its own at <code>…/library/page.html</code>, private to you; tick <b>Show to visitors</b> on the card to make that page public (anyone with the link).</li><li><b>☰</b> (on the Files header) hides or shows the Map. <b>Status</b> (Any · To do · Doing · Done) filters the list; a search looks in every folder. The page remembers the folder and item you had open. <b>Find and sort</b>: search in the top bar; <b>Filters</b> and <b>Sort</b> sit on the Files bar: search, <b>Filters</b> (Topic, Subject, Project, Type, Group) and <b>Sort</b> by date, type, project, size or stage (Draft · Under process · Finished · Published). Every row and note shows 📁 where it belongs; Filters → Folder paths (or View) shows it in one line or as a tree.</li></ul>
+    <li><b>Sizes:</b> drag the thin bars between the sections to make one wider. <b>⧉</b> on a section’s header pops it out as its own window: drag it by its header, resize it from any side or corner; <b>⇲</b> docks it back (View → Dock all sections). Every pop-up window has the same buttons on its title bar: <b>▾</b> folds it to its title bar, <b>◧ ◨</b> snap it to the left or right half, <b>▣</b> fills the page (again: back to its size), <b>⛶</b> full screen (Esc leaves). <b>⛶</b> is also on each docked section. On a card, <b>⧉ Open in a pop-up</b> opens its file here in such a window. <b>🌐 Sites</b> (menu bar) lists every live GitHub site with its link; tap one to open it in its own window, or <b>📋 Copy all links</b>. <b>⧉</b> beside any folder opens that folder as its own window; open as many as you like, drag each by its title, resize it from any side or corner, and drop a file or card on it to file it there (View → Close all folder windows). Sizes are remembered on this device.</li><li><b>MMJ from Siyagah:</b> once Siyagah is connected (the badge beside “The Map”), your Mapping My Journey folders and 📝 notes come live from Siyagah; open a note to read it here. Editing MMJ notes and folders from BwN comes with Siyagah’s next step. <b>Order and move:</b> choose a folder and use its <b>↑ ↓</b> (or Alt+↑/↓, or the right-click menu) to move it up or down; drag a folder onto another folder to put it inside; drag files and cards onto any folder. <b>Sections:</b> <b>＋▤</b> makes a new Section, its own group at the top of the Map (private); drop any file, card or recording in it. <b>Folders:</b> tap a folder, then <b>＋📁 new · ✎ rename · ⇄ move · 🗑 delete</b> on the Map’s top row (⊞ / ⊟ open or close all, ＋🎬 new post, 📂 only folders with files), or right-click a folder (long-press on a phone) for the same menu. WorkFlow and Library folders change at once (delete can be undone); Mapping My Journey folders change through Siyagah’s shared folders (Stage 2).</li><li><b>📄 Pages outside Claude:</b> a card’s page (demo, list, report) is kept in your Library and opens on its own at <code>…/library/page.html</code>, private to you; tick <b>Show to visitors</b> on the card to make that page public (anyone with the link).</li><li><b>☰</b> (on the Files header) hides or shows the Map. <b>Status</b> (Any · To do · Doing · Done) filters the list; a search looks in every folder. The page remembers the folder and item you had open. <b>Find and sort</b>: search in the top bar; <b>Filters</b> and <b>Sort</b> sit on the Files bar: search, <b>Filters</b> (Topic, Subject, Project, Type, Group) and <b>Sort</b> by date, type, project, size or stage (Draft · Under process · Finished · Published). Every row and note shows 📁 where it belongs; Filters → Folder paths (or View) shows it in one line or as a tree.</li></ul>
     <h3>Where your files are kept</h3><ul>
     <li><b>Recordings and Otter files:</b> in your own Google Drive (BasheeraWaNazeera@gmail.com) → My Drive → folder <b>“To BwN”</b>. Nobody else can open them unless you press “Share link”.</li>
     <li><b>Title, folder, transcript and notes:</b> in the BWN Firebase database (project basheera-wa-nazeera), readable only by your Google account.</li>
@@ -2165,6 +2168,7 @@ const MENUS = () => [
   ["Share", [["Share links of ticked files", () => bulkShare(true), "", !sel.size], ["Stop sharing ticked files", () => bulkShare(false), "", !sel.size]]],
   ["⭐ Quick", quickItems()],
   ["🕘 Legacy", legacyItems()],
+  ["🌐 Sites", sitesItems()],
   ["Help", [["How it works · where files are kept", () => { draft = null; cur = null; draw(); showNote(); tab("note"); }, "?"]]],
 ];
 // ⭐ Quick: the files you open often (owner, 16 Nov). ⭐ on a card adds or removes it; Color Studio and Scholars start in it.
@@ -2181,6 +2185,24 @@ fetch("./legacy/index.json", { cache: "no-cache" }).then(r => r.ok ? r.json() : 
 function legacyItems() {
   return LEGACYV.length ? LEGACYV.map(v => ["Legacy " + v.ver + " - " + v.stamp, () => window.open("./legacy/" + v.file + "?demo", "_blank", "noopener")]) : [["No earlier versions yet", () => { }, "", true]];
 }
+// 🌐 Sites: every live GitHub site, each opens in its own window (owner, 16 Nov). Checked live 16 Nov; add a new site here.
+const SITES = [
+  ["Basheera Wa Nazeera", "https://basheerawanazeera.github.io/BasheeraWaNazeera/"],
+  ["BwN Database", "https://basheerawanazeera.github.io/BasheeraWaNazeera/library/my.html"],
+  ["Siyagah · My Knowledge Notebook", "https://siyagah.github.io/"],
+  ["Mapping My Journey", "https://mappingmyjourney.github.io/MappingMyJourney/"],
+  ["Madrasatul Muslimeen", "https://madrasatul-muslimeen.github.io/Madrasatul-Muslimeen/"],
+  ["Madrasatul Muslimeen · QuranRevival", "https://madrasatul-muslimeen.github.io/"],
+  ["QuranRevival", "https://quranrevival.github.io/"],
+  ["Learn Deen On-the-Go", "https://learndeenonthego.github.io/LearnDeenOnTheGo/"],
+  ["Hijrah Made Easy", "https://hijrahmadeeasy.github.io/HijrahMadeEasy/"],
+  ["For the Good Hearts", "https://forthegoodhearts.github.io/"],
+  ["SSEVM", "https://ssevm.github.io/SSEVM/"],
+];
+function sitesItems() {
+  return SITES.map(([n, u]) => ["↗ " + n, () => window.open(u, "_blank", "noopener"), u.replace(/^https:\/\//, "").replace(/\/$/, "")])
+    .concat(["-", ["📋 Copy all links", () => { const t = SITES.map(([n, u]) => n + " — " + u).join("\n"); (navigator.clipboard?.writeText(t) || Promise.reject()).then(() => toast("All " + SITES.length + " site links copied."), () => prompt("Copy the links:", t)); }]]);
+}
 let openMenu = null;
 function buildMenus() {
   const bar = $("menubar"), host = $("menus"); bar.querySelectorAll(".menu").forEach(m => m.remove());
@@ -2191,11 +2213,12 @@ function buildMenus() {
     const d = document.createElement("div"); d.className = "drop"; d.hidden = openMenu !== name; d.setAttribute("role", "menu");
     items.forEach(it => { if (it === "-") { d.append(document.createElement("hr")); return; }
       const [label, fn, key, off] = it; const x = document.createElement("button"); x.type = "button"; x.setAttribute("role", "menuitem");
-      x.innerHTML = `<span>${esc(label)}</span>${key ? `<kbd>${esc(key)}</kbd>` : ""}`; x.disabled = !!off || (!ownerOk && name !== "Help" && name !== "View" && name !== "🕘 Legacy");
+      x.innerHTML = `<span>${esc(label)}</span>${key ? `<kbd>${esc(key)}</kbd>` : ""}`; x.disabled = !!off || (!ownerOk && name !== "Help" && name !== "View" && name !== "🕘 Legacy" && name !== "🌐 Sites");
       x.onclick = () => { openMenu = null; buildMenus(); fn(); }; d.append(x); });
     b.onclick = e => { e.stopPropagation(); openMenu = openMenu === name ? null : name; buildMenus(); if (openMenu) bar.querySelector(".drop:not([hidden]) button:not(:disabled)")?.focus(); };
     b.onmouseenter = () => { if (openMenu && openMenu !== name) { openMenu = name; buildMenus(); } };
     m.append(b, d); host.append(m);
+    if (name === "🌐 Sites") { d.classList.add("sites"); if (!d.hidden && innerWidth < 640) Object.assign(d.style, { position: "fixed", left: "8px", right: "auto", top: Math.round(b.getBoundingClientRect().bottom + 2) + "px", maxHeight: "calc(100vh - " + Math.round(b.getBoundingClientRect().bottom + 12) + "px)", overflow: "auto" }); }
   });
 }
 document.addEventListener("click", e => { if (openMenu && !e.target.closest(".menu")) { openMenu = null; buildMenus(); }
