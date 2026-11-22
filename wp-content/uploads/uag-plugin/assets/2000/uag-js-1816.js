@@ -24,7 +24,7 @@ if ( social_url == "mailto:?body=" ) {
 }
 var request_url = "";
 if ( social_url.indexOf("/pin/create/link/?url=") !== -1 ) {
-	request_url = social_url + encodeURIComponent( window.location.href ) + "&media=" + 'https://i0.wp.com/basheerawanazeera.com/wp-content/uploads/2019/06/a2230-nature12.jpeg?fit=500%2C333&#038;ssl=1';
+	request_url = social_url + encodeURIComponent( window.location.href ) + "&media=" + 'https://i0.wp.com/basheerawanazeera.com/wp-content/uploads/2019/06/501f7-nature13.jpeg?fit=500%2C260&#038;ssl=1';
 } else {
 	request_url = social_url + encodeURIComponent( window.location.href );
 }
@@ -32,7 +32,7 @@ window.open( request_url, target );
 }
 window.addEventListener("DOMContentLoaded", function(){
 	var swiper = new Swiper( ".uagb-block- .uagb-swiper",
-		{"autoplay":{"delay":3000,"disableOnInteraction":false,"pauseOnMouseEnter":true,"stopOnLastSlide":false},"loop":true,"speed":800,"effect":"slide","direction":"horizontal","flipEffect":{"slideShadows":false},"fadeEffect":{"crossFade":true},"pagination":{"el":".uagb-block- .swiper-pagination","clickable":true,"hideOnClick":false},"navigation":{"nextEl":".uagb-block- .swiper-button-next","prevEl":".uagb-block- .swiper-button-prev"}}	);
+		{"autoplay":{"delay":3000,"disableOnInteraction":false,"pauseOnMouseEnter":true,"stopOnLastSlide":false},"loop":true,"speed":800,"effect":"slide","direction":"horizontal","flipEffect":{"slideShadows":false},"fadeEffect":{"crossFade":true},"pagination":{"el":".uagb-block- .swiper-pagination","clickable":true,"hideOnClick":false},"navigation":{"nextEl":".uagb-block- .swiper-button-next","prevEl":".uagb-block- .swiper-button-prev","addIcons":false}}	);
 });
 
 window.addEventListener( 'load', function(){
@@ -61,7 +61,7 @@ if ( social_url == "mailto:?body=" ) {
 }
 var request_url = "";
 if ( social_url.indexOf("/pin/create/link/?url=") !== -1 ) {
-	request_url = social_url + encodeURIComponent( window.location.href ) + "&media=" + 'https://i0.wp.com/basheerawanazeera.com/wp-content/uploads/2019/06/a2230-nature12.jpeg?fit=500%2C333&#038;ssl=1';
+	request_url = social_url + encodeURIComponent( window.location.href ) + "&media=" + 'https://i0.wp.com/basheerawanazeera.com/wp-content/uploads/2019/06/501f7-nature13.jpeg?fit=500%2C260&#038;ssl=1';
 } else {
 	request_url = social_url + encodeURIComponent( window.location.href );
 }

@@ -24,7 +24,7 @@ if ( social_url == "mailto:?body=" ) {
 }
 var request_url = "";
 if ( social_url.indexOf("/pin/create/link/?url=") !== -1 ) {
-	request_url = social_url + encodeURIComponent( window.location.href ) + "&media=" + 'https://i0.wp.com/basheerawanazeera.com/wp-content/uploads/2019/03/0bc81-message1.png?fit=340%2C340&#038;ssl=1';
+	request_url = social_url + encodeURIComponent( window.location.href ) + "&media=" + 'https://i0.wp.com/basheerawanazeera.com/wp-content/uploads/2019/11/0f60f-thunder1.jpg?fit=820%2C393&#038;ssl=1';
 } else {
 	request_url = social_url + encodeURIComponent( window.location.href );
 }
@@ -32,7 +32,7 @@ window.open( request_url, target );
 }
 window.addEventListener("DOMContentLoaded", function(){
 	var swiper = new Swiper( ".uagb-block- .uagb-swiper",
-		{"autoplay":{"delay":3000,"disableOnInteraction":false,"pauseOnMouseEnter":true,"stopOnLastSlide":false},"loop":true,"speed":800,"effect":"slide","direction":"horizontal","flipEffect":{"slideShadows":false},"fadeEffect":{"crossFade":true},"pagination":{"el":".uagb-block- .swiper-pagination","clickable":true,"hideOnClick":false},"navigation":{"nextEl":".uagb-block- .swiper-button-next","prevEl":".uagb-block- .swiper-button-prev"}}	);
+		{"autoplay":{"delay":3000,"disableOnInteraction":false,"pauseOnMouseEnter":true,"stopOnLastSlide":false},"loop":true,"speed":800,"effect":"slide","direction":"horizontal","flipEffect":{"slideShadows":false},"fadeEffect":{"crossFade":true},"pagination":{"el":".uagb-block- .swiper-pagination","clickable":true,"hideOnClick":false},"navigation":{"nextEl":".uagb-block- .swiper-button-next","prevEl":".uagb-block- .swiper-button-prev","addIcons":false}}	);
 });
 
 window.addEventListener( 'load', function(){
@@ -61,7 +61,7 @@ if ( social_url == "mailto:?body=" ) {
 }
 var request_url = "";
 if ( social_url.indexOf("/pin/create/link/?url=") !== -1 ) {
-	request_url = social_url + encodeURIComponent( window.location.href ) + "&media=" + 'https://i0.wp.com/basheerawanazeera.com/wp-content/uploads/2019/03/0bc81-message1.png?fit=340%2C340&#038;ssl=1';
+	request_url = social_url + encodeURIComponent( window.location.href ) + "&media=" + 'https://i0.wp.com/basheerawanazeera.com/wp-content/uploads/2019/11/0f60f-thunder1.jpg?fit=820%2C393&#038;ssl=1';
 } else {
 	request_url = social_url + encodeURIComponent( window.location.href );
 }
